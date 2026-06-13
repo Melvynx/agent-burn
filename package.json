@@ -9,7 +9,8 @@
 	],
 	"type": "module",
 	"scripts": {
-		"preinstall": "npx only-allow pnpm"
+		"preinstall": "npx only-allow pnpm",
+		"release:npm": "node scripts/release-npm.mjs"
 	},
 	"dependencies": {},
 	"devDependencies": {

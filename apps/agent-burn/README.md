@@ -95,6 +95,17 @@ cargo build --manifest-path rust/Cargo.toml --release --bin agent-burn
 node --test apps/agent-burn/src/cli.test.ts
 ```
 
+## Release
+
+After `npm login`, publish a new npm release for the current platform and the
+main wrapper package with one command:
+
+```bash
+pnpm release:npm -- --bump patch
+```
+
+Use `--dry-run` to validate the release without publishing.
+
 ## License
 
 MIT
