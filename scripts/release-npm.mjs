@@ -130,6 +130,7 @@ if (!options.dryRun) {
 		capture: true,
 	});
 	log(`Published agent-burn@${version}`);
+	commitReleaseIfRequested(version);
 	log('Verify with: npm install -g agent-burn && agent-burn --version');
 } else {
 	log('Dry run complete. No package was published.');
@@ -140,6 +141,7 @@ function parseArgs(args) {
 		access: 'public',
 		allowDirty: false,
 		bump: undefined,
+		commit: false,
 		dryRun: false,
 		otp: undefined,
 		provenance: false,
@@ -147,6 +149,7 @@ function parseArgs(args) {
 		skipAuthCheck: false,
 		skipExistingCheck: false,
 		tag: 'latest',
+		push: false,
 	};
 
 	for (let index = 0; index < args.length; index += 1) {
@@ -157,6 +160,11 @@ function parseArgs(args) {
 			parsed.allowDirty = true;
 		} else if (arg === '--dry-run') {
 			parsed.dryRun = true;
+		} else if (arg === '--commit') {
+			parsed.commit = true;
+		} else if (arg === '--push') {
+			parsed.commit = true;
+			parsed.push = true;
 		} else if (arg === '--skip-auth-check') {
 			parsed.skipAuthCheck = true;
 		} else if (arg === '--skip-existing-check') {
@@ -338,6 +346,51 @@ function publishTarball(tarball) {
 		args.push('--dry-run');
 	}
 	run('npm', args);
+}
+
+function commitReleaseIfRequested(releaseVersion) {
+	if (!options.commit) {
+		return;
+	}
+
+	if (options.allowDirty) {
+		fail('--commit/--push cannot be combined with --allow-dirty. Commit or stash unrelated changes first.');
+	}
+
+	const releaseFiles = [
+		'package.json',
+		'apps/agent-burn/package.json',
+		'docs/package.json',
+		'rust/Cargo.lock',
+		...Object.values(nativePackages)
+			.flatMap((packagesForPlatform) => Object.values(packagesForPlatform))
+			.map((packageName) => `packages/${packageName}/package.json`),
+		...[
+			'agent-burn',
+			'agent-burn-cli',
+			'agent-burn-terminal',
+			'agent-burn-test-support',
+		].map((crateName) => `rust/crates/${crateName}/Cargo.toml`),
+	];
+
+	run('git', ['add', '--', ...releaseFiles]);
+	const staged = run('git', ['diff', '--cached', '--quiet'], {
+		allowFailure: true,
+		capture: true,
+	});
+	if (staged.status === 0) {
+		log('No release version changes to commit.');
+	} else {
+		run('git', ['commit', '-m', `chore: release agent-burn v${releaseVersion}`]);
+	}
+
+	if (options.push) {
+		const branch = run('git', ['branch', '--show-current'], { capture: true }).stdout.trim();
+		if (branch === '') {
+			fail('Cannot push release commit because the current HEAD is detached.');
+		}
+		run('git', ['push', 'origin', branch]);
+	}
 }
 
 function registryArgs() {

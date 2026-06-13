@@ -101,7 +101,7 @@ After `npm login`, publish a new npm release for the current platform and the
 main wrapper package with one command:
 
 ```bash
-pnpm release:npm -- --bump patch
+pnpm release:npm -- --bump patch --commit --push
 ```
 
 Use `--dry-run` to validate the release without publishing.
