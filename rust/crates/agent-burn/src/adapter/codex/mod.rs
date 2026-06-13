@@ -1,4 +1,5 @@
 mod aggregate;
+mod images;
 mod loader;
 mod parser;
 mod paths;
@@ -8,6 +9,7 @@ mod speed;
 mod types;
 
 pub(crate) use aggregate::{aggregate_events, filter_events_by_date, load_groups};
+pub(crate) use images::image_generation_count_since;
 pub(crate) use loader::load_codex_events;
 #[cfg(test)]
 pub(crate) use loader::load_codex_events_from_directory;

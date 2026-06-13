@@ -1,5 +1,6 @@
 use serde_json::{Value, json};
 
+use super::summary::format_compact_tokens;
 use crate::{Color, cli::SharedArgs, format_currency, json_float};
 
 /// Average days per month, for normalising a window's value to a monthly figure.
@@ -322,8 +323,9 @@ fn agent_json(agent: &AgentValue) -> Value {
     })
 }
 
-/// A focused weekly-limit view for a single agent: how much of the quota is
-/// spent vs how much of the week has elapsed, plus a day-by-day breakdown.
+/// A focused harness dashboard for a single agent: the subscription economics
+/// (what you pay vs the pay-as-you-go equivalent and the subsidy), the live
+/// weekly limit (used vs time), a day-by-day graph, top models, and a trend.
 pub(super) struct WeeklyView<'a> {
     pub(super) agent: &'a str,
     pub(super) plan_name: Option<String>,
@@ -331,14 +333,21 @@ pub(super) struct WeeklyView<'a> {
     pub(super) window: Option<WindowCost>,
     pub(super) daily: Vec<(String, f64)>,
     pub(super) live_limits: bool,
+    /// Trailing-30-day API-equivalent spend for this agent.
+    pub(super) monthly_equiv: f64,
+    /// This agent's top models (last 30d): `(model, cost, tokens)`, by cost desc.
+    pub(super) models: Vec<(String, f64, u64)>,
+    /// `(week_start, cost)` over the last several calendar weeks.
+    pub(super) weekly_trend: Vec<(String, f64)>,
+    /// Number of gpt-image generations in the last 30d (Codex; 0 otherwise).
+    pub(super) image_count: usize,
+    /// Estimated per-image price used for the image-generation line.
+    pub(super) image_price: f64,
 }
 
 pub(super) fn print_weekly(view: &WeeklyView, shared: &SharedArgs) {
-    crate::print_box_title(
-        &format!("{} — Weekly Limit", title_case(view.agent)),
-        shared,
-    );
     let color = agent_color(view.agent);
+    crate::print_box_title(&format!("{} Harness", title_case(view.agent)), shared);
     let mut out = String::new();
 
     out.push_str("  ");
@@ -347,120 +356,303 @@ pub(super) fn print_weekly(view: &WeeklyView, shared: &SharedArgs) {
         plan_label_parts(view.plan_name.as_deref(), view.price),
         color,
     ));
-    out.push_str("\n\n");
+    out.push('\n');
 
-    match view.window.as_ref() {
-        Some(window) => {
-            let elapsed_percent =
-                (window.elapsed_minutes / window.window_minutes as f64 * 100.0).min(100.0);
-            out.push_str(&bar_line(shared, "limit used", window.used_percent, color));
-            out.push_str(&bar_line(
-                shared,
-                "time elapsed",
-                elapsed_percent,
-                Color::Blue,
-            ));
-
-            let delta = window.used_percent - elapsed_percent;
-            let (pace, pace_color) = if delta < -1.0 {
-                (
-                    format!(
-                        "{:.0}pt under pace — quota burning slower than the clock",
-                        -delta
-                    ),
-                    Color::Green,
-                )
-            } else if delta > 1.0 {
-                (
-                    format!("{delta:.0}pt over pace — quota burning faster than the clock"),
-                    Color::Red,
-                )
-            } else {
-                ("right on pace".to_string(), Color::Grey)
-            };
-            out.push_str("                  ");
-            out.push_str(&crate::color(shared, format!("→ {pace}"), pace_color));
-            out.push_str("\n\n");
-
-            let resets_in =
-                (window.window_minutes as f64 - window.elapsed_minutes).max(0.0) / 1440.0;
-            out.push_str(&detail(
-                shared,
-                format!(
-                    "resets in {resets_in:.1}d · {} API-equiv spent so far",
-                    money(window.cost)
-                ),
-            ));
-            if let Some(quota) = quota_value(window) {
-                let value = match view.price {
-                    Some(price) => format!(
-                        "full quota ≈ {}/wk ≈ {}/mo  =  {:.0}× your ${price:.0}/mo plan",
-                        money(quota.full_quota),
-                        money(quota.monthly),
-                        quota.monthly / price,
-                    ),
-                    None => format!(
-                        "full quota ≈ {}/wk ≈ {}/mo of API usage",
-                        money(quota.full_quota),
-                        money(quota.monthly)
-                    ),
-                };
-                out.push_str(&detail(
-                    shared,
-                    format!(
-                        "projected ~{:.0}% used by reset · {value}",
-                        quota.projected_use_percent
-                    ),
-                ));
-            }
-        }
-        None => {
-            let note = if view.live_limits {
-                "no weekly limit window available yet"
-            } else {
-                "no live limits available (offline, or no signed-in token)"
-            };
-            out.push_str(&detail(shared, note.to_string()));
-        }
-    }
-
-    if !view.daily.is_empty() {
-        out.push_str("\n  day by day\n");
-        let max = view
-            .daily
-            .iter()
-            .map(|(_, cost)| *cost)
-            .fold(0.0_f64, f64::max);
-        let cost_width = view
-            .daily
-            .iter()
-            .map(|(_, cost)| format_currency(*cost).len())
-            .max()
-            .unwrap_or(0);
-        for (date, cost) in &view.daily {
-            out.push_str("    ");
-            out.push_str(&crate::color(shared, date.clone(), Color::Grey));
-            out.push_str("   ");
-            out.push_str(&crate::color(
-                shared,
-                format!("{:>cost_width$}", format_currency(*cost)),
-                Color::Green,
-            ));
-            out.push_str("   ");
-            out.push_str(&mini_bar(shared, *cost, max, color));
-            out.push('\n');
-        }
-    }
+    print_economics(&mut out, view, color, shared);
+    print_this_week(&mut out, view, color, shared);
+    print_daily(&mut out, view, color, shared);
+    print_models(&mut out, view, color, shared);
+    print_weekly_trend(&mut out, view, color, shared);
 
     print!("{out}");
 }
 
+/// Section 1 — what you pay vs the pay-as-you-go equivalent, and the subsidy.
+/// Codex image generations (gpt-image, absent from token usage) are added as a
+/// separate clearly-estimated line and folded into the equivalent.
+fn print_economics(out: &mut String, view: &WeeklyView, color: Color, shared: &SharedArgs) {
+    out.push_str("\n  economics · monthly\n");
+    let image_cost = view.image_count as f64 * view.image_price;
+    let total_equiv = view.monthly_equiv + image_cost;
+
+    let push_equiv = |out: &mut String| {
+        out.push_str(&kv(
+            shared,
+            "api-equivalent",
+            money(view.monthly_equiv),
+            color,
+            Some("token usage at pay-as-you-go prices · last 30d"),
+        ));
+        if view.image_count > 0 {
+            out.push_str(&kv(
+                shared,
+                "+ images",
+                money(image_cost),
+                color,
+                Some(&format!(
+                    "{} gpt-image gens · est. ${:.2}/img, not in token cost",
+                    view.image_count, view.image_price
+                )),
+            ));
+        }
+    };
+
+    match view.price {
+        Some(price) => {
+            out.push_str(&kv(shared, "you pay", money(price), Color::Grey, None));
+            push_equiv(out);
+            if total_equiv > 0.0 {
+                let savings = total_equiv - price;
+                let ratio = total_equiv / price;
+                let summary = if savings >= 0.0 {
+                    let discount = (1.0 - price / total_equiv).max(0.0) * 100.0;
+                    format!(
+                        "+{} /mo  ·  {discount:.0}% off  ·  {ratio:.1}× value",
+                        money(savings)
+                    )
+                } else {
+                    format!("{} /mo over — you'd pay less on the API", money(-savings))
+                };
+                out.push_str(&kv(shared, "subsidy", summary, Color::Yellow, None));
+            }
+        }
+        None => {
+            push_equiv(out);
+            out.push_str(&detail(
+                shared,
+                format!(
+                    "pass --{}-plan <PRICE> to compare with what you pay",
+                    view.agent
+                ),
+            ));
+        }
+    }
+}
+
+/// Section 2 — the live weekly rate-limit window: used vs time, pace, projection.
+fn print_this_week(out: &mut String, view: &WeeklyView, color: Color, shared: &SharedArgs) {
+    out.push_str("\n  this week\n");
+    let Some(window) = view.window.as_ref() else {
+        let note = if view.live_limits {
+            "no weekly limit window available yet"
+        } else {
+            "no live limits available (offline, or no signed-in token)"
+        };
+        out.push_str(&detail(shared, note.to_string()));
+        return;
+    };
+
+    let elapsed_percent =
+        (window.elapsed_minutes / window.window_minutes as f64 * 100.0).min(100.0);
+    out.push_str(&bar_line(shared, "limit used", window.used_percent, color));
+    out.push_str(&bar_line(
+        shared,
+        "time elapsed",
+        elapsed_percent,
+        Color::Blue,
+    ));
+
+    let delta = window.used_percent - elapsed_percent;
+    let (pace, pace_color) = if delta < -1.0 {
+        (
+            format!("{:.0}pt under pace — burning slower than the clock", -delta),
+            Color::Green,
+        )
+    } else if delta > 1.0 {
+        (
+            format!("{delta:.0}pt over pace — burning faster than the clock"),
+            Color::Red,
+        )
+    } else {
+        ("right on pace".to_string(), Color::Grey)
+    };
+    out.push_str("                     ");
+    out.push_str(&crate::color(shared, format!("→ {pace}"), pace_color));
+    out.push_str("\n\n");
+
+    let resets_in = (window.window_minutes as f64 - window.elapsed_minutes).max(0.0) / 1440.0;
+    out.push_str(&detail(
+        shared,
+        format!(
+            "resets in {resets_in:.1}d · {} API-equiv spent so far",
+            money(window.cost)
+        ),
+    ));
+    let elapsed_days = window.elapsed_minutes / 1440.0;
+    if elapsed_days >= 0.3 {
+        let projected = window.cost / elapsed_days * (window.window_minutes as f64 / 1440.0);
+        let quota_note = quota_value(window)
+            .map(|quota| format!(" · ~{:.0}% of quota", quota.projected_use_percent))
+            .unwrap_or_default();
+        out.push_str(&detail(
+            shared,
+            format!("on pace for {} this week{quota_note}", money(projected)),
+        ));
+    }
+}
+
+/// Section 3 — day-by-day spend within the current week.
+fn print_daily(out: &mut String, view: &WeeklyView, color: Color, shared: &SharedArgs) {
+    if view.daily.is_empty() {
+        return;
+    }
+    out.push_str("\n  day by day\n");
+    print_bar_rows(out, &view.daily, color, shared);
+}
+
+/// Section 4 — the agent's top models over the trailing month.
+fn print_models(out: &mut String, view: &WeeklyView, color: Color, shared: &SharedArgs) {
+    if view.models.is_empty() {
+        return;
+    }
+    out.push_str("\n  top models · 30d\n");
+    let total: f64 = view.models.iter().map(|(_, cost, _)| *cost).sum();
+    let max = view
+        .models
+        .iter()
+        .map(|(_, cost, _)| *cost)
+        .fold(0.0_f64, f64::max);
+    let name_width = view
+        .models
+        .iter()
+        .take(6)
+        .map(|(name, ..)| name.len())
+        .max()
+        .unwrap_or(0);
+    let cost_width = view
+        .models
+        .iter()
+        .take(6)
+        .map(|(_, cost, _)| money(*cost).len())
+        .max()
+        .unwrap_or(0);
+    let token_width = view
+        .models
+        .iter()
+        .take(6)
+        .map(|(_, _, tokens)| format_compact_tokens(*tokens).len())
+        .max()
+        .unwrap_or(0);
+    for (name, cost, tokens) in view.models.iter().take(6) {
+        let pct = if total > 0.0 {
+            cost / total * 100.0
+        } else {
+            0.0
+        };
+        let pct_str = if pct > 0.0 && pct < 0.5 {
+            "<1%".to_string()
+        } else {
+            format!("{pct:.0}%")
+        };
+        out.push_str("    ");
+        out.push_str(&crate::color(shared, format!("{name:<name_width$}"), color));
+        out.push_str("   ");
+        out.push_str(&crate::color(
+            shared,
+            format!("{:>cost_width$}", money(*cost)),
+            Color::Green,
+        ));
+        out.push_str("  ");
+        out.push_str(&crate::color(
+            shared,
+            format!("{:>token_width$} tok", format_compact_tokens(*tokens)),
+            Color::Grey,
+        ));
+        out.push_str("  ");
+        out.push_str(&crate::color(shared, format!("{pct_str:>4}"), Color::Grey));
+        out.push_str("  ");
+        out.push_str(&mini_bar(shared, *cost, max, color));
+        out.push('\n');
+    }
+    if view.models.len() > 6 {
+        let rest: f64 = view.models.iter().skip(6).map(|(_, cost, _)| *cost).sum();
+        out.push_str(&detail(
+            shared,
+            format!("… +{} more models · {}", view.models.len() - 6, money(rest)),
+        ));
+    }
+}
+
+/// Section 5 — weekly spend trend over the last several weeks.
+fn print_weekly_trend(out: &mut String, view: &WeeklyView, color: Color, shared: &SharedArgs) {
+    if view.weekly_trend.len() < 2 {
+        return;
+    }
+    out.push_str(&format!(
+        "\n  weekly trend · {} wks\n",
+        view.weekly_trend.len()
+    ));
+    print_bar_rows(out, &view.weekly_trend, color, shared);
+}
+
+/// Render `(label, cost)` rows with a right-aligned cost and a proportional bar.
+fn print_bar_rows(out: &mut String, rows: &[(String, f64)], color: Color, shared: &SharedArgs) {
+    let max = rows.iter().map(|(_, cost)| *cost).fold(0.0_f64, f64::max);
+    let cost_width = rows
+        .iter()
+        .map(|(_, cost)| money(*cost).len())
+        .max()
+        .unwrap_or(0);
+    for (label, cost) in rows {
+        out.push_str("    ");
+        out.push_str(&crate::color(shared, label.clone(), Color::Grey));
+        out.push_str("   ");
+        out.push_str(&crate::color(
+            shared,
+            format!("{:>cost_width$}", money(*cost)),
+            Color::Green,
+        ));
+        out.push_str("   ");
+        out.push_str(&mini_bar(shared, *cost, max, color));
+        out.push('\n');
+    }
+}
+
+/// A `label    value    note` economics row.
+fn kv(
+    shared: &SharedArgs,
+    label: &str,
+    value: String,
+    value_color: Color,
+    note: Option<&str>,
+) -> String {
+    let mut row = format!(
+        "    {:<14} {}",
+        label,
+        crate::color(shared, value, value_color)
+    );
+    if let Some(note) = note {
+        row.push_str(&format!("   {}", crate::color(shared, note, Color::Grey)));
+    }
+    row.push('\n');
+    row
+}
+
 pub(super) fn weekly_to_json(view: &WeeklyView) -> Value {
     let quota = view.window.as_ref().and_then(quota_value);
+    let economics = view
+        .price
+        .filter(|_| view.monthly_equiv > 0.0)
+        .map(|price| {
+            json!({
+                "pricePerMonth": json_float(price),
+                "apiEquivalentPerMonth": json_float(view.monthly_equiv),
+                "subsidyPerMonth": json_float(view.monthly_equiv - price),
+                "valueMultiple": json_float(view.monthly_equiv / price),
+                "discountPercent": json_float((1.0 - price / view.monthly_equiv).max(0.0) * 100.0),
+            })
+        });
     json!({
         "agent": view.agent,
         "plan": view.plan_name,
         "pricePerMonth": view.price.map(json_float),
+        "apiEquivalentPerMonth": json_float(view.monthly_equiv),
+        "imageGenerations": json!({
+            "count": view.image_count,
+            "pricePerImageEstimate": json_float(view.image_price),
+            "estimatedCost": json_float(view.image_count as f64 * view.image_price),
+        }),
+        "economics": economics,
         "liveLimits": view.live_limits,
         "window": view.window.as_ref().map(|window| json!({
             "windowMinutes": window.window_minutes,
@@ -475,6 +667,8 @@ pub(super) fn weekly_to_json(view: &WeeklyView) -> Value {
             "valueMultiple": view.price.map(|price| json_float(quota.monthly / price)),
         })),
         "daily": view.daily.iter().map(|(date, cost)| json!({ "date": date, "cost": json_float(*cost) })).collect::<Vec<_>>(),
+        "topModels": view.models.iter().take(6).map(|(model, cost, tokens)| json!({ "model": model, "cost": json_float(*cost), "tokens": tokens })).collect::<Vec<_>>(),
+        "weeklyTrend": view.weekly_trend.iter().map(|(week, cost)| json!({ "weekStart": week, "cost": json_float(*cost) })).collect::<Vec<_>>(),
     })
 }
 
@@ -484,7 +678,7 @@ fn bar_line(shared: &SharedArgs, label: &str, percent: f64, color: Color) -> Str
         .round()
         .clamp(0.0, WIDTH as f64) as usize;
     format!(
-        "  {label:<13} {percent:>3.0}%  {}{}\n",
+        "    {label:<12} {percent:>3.0}%  {}{}\n",
         crate::color(shared, "\u{2588}".repeat(filled), color),
         crate::color(shared, "\u{2591}".repeat(WIDTH - filled), Color::Grey),
     )

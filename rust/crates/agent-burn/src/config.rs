@@ -35,10 +35,10 @@ impl ConfigContext {
         if let Some(defaults) = object_at(root, "defaults") {
             maps.push(defaults);
         }
-        if let Some(commands) = object_at(root, "commands") {
-            if let Some(raw) = object_at(commands, &self.command.raw) {
-                maps.push(raw);
-            }
+        if let Some(commands) = object_at(root, "commands")
+            && let Some(raw) = object_at(commands, &self.command.raw)
+        {
+            maps.push(raw);
         }
         maps
     }

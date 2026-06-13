@@ -1,14 +1,14 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{Value, json};
 
 use crate::{
-    Color, IsoDate, Result, TimestampMs,
+    Color, IsoDate, MILLIS_PER_DAY, Result, TimestampMs,
     adapter::{claude, codex},
-    cli::{AgentReportKind, SharedArgs, SummaryArgs, SummaryRange},
+    cli::{AgentReportKind, SharedArgs, SummaryArgs, SummaryRange, WeekDay},
     fast::FxHashMap,
     format_currency, format_date_tz, format_utc_date, json_float, parse_iso_date, parse_tz,
-    print_json_or_jq, utc_now, wants_json,
+    print_json_or_jq, utc_now, wants_json, week_start,
 };
 
 use super::{
@@ -20,6 +20,11 @@ use super::{
 
 /// Width, in cells, of the proportional cost bar drawn next to each model.
 const BAR_WIDTH: usize = 16;
+
+/// Rough per-image cost for Codex's gpt-image generations (not in the logs, so
+/// estimated): a ~1–1.5 MP image at standard/high quality. Used only for the
+/// separate, clearly-labelled image-generation estimate in the harness view.
+const CODEX_IMAGE_PRICE_ESTIMATE: f64 = 0.15;
 
 /// Number of top models shown in the table before the remainder is collapsed
 /// into a single overflow line. JSON output always includes every model.
@@ -154,6 +159,18 @@ fn run_harness_weekly(
         })
         .unwrap_or_default();
 
+    // Codex's built-in image generations are billed as gpt-image but carry no
+    // token usage, so they are missing from the token-based cost. Count them
+    // over the same trailing window for a separate estimate.
+    let image_count = if agent == "codex" {
+        let start = utc_now()
+            .checked_sub_millis(30 * MILLIS_PER_DAY)
+            .unwrap_or_else(utc_now);
+        codex::image_generation_count_since(start)
+    } else {
+        0
+    };
+
     let view = WeeklyView {
         agent,
         plan_name,
@@ -161,6 +178,11 @@ fn run_harness_weekly(
         window,
         daily,
         live_limits,
+        monthly_equiv: agent_cost_last_days(rows, 30, agent),
+        models: agent_models_last_days(rows, 30, agent),
+        weekly_trend: agent_weekly_trend(rows, agent, 8),
+        image_count,
+        image_price: CODEX_IMAGE_PRICE_ESTIMATE,
     };
     if wants_json(shared) {
         return print_json_or_jq(
@@ -171,6 +193,72 @@ fn run_harness_weekly(
     }
     subscription::print_weekly(&view, shared);
     Ok(())
+}
+
+/// One agent's cost contribution within a daily all-agents row.
+fn row_agent_cost(row: &AllRow, agent: &str) -> f64 {
+    row.agent_breakdowns
+        .as_ref()
+        .and_then(|breakdowns| breakdowns.iter().find(|b| b.agent == agent))
+        .map_or(0.0, |breakdown| breakdown.total_cost)
+}
+
+/// Trailing-window API-equivalent spend for one agent (the monthly comparison
+/// basis), prorating the first day.
+fn agent_cost_last_days(rows: &[AllRow], days: i64, agent: &str) -> f64 {
+    let start = utc_now()
+        .checked_sub_millis(days * MILLIS_PER_DAY)
+        .unwrap_or_else(utc_now);
+    agent_cost_in_window(rows, start, agent)
+}
+
+/// One agent's top models over the trailing window: `(model, cost, tokens)`,
+/// sorted by API-equivalent cost descending.
+fn agent_models_last_days(rows: &[AllRow], days: i64, agent: &str) -> Vec<(String, f64, u64)> {
+    let start = utc_now()
+        .checked_sub_millis(days * MILLIS_PER_DAY)
+        .unwrap_or_else(utc_now);
+    let start_date = format_utc_date(start);
+    let mut totals: FxHashMap<String, (f64, u64)> = FxHashMap::default();
+    for row in rows
+        .iter()
+        .filter(|row| row.period.as_str() >= start_date.as_str())
+    {
+        if let Some(breakdown) = row
+            .agent_breakdowns
+            .as_ref()
+            .and_then(|breakdowns| breakdowns.iter().find(|b| b.agent == agent))
+        {
+            for model in &breakdown.model_breakdowns {
+                let tokens = model.input_tokens
+                    + model.output_tokens
+                    + model.cache_creation_tokens
+                    + model.cache_read_tokens
+                    + model.extra_total_tokens;
+                let entry = totals.entry(model.model_name.clone()).or_default();
+                entry.0 += model.cost;
+                entry.1 += tokens;
+            }
+        }
+    }
+    let mut models: Vec<(String, f64, u64)> = totals
+        .into_iter()
+        .map(|(name, (cost, tokens))| (name, cost, tokens))
+        .collect();
+    models.sort_by(|a, b| b.1.total_cmp(&a.1));
+    models
+}
+
+/// One agent's weekly spend over the last `weeks` calendar weeks (Monday start).
+fn agent_weekly_trend(rows: &[AllRow], agent: &str, weeks: usize) -> Vec<(String, f64)> {
+    let mut by_week: BTreeMap<String, f64> = BTreeMap::new();
+    for row in rows {
+        let week = week_start(&row.period, WeekDay::Monday).unwrap_or_else(|| row.period.clone());
+        *by_week.entry(week).or_default() += row_agent_cost(row, agent);
+    }
+    let mut trend: Vec<(String, f64)> = by_week.into_iter().collect();
+    let start = trend.len().saturating_sub(weeks);
+    trend.split_off(start)
 }
 
 /// Collect one agent's per-day cost across the window (full days, chronological).
@@ -672,7 +760,7 @@ fn title(detected_agents: &[&'static str]) -> String {
 }
 
 /// Format a token count compactly (e.g. `1.2B`, `847.2M`, `3.1M`, `999`).
-fn format_compact_tokens(value: u64) -> String {
+pub(super) fn format_compact_tokens(value: u64) -> String {
     const K: f64 = 1_000.0;
     const M: f64 = 1_000_000.0;
     const B: f64 = 1_000_000_000.0;

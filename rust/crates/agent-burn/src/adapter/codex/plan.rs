@@ -66,10 +66,9 @@ fn find_rate_limits(value: &Value) -> Option<&Value> {
     if let Some(rate_limits) = value
         .get("payload")
         .and_then(|payload| payload.get("rate_limits"))
+        && rate_limits.get("plan_type").is_some()
     {
-        if rate_limits.get("plan_type").is_some() {
-            return Some(rate_limits);
-        }
+        return Some(rate_limits);
     }
     find_rate_limits_recursive(value)
 }
@@ -77,10 +76,10 @@ fn find_rate_limits(value: &Value) -> Option<&Value> {
 fn find_rate_limits_recursive(value: &Value) -> Option<&Value> {
     match value {
         Value::Object(map) => {
-            if let Some(rate_limits) = map.get("rate_limits") {
-                if rate_limits.get("plan_type").is_some() {
-                    return Some(rate_limits);
-                }
+            if let Some(rate_limits) = map.get("rate_limits")
+                && rate_limits.get("plan_type").is_some()
+            {
+                return Some(rate_limits);
             }
             map.values().find_map(find_rate_limits_recursive)
         }
