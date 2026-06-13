@@ -29,7 +29,7 @@ in
       };
     in
     pkgs.lib.mkIf pkgs.stdenv.isDarwin {
-      packages.ccusage-darwin-x64 =
+      packages."agent-burn-darwin-x64" =
         let
           target = "x86_64-apple-darwin";
           crossCraneLib = (inputs.crane.mkLib pkgs).overrideToolchain (
@@ -45,13 +45,13 @@ in
           # silently.
           crossBuildInputs = pkgs.lib.filter (
             dep: dep != pkgs.libiconv
-          ) config.packages.ccusage.passthru.commonArgs.buildInputs;
-          crossCommonArgs = config.packages.ccusage.passthru.commonArgs // {
-            cargoExtraArgs = "-p ccusage --bin ccusage --target ${target}";
+          ) config.packages.agent-burn.passthru.commonArgs.buildInputs;
+          crossCommonArgs = config.packages.agent-burn.passthru.commonArgs // {
+            cargoExtraArgs = "-p agent-burn --bin agent-burn --target ${target}";
             buildInputs = crossBuildInputs;
           };
-          crossDepsOnlyArgs = config.packages.ccusage.passthru.depsOnlyArgs // {
-            cargoExtraArgs = "-p ccusage --bin ccusage --target ${target}";
+          crossDepsOnlyArgs = config.packages.agent-burn.passthru.depsOnlyArgs // {
+            cargoExtraArgs = "-p agent-burn --bin agent-burn --target ${target}";
             buildInputs = crossBuildInputs;
           };
           crossCargoArtifacts = crossCraneLib.buildDepsOnly crossDepsOnlyArgs;
@@ -63,16 +63,16 @@ in
             # End-user Intel Macs have no /nix/store, so fail the build if the
             # binary links anything outside the macOS system paths.
             postInstall = ''
-              for lib in $(otool -L "$out/bin/ccusage" | tail -n +2 | awk '{print $1}' | grep -E '^/nix/store/[^/]+-libiconv-'); do
-                install_name_tool -change "$lib" /usr/lib/libiconv.2.dylib "$out/bin/ccusage"
+              for lib in $(otool -L "$out/bin/agent-burn" | tail -n +2 | awk '{print $1}' | grep -E '^/nix/store/[^/]+-libiconv-'); do
+                install_name_tool -change "$lib" /usr/lib/libiconv.2.dylib "$out/bin/agent-burn"
               done
-              if otool -L "$out/bin/ccusage" | tail -n +2 | awk '{print $1}' | grep -Ev '^(/usr/lib/|/System/Library/)'; then
-                echo "error: ccusage-darwin-x64 links dylibs that do not exist on end-user machines" >&2
+              if otool -L "$out/bin/agent-burn" | tail -n +2 | awk '{print $1}' | grep -Ev '^(/usr/lib/|/System/Library/)'; then
+                echo "error: agent-burn-darwin-x64 links dylibs that do not exist on end-user machines" >&2
                 exit 1
               fi
             '';
-            meta = config.packages.ccusage.meta // {
-              description = "Intel (x86_64) macOS build of ccusage";
+            meta = config.packages.agent-burn.meta // {
+              description = "Intel (x86_64) macOS build of agent-burn";
             };
           }
         );

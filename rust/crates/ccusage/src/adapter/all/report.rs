@@ -445,7 +445,7 @@ fn first_column(kind: AgentReportKind) -> &'static str {
     }
 }
 
-fn agent_label(agent: &str) -> &str {
+pub(super) fn agent_label(agent: &str) -> &str {
     match agent {
         "all" => "All",
         "claude" => "Claude",

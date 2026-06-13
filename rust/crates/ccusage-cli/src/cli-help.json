@@ -1,5 +1,5 @@
 {
-	"agent_options": [
+	"shared_options": [
 		{
 			"flags": "-j, --json",
 			"description": "Output in JSON format",
@@ -15,287 +15,39 @@
 		},
 		{
 			"flags": "-z, --timezone <timezone>",
-			"description": "Timezone for date grouping (IANA)"
+			"description": "Timezone for date grouping (IANA)",
+			"default": "system timezone"
 		},
 		{
-			"flags": "-O, --offline",
-			"description": "Use cached pricing data instead of fetching from LiteLLM",
-			"default": "false"
-		},
-		{
-			"flags": "--no-offline",
-			"description": "Negatable of -O, --offline"
-		},
-		{
-			"flags": "--compact",
-			"description": "Force compact table layout for narrow terminals",
-			"default": "false"
-		},
-		{
-			"flags": "--no-cost",
-			"description": "Hide cost information in table and JSON output",
-			"default": "false"
-		},
-		{
-			"flags": "--color",
-			"description": "Enable colored output. FORCE_COLOR=1 has the same effect.",
-			"default": "auto"
-		},
-		{
-			"flags": "--no-color",
-			"description": "Disable colored output. NO_COLOR=1 has the same effect.",
-			"default": "auto"
-		},
-		{
-			"flags": "--config <config>",
-			"description": "Path to configuration file",
-			"default": "auto-discovery"
-		},
-		{
-			"flags": "-h, --help",
-			"description": "Display this help message"
-		},
-		{
-			"flags": "-v, --version",
-			"description": "Display this version"
-		}
-	],
-	"all_agent_options": [
-		{
-			"flags": "-j, --json",
-			"description": "Output in JSON format",
-			"default": "false"
-		},
-		{
-			"flags": "-s, --since <since>",
-			"description": "Filter from date (YYYY-MM-DD or YYYYMMDD)"
-		},
-		{
-			"flags": "-u, --until <until>",
-			"description": "Filter until date (inclusive)"
-		},
-		{
-			"flags": "-z, --timezone <timezone>",
-			"description": "Timezone for date grouping (IANA)"
-		},
-		{
-			"flags": "--all",
-			"description": "Accepted for compatibility; all detected supported agents are included by default",
-			"default": "false"
-		},
-		{
-			"flags": "-O, --offline",
-			"description": "Use cached pricing data where supported",
-			"default": "false"
-		},
-		{
-			"flags": "--no-offline",
-			"description": "Negatable of -O, --offline"
-		},
-		{
-			"flags": "--compact",
-			"description": "Force compact table layout for narrow terminals",
-			"default": "false"
-		},
-		{
-			"flags": "--no-cost",
-			"description": "Hide cost information in table and JSON output",
-			"default": "false"
-		},
-		{
-			"flags": "--color",
-			"description": "Enable colored output. FORCE_COLOR=1 has the same effect.",
-			"default": "auto"
-		},
-		{
-			"flags": "--no-color",
-			"description": "Disable colored output. NO_COLOR=1 has the same effect.",
-			"default": "auto"
-		},
-		{
-			"flags": "--config <config>",
-			"description": "Path to configuration file",
-			"default": "auto-discovery"
-		},
-		{
-			"flags": "-h, --help",
-			"description": "Display this help message"
-		},
-		{
-			"flags": "-v, --version",
-			"description": "Display this version"
-		}
-	],
-	"blocks_options": [
-		{
-			"flags": "-a, --active",
-			"description": "Show only active block with projections",
-			"default": "false"
-		},
-		{
-			"flags": "-r, --recent",
-			"description": "Show blocks from last 3 days (including active)",
-			"default": "false"
-		},
-		{
-			"flags": "-t, --token-limit <token-limit>",
-			"description": "Token limit for quota warnings (e.g., 500000 or \"max\")"
-		},
-		{
-			"flags": "-n, --session-length [session-length]",
-			"description": "Session block duration in hours",
-			"default": "5"
-		}
-	],
-	"codex_options": [
-		{
-			"flags": "-j, --json",
-			"description": "Output in JSON format",
-			"default": "false"
-		},
-		{
-			"flags": "-s, --since <since>",
-			"description": "Filter from date (YYYY-MM-DD or YYYYMMDD)"
-		},
-		{
-			"flags": "-u, --until <until>",
-			"description": "Filter until date (inclusive)"
-		},
-		{
-			"flags": "-z, --timezone <timezone>",
-			"description": "Timezone for date grouping (IANA)"
-		},
-		{
-			"flags": "-O, --offline",
-			"description": "Use cached pricing data instead of fetching from LiteLLM",
-			"default": "false"
-		},
-		{
-			"flags": "--no-offline",
-			"description": "Negatable of -O, --offline"
-		},
-		{
-			"flags": "--speed [speed]",
-			"description": "Cost speed tier: auto reads Codex config.toml service_tier; use standard or fast to override",
-			"default": "auto",
-			"choices": ["auto", "standard", "fast"]
-		},
-		{
-			"flags": "--compact",
-			"description": "Force compact table layout for narrow terminals",
-			"default": "false"
-		},
-		{
-			"flags": "--no-cost",
-			"description": "Hide cost information in table and JSON output",
-			"default": "false"
-		},
-		{
-			"flags": "--color",
-			"description": "Enable colored output. FORCE_COLOR=1 has the same effect.",
-			"default": "auto"
-		},
-		{
-			"flags": "--no-color",
-			"description": "Disable colored output. NO_COLOR=1 has the same effect.",
-			"default": "auto"
-		},
-		{
-			"flags": "--config <config>",
-			"description": "Path to configuration file",
-			"default": "auto-discovery"
-		},
-		{
-			"flags": "-h, --help",
-			"description": "Display this help message"
-		},
-		{
-			"flags": "-v, --version",
-			"description": "Display this version"
-		}
-	],
-	"daily_options": [
-		{
-			"flags": "-i, --instances",
-			"description": "Show usage breakdown by project/instance",
-			"default": "false"
-		},
-		{
-			"flags": "-p, --project <project>",
-			"description": "Filter to specific project name"
-		},
-		{
-			"flags": "--project-aliases <project-aliases>",
-			"description": "Comma-separated project aliases (e.g., 'ccusage=Usage Tracker,myproject=My Project')"
-		}
-	],
-	"pi_options": [
-		{
-			"flags": "--pi-path <pi-path>",
-			"description": "Path or comma-separated paths to pi-agent sessions directories"
-		}
-	],
-	"openclaw_options": [
-		{
-			"flags": "--open-claw-path <open-claw-path>",
-			"description": "Path or comma-separated paths to OpenClaw data directories (default: ~/.openclaw, ~/.clawdbot, ~/.moltbot, ~/.moldbot)"
-		}
-	],
-	"session_options": [
-		{
-			"flags": "-i, --id <id>",
-			"description": "Filter to specific session ID"
-		}
-	],
-	"shared_claude_options": [
-		{
-			"flags": "-s, --since <since>",
-			"description": "Filter from date (YYYYMMDD format)"
-		},
-		{
-			"flags": "-u, --until <until>",
-			"description": "Filter until date (YYYYMMDD format)"
-		},
-		{
-			"flags": "-j, --json",
-			"description": "Output in JSON format",
-			"default": "false"
-		},
-		{
-			"flags": "-m, --mode [mode]",
+			"flags": "-m, --mode <mode>",
 			"description": "Cost calculation mode",
 			"default": "auto",
 			"choices": ["auto", "calculate", "display"]
 		},
 		{
-			"flags": "-d, --debug",
-			"description": "Show pricing mismatch information for debugging",
-			"default": "false"
-		},
-		{
-			"flags": "--debug-samples [debug-samples]",
-			"description": "Number of sample discrepancies to show in debug output",
-			"default": "5"
-		},
-		{
-			"flags": "-o, --order [order]",
-			"description": "Sort order",
+			"flags": "-o, --order <order>",
+			"description": "Sort order for loaded usage rows",
 			"default": "asc",
-			"choices": ["desc", "asc"]
+			"choices": ["asc", "desc"]
 		},
 		{
 			"flags": "-b, --breakdown",
-			"description": "Show per-model cost breakdown",
+			"description": "Include per-model cost breakdowns",
 			"default": "false"
 		},
 		{
 			"flags": "-O, --offline",
-			"description": "Use cached pricing data for Claude models instead of fetching from API",
+			"description": "Use cached pricing and skip live subscription-limit calls",
 			"default": "false"
 		},
 		{
 			"flags": "--no-offline",
-			"description": "Negatable of -O, --offline"
+			"description": "Allow live pricing and subscription-limit calls"
+		},
+		{
+			"flags": "--compact",
+			"description": "Force compact table layout for narrow terminals",
+			"default": "false"
 		},
 		{
 			"flags": "--single-thread",
@@ -303,6 +55,11 @@
 			"default": "false"
 		},
 		{
+			"flags": "--no-cost",
+			"description": "Hide cost information in table and JSON output",
+			"default": "false"
+		},
+		{
 			"flags": "--color",
 			"description": "Enable colored output. FORCE_COLOR=1 has the same effect.",
 			"default": "auto"
@@ -313,83 +70,13 @@
 			"default": "auto"
 		},
 		{
-			"flags": "-z, --timezone <timezone>",
-			"description": "Timezone for date grouping (e.g., UTC, America/New_York, Asia/Tokyo)",
-			"default": "system timezone"
-		},
-		{
 			"flags": "--config <config>",
 			"description": "Path to configuration file",
 			"default": "auto-discovery"
 		},
 		{
-			"flags": "--compact",
-			"description": "Force compact mode for narrow displays (better for screenshots)",
-			"default": "false"
-		},
-		{
-			"flags": "-h, --help",
-			"description": "Display this help message"
-		},
-		{
-			"flags": "-v, --version",
-			"description": "Display this version"
-		}
-	],
-	"statusline_options": [
-		{
-			"flags": "-O, --offline",
-			"description": "Use cached pricing data for Claude models instead of fetching from API",
-			"default": "true"
-		},
-		{
-			"flags": "--no-offline",
-			"description": "Negatable of -O, --offline"
-		},
-		{
-			"flags": "-B, --visual-burn-rate [visual-burn-rate]",
-			"description": "Controls the visualization of the burn rate status",
-			"default": "off",
-			"choices": ["off", "emoji", "text", "emoji-text"]
-		},
-		{
-			"flags": "--cost-source [cost-source]",
-			"description": "Session cost source",
-			"default": "auto",
-			"choices": ["auto", "ccusage", "cc", "both"]
-		},
-		{
-			"flags": "--cache",
-			"description": "Enable cache for status line output",
-			"default": "true"
-		},
-		{
-			"flags": "--no-cache",
-			"description": "Negatable of --cache"
-		},
-		{
-			"flags": "--refresh-interval [refresh-interval]",
-			"description": "Refresh interval in seconds for cache expiry",
-			"default": "1"
-		},
-		{
-			"flags": "--context-low-threshold [context-low-threshold]",
-			"description": "Context usage percentage below which status is shown in green (0-100)",
-			"default": "50"
-		},
-		{
-			"flags": "--context-medium-threshold [context-medium-threshold]",
-			"description": "Context usage percentage below which status is shown in yellow (0-100)",
-			"default": "80"
-		},
-		{
-			"flags": "-z, --timezone <timezone>",
-			"description": "Timezone for date grouping (IANA)"
-		},
-		{
-			"flags": "--config <config>",
-			"description": "Path to configuration file",
-			"default": "auto-discovery"
+			"flags": "-q, --jq <jq>",
+			"description": "Run a jq-style filter against JSON output"
 		},
 		{
 			"flags": "-d, --debug",
@@ -397,6 +84,11 @@
 			"default": "false"
 		},
 		{
+			"flags": "--debug-samples <debug-samples>",
+			"description": "Number of sample discrepancies to show in debug output",
+			"default": "5"
+		},
+		{
 			"flags": "-h, --help",
 			"description": "Display this help message"
 		},
@@ -405,12 +97,44 @@
 			"description": "Display this version"
 		}
 	],
-	"weekly_options": [
+	"harness_value_options": [
 		{
-			"flags": "-w, --start-of-week [start-of-week]",
-			"description": "Start day of the week",
-			"default": "sunday",
-			"choices": ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+			"flags": "--value",
+			"description": "Show subscription value for the focused harness",
+			"default": "false"
+		},
+		{
+			"flags": "--claude-plan <claude-plan>",
+			"description": "Claude plan for value calculation: pro | max-5x | max-20x | a monthly price"
+		},
+		{
+			"flags": "--codex-plan <codex-plan>",
+			"description": "Codex plan override: plus | pro | a monthly price"
+		}
+	],
+	"summary_value_options": [
+		{
+			"flags": "--range <range>",
+			"description": "Quick time range (also accepted as a bare word, e.g. `summary mtd`)",
+			"choices": ["today", "wtd", "mtd", "ytd", "week", "month"]
+		},
+		{
+			"flags": "--value",
+			"description": "Show subscription value: API-equivalent usage vs monthly plan price",
+			"default": "false"
+		},
+		{
+			"flags": "--html",
+			"description": "Generate and open an interactive HTML report",
+			"default": "false"
+		},
+		{
+			"flags": "--claude-plan <claude-plan>",
+			"description": "Claude plan for value calculation: pro | max-5x | max-20x | a monthly price"
+		},
+		{
+			"flags": "--codex-plan <codex-plan>",
+			"description": "Codex plan override: plus | pro | a monthly price"
 		}
 	]
 }

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::{fmt, io};
 
 mod adapter;
@@ -51,7 +53,9 @@ pub(crate) use utils::{
 
 pub(crate) use ccusage_terminal::{Align, Color, SimpleTable};
 use ccusage_terminal::{TerminalStyle, terminal_width};
-use cli::{AgentCommandArgs, AgentReportKind, Command};
+#[cfg(test)]
+use cli::AgentReportKind;
+use cli::{Command, SummaryArgs};
 use pricing::PricingMap;
 
 #[cfg(all(target_os = "linux", target_env = "musl"))]
@@ -123,37 +127,16 @@ where
 fn main() -> Result<()> {
     let cli = cli::parse();
     match cli.command {
-        Some(Command::All(args)) => adapter::all::run(args),
-        Some(Command::Daily(args)) => commands::run_daily(args),
-        Some(Command::Monthly(shared)) => commands::run_bucket(shared, BucketKind::Monthly),
-        Some(Command::Weekly(args)) => commands::run_weekly(args),
-        Some(Command::Session(args)) => commands::run_session(args),
-        Some(Command::Blocks(args)) => commands::run_blocks(args),
-        Some(Command::Statusline(args)) => commands::run_statusline(args),
-        Some(Command::Codex(args)) => adapter::codex::run(args),
-        Some(Command::OpenCode(args)) => adapter::opencode::run(args),
-        Some(Command::Amp(args)) => adapter::amp::run(args),
-        Some(Command::Droid(args)) => adapter::droid::run(args),
-        Some(Command::Codebuff(args)) => adapter::codebuff::run(args),
-        Some(Command::Hermes(args)) => adapter::hermes::run(args),
-        Some(Command::Pi(args)) => adapter::pi::run(args),
-        Some(Command::Goose(args)) => adapter::goose::run(args),
-        Some(Command::Kilo(args)) => adapter::kilo::run(args),
-        Some(Command::Qwen(args)) => adapter::qwen::run(args),
-        Some(Command::Copilot(args)) => adapter::copilot::run(args),
-        Some(Command::Gemini(args)) => adapter::gemini::run(args),
-        Some(Command::Kimi(args)) => adapter::kimi::run(args),
-        Some(Command::OpenClaw(args)) => adapter::openclaw::run(args),
-        None => {
-            let args = AgentCommandArgs {
-                shared: cli.shared,
-                kind: AgentReportKind::Daily,
-                pi_path: None,
-                open_claw_path: None,
-                codex_speed: cli::CodexSpeed::Auto,
-            };
-            adapter::all::run(args)
-        }
+        Some(Command::Summary(args)) => adapter::all::run_summary(args),
+        None => adapter::all::run_summary(SummaryArgs {
+            shared: cli.shared,
+            value: false,
+            claude_plan: None,
+            codex_plan: None,
+            range: None,
+            agent: None,
+            html: false,
+        }),
     }
 }
 

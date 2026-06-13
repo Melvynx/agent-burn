@@ -27,7 +27,7 @@ Use these skills before working in this repository:
 
 Check the nearest package-specific `AGENTS.md` before editing package code:
 
-- `apps/ccusage/AGENTS.md` - main Claude Code usage CLI and library
+- `apps/agent-burn/AGENTS.md` - main Claude Code usage CLI and library
 - `docs/AGENTS.md` - VitePress documentation site
 
 ## Always-On Reminders
@@ -53,7 +53,7 @@ configuration, JSON output, screenshots, or examples:
 
 1. Implement the runtime/package/docs change in the owning location.
 2. Use the `docs` skill to audit documentation impact.
-3. Update the root `README.md`, `apps/ccusage/README.md`, relevant `docs/guide/`
+3. Update the root `README.md`, `apps/agent-burn/README.md`, relevant `docs/guide/`
    pages, related cross-links, and VitePress navigation when the user-facing
    surface changed.
 4. Skip documentation edits for internal-only refactors, test-only changes, or

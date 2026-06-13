@@ -1,5 +1,5 @@
 {
-	"name": "ccusage-monorepo",
+	"name": "agent-burn-monorepo",
 	"version": "20.0.11",
 	"private": true,
 	"workspaces": [

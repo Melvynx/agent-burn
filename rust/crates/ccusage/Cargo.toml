@@ -1,11 +1,11 @@
 [package]
-name = "ccusage"
+name = "agent-burn"
 version = "20.0.11"
 edition = "2024"
 build = "build.rs"
 
 [[bin]]
-name = "ccusage"
+name = "agent-burn"
 path = "src/main.rs"
 
 [[bin]]

@@ -18,32 +18,32 @@ jobs:
             os: blacksmith-32vcpu-ubuntu-2404-arm
             platform: linux
             arch: arm64
-            binary: result/bin/ccusage
+            binary: result/bin/agent-burn
           - name: build-linux-x64
             os: blacksmith-32vcpu-ubuntu-2404
             platform: linux
             arch: x64
-            binary: result/bin/ccusage
+            binary: result/bin/agent-burn
           - name: build-mac-arm64
             os: blacksmith-12vcpu-macos-26
             platform: darwin
             arch: arm64
-            binary: result/bin/ccusage
+            binary: result/bin/agent-burn
           - name: build-mac-x64
             os: blacksmith-12vcpu-macos-26
             platform: darwin
             arch: x64
-            binary: result/bin/ccusage
+            binary: result/bin/agent-burn
           - name: build-windows-arm64
             os: windows-11-arm
             platform: win32
             arch: arm64
-            binary: rust/target/release/ccusage.exe
+            binary: rust/target/release/agent-burn.exe
           - name: build-windows-x64
             os: blacksmith-32vcpu-windows-2025
             platform: win32
             arch: x64
-            binary: rust/target/release/ccusage.exe
+            binary: rust/target/release/agent-burn.exe
 
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -93,7 +93,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          pattern: ccusage-native-*
+          pattern: agent-burn-native-*
           path: ${{ runner.temp }}/native-packages
           merge-multiple: true
       - name: Restore native package binaries
@@ -101,7 +101,7 @@ jobs:
           for archive in "$RUNNER_TEMP"/native-packages/*.tar; do
             tar -xf "$archive"
           done
-      - run: pnpm --filter='./apps/ccusage' --filter='./packages/ccusage-*' publish --provenance --no-git-checks --access public
+      - run: pnpm --filter='./apps/agent-burn' --filter='./packages/agent-burn-*' publish --provenance --no-git-checks --access public
 
   release:
     needs:

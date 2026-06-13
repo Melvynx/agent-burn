@@ -29,7 +29,7 @@ in
       };
       bundle = agentLib.mkBundle {
         inherit pkgs selection;
-        name = "ccusage-agent-skills-bundle";
+        name = "agent-burn-skills-bundle";
       };
       localTargets = {
         claude = agentLib.defaultLocalTargets.claude // {

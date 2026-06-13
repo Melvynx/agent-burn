@@ -2,6 +2,7 @@ mod aggregate;
 mod loader;
 mod parser;
 mod paths;
+mod plan;
 mod report;
 mod speed;
 mod types;
@@ -12,6 +13,7 @@ pub(crate) use aggregate::{aggregate_events, filter_events_by_date, load_groups}
 pub(crate) use loader::load_codex_events;
 #[cfg(test)]
 pub(crate) use loader::load_codex_events_from_directory;
+pub(crate) use plan::latest_plan_snapshot;
 pub(crate) use report::{
     calculate_codex_model_cost, calculate_group_cost, codex_model_missing_pricing,
     non_cached_input_tokens,

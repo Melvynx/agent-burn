@@ -1,11 +1,11 @@
 name: Build macOS Nix native package
-description: Build, stage, archive, and upload a macOS ccusage native package with Nix
+description: Build, stage, archive, and upload a macOS agent-burn native package with Nix
 inputs:
   arch:
     description: Native package architecture
     required: true
   binary:
-    description: Path to the built ccusage binary
+    description: Path to the built agent-burn binary
     required: true
   cache-scope:
     description: >
@@ -29,10 +29,10 @@ runs:
         # (the Apple SDK is multi-arch), so no separate Intel runner is needed.
         case "$ARCH" in
           x64)
-            nix build .#ccusage-darwin-x64 --print-build-logs
+            nix build .#agent-burn-darwin-x64 --print-build-logs
             ;;
           arm64)
-            nix build .#ccusage --print-build-logs
+            nix build .#agent-burn --print-build-logs
             ;;
           *)
             echo "Unsupported arch: $ARCH" >&2
@@ -45,16 +45,16 @@ runs:
       env:
         ARCH: ${{ inputs.arch }}
         BINARY: ${{ inputs.binary }}
-      run: apps/ccusage/scripts/stage-native-package.nu --platform darwin --arch "$ARCH" --binary "$BINARY"
+      run: apps/agent-burn/scripts/stage-native-package.nu --platform darwin --arch "$ARCH" --binary "$BINARY"
 
     - name: Archive native package binary
       shell: bash
       env:
         ARCH: ${{ inputs.arch }}
-      run: tar -cf "ccusage-native-darwin-$ARCH.tar" "packages/ccusage-darwin-$ARCH/bin"
+      run: tar -cf "agent-burn-native-darwin-$ARCH.tar" "packages/agent-burn-darwin-$ARCH/bin"
 
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
-        name: ccusage-native-darwin-${{ inputs.arch }}
-        path: ccusage-native-darwin-${{ inputs.arch }}.tar
+        name: agent-burn-native-darwin-${{ inputs.arch }}
+        path: agent-burn-native-darwin-${{ inputs.arch }}.tar
         if-no-files-found: error

@@ -6,7 +6,8 @@ mod types;
 pub use types::{
     AgentCommandArgs, AgentReportKind, BlocksArgs, Cli, CliConfig, CodexSpeed, Command, CostMode,
     CostSource, DailyArgs, NoConfig, PricingOverride, SessionArgs, SharedArgs, SortOrder,
-    StatuslineArgs, VisualBurnRate, WeekDay, WeeklyArgs, normalize_date_bound,
+    StatuslineArgs, SummaryArgs, SummaryRange, VisualBurnRate, WeekDay, WeeklyArgs,
+    normalize_date_bound,
 };
 
 #[cfg(test)]

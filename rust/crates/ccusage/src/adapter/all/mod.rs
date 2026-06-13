@@ -1,21 +1,13 @@
 mod loader;
 mod report;
+mod subscription;
+mod summary;
 mod types;
 
-use crate::{Result, cli::AgentCommandArgs, print_json_or_jq, wants_json};
+use crate::{Result, cli::SummaryArgs};
 
-pub(crate) fn run(args: AgentCommandArgs) -> Result<()> {
-    let kind = args.kind;
-    let shared = args.shared;
-    let result = loader::load_rows(kind, &shared)?;
-    if wants_json(&shared) {
-        return print_json_or_jq(
-            report::report_json(&result.rows, kind),
-            shared.jq.as_deref(),
-            shared.no_cost,
-        );
-    }
-    report::print_table(&result.rows, kind, &shared, &result.detected_agents)
+pub(crate) fn run_summary(args: SummaryArgs) -> Result<()> {
+    summary::run(args)
 }
 
 #[cfg(test)]

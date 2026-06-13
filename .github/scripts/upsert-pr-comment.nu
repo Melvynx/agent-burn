@@ -104,7 +104,7 @@ def try_update_comment [repository: string, comment_id: int, body: string] {
     }
 }
 def gh_api_with_body [method: string, endpoint: string, body: string] {
-    let payload = (mktemp -t ccusage-pr-comment.XXXXXX | str trim)
+    let payload = (mktemp -t agent-burn-pr-comment.XXXXXX | str trim)
     {body: $body} | to json | save --force $payload
     let args = [
         --method

@@ -645,67 +645,135 @@ pub(crate) fn generate_config_schema_json() -> String {
             settings.option_add_null_type = false;
         })
         .into_generator();
-    let mut schema =
+    let mut generated =
         serde_json::to_value(generator.into_root_schema_for::<CcusageConfig>()).unwrap();
-    if let Value::Object(root) = &mut schema {
-        root.insert(
-            "title".to_string(),
-            Value::String("ccusage Configuration".to_string()),
-        );
-        root.insert(
-            "description".to_string(),
-            Value::String("Configuration file for ccusage".to_string()),
-        );
-        root.insert(
-            "examples".to_string(),
-            json!([
-                {
-                    "$schema": "https://ccusage.com/config-schema.json",
-                    "defaults": {
-                        "json": false,
-                        "timezone": "Asia/Tokyo",
-                        "pricingOverrides": {
-                            "[pi] gpt-5.4": {
-                                "inputCostPerToken": 0.0000025,
-                                "outputCostPerToken": 0.000015,
-                                "cacheReadInputTokenCost": 0.00000025
-                            }
-                        }
-                    },
-                    "claude": {
-                        "defaults": {
-                            "mode": "auto"
-                        },
-                        "commands": {
-                            "daily": {
-                                "instances": true
-                            },
-                            "blocks": {
-                                "tokenLimit": "500000"
-                            }
-                        }
-                    },
-                    "codex": {
-                        "defaults": {
-                            "speed": "auto"
-                        }
-                    },
-                    "gemini": {
-                        "defaults": {
-                            "offline": true
-                        }
-                    }
-                }
-            ]),
-        );
-    }
-    enrich_schema(&mut schema);
-    add_schema_defaults(&mut schema);
-    inline_schema_references(&mut schema);
-    wrap_root_schema(&mut schema);
+    enrich_schema(&mut generated);
+    add_schema_defaults(&mut generated);
+    let schema = agent_burn_schema_from(&generated);
     let mut json = tab_indent_json(&serde_json::to_string_pretty(&schema).unwrap());
     json.push('\n');
     json
+}
+
+fn agent_burn_schema_from(generated: &Value) -> Value {
+    let definitions = generated
+        .get("definitions")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+    let mut shared_options = definitions
+        .get("SharedOptions")
+        .cloned()
+        .unwrap_or_else(|| json!({"type": "object", "properties": {}}));
+    inline_schema_value(&mut shared_options, &definitions);
+
+    let mut summary_options = shared_options.clone();
+    extend_object_properties(
+        &mut summary_options,
+        json!({
+            "range": {
+                "type": "string",
+                "enum": ["today", "wtd", "mtd", "ytd", "week", "month"],
+                "description": "Quick time range for summary."
+            },
+            "value": {
+                "type": "boolean",
+                "default": false,
+                "description": "Show subscription value."
+            },
+            "html": {
+                "type": "boolean",
+                "default": false,
+                "description": "Generate an interactive HTML report."
+            },
+            "claudePlan": {
+                "type": "string",
+                "description": "Claude plan override: pro, max-5x, max-20x, or a monthly price."
+            },
+            "codexPlan": {
+                "type": "string",
+                "description": "Codex plan override: plus, pro, or a monthly price."
+            }
+        }),
+    );
+
+    let mut harness_options = shared_options.clone();
+    extend_object_properties(
+        &mut harness_options,
+        json!({
+            "value": {
+                "type": "boolean",
+                "default": false,
+                "description": "Show subscription value."
+            },
+            "claudePlan": {
+                "type": "string",
+                "description": "Claude plan override: pro, max-5x, max-20x, or a monthly price."
+            },
+            "codexPlan": {
+                "type": "string",
+                "description": "Codex plan override: plus, pro, or a monthly price."
+            }
+        }),
+    );
+
+    json!({
+        "$schema": "https://json-schema.org/draft-07/schema#",
+        "$ref": "#/definitions/agent-burn-config",
+        "title": "Agent Burn Configuration",
+        "description": "Configuration file for Agent Burn",
+        "examples": [
+            {
+                "$schema": "https://raw.githubusercontent.com/Melvynx/agent-burn/main/apps/agent-burn/config-schema.json",
+                "defaults": {
+                    "timezone": "Europe/Zurich",
+                    "offline": true
+                },
+                "commands": {
+                    "summary": {
+                        "value": true,
+                        "range": "month"
+                    },
+                    "harness": {
+                        "value": true
+                    }
+                }
+            }
+        ],
+        "definitions": {
+            "agent-burn-config": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Configuration file for Agent Burn",
+                "markdownDescription": "Configuration file for Agent Burn",
+                "properties": {
+                    "$schema": {
+                        "type": "string",
+                        "description": "JSON Schema URL for validation and autocomplete.",
+                        "markdownDescription": "JSON Schema URL for validation and autocomplete."
+                    },
+                    "defaults": shared_options,
+                    "commands": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "summary": summary_options,
+                            "harness": harness_options
+                        }
+                    }
+                }
+            }
+        }
+    })
+}
+
+fn extend_object_properties(target: &mut Value, extra_properties: Value) {
+    let Some(properties) = target.get_mut("properties").and_then(Value::as_object_mut) else {
+        return;
+    };
+    if let Value::Object(extra) = extra_properties {
+        properties.extend(extra);
+    }
 }
 
 fn tab_indent_json(json: &str) -> String {
@@ -958,10 +1026,13 @@ fn wrap_root_schema(schema: &mut Value) {
             root_definition.insert(key.to_string(), value);
         }
     }
-    definitions.insert("ccusage-config".to_string(), Value::Object(root_definition));
+    definitions.insert(
+        "agent-burn-config".to_string(),
+        Value::Object(root_definition),
+    );
     root.insert(
         "$ref".to_string(),
-        Value::String("#/definitions/ccusage-config".to_string()),
+        Value::String("#/definitions/agent-burn-config".to_string()),
     );
     root.insert("definitions".to_string(), Value::Object(definitions));
 }
@@ -1003,73 +1074,32 @@ mod tests {
         assert_schema_properties(&schema, &["defaults"], &shared);
         assert_schema_properties(
             &schema,
-            &["commands", "daily"],
-            &with_keys(&shared, &["instances", "project", "projectAliases"]),
-        );
-        assert_schema_properties(
-            &schema,
-            &["commands", "weekly"],
-            &with_keys(&shared, &["startOfWeek"]),
-        );
-        assert_schema_properties(
-            &schema,
-            &["commands", "blocks"],
+            &["commands", "summary"],
             &with_keys(
                 &shared,
-                &["active", "recent", "sessionLength", "tokenLimit"],
+                &["claudePlan", "codexPlan", "html", "range", "value"],
             ),
         );
         assert_schema_properties(
             &schema,
-            &["commands", "statusline"],
-            &[
-                "cache",
-                "contextLowThreshold",
-                "contextMediumThreshold",
-                "costSource",
-                "debug",
-                "modelLabelAliases",
-                "noCache",
-                "noOffline",
-                "offline",
-                "refreshInterval",
-                "timezone",
-                "visualBurnRate",
-            ],
-        );
-        assert_schema_properties(
-            &schema,
-            &["codex", "defaults"],
-            &with_keys(&shared, &["speed"]),
-        );
-        assert_schema_properties(
-            &schema,
-            &["pi", "defaults"],
-            &with_keys(&shared, &["piPath"]),
-        );
-        assert_schema_properties(
-            &schema,
-            &["openclaw", "defaults"],
-            &with_keys(&shared, &["openClawPath"]),
+            &["commands", "harness"],
+            &with_keys(&shared, &["claudePlan", "codexPlan", "value"]),
         );
     }
 
     #[test]
-    fn agent_configs_expose_only_supported_option_sets() {
+    fn agent_configs_are_not_public_schema_keys() {
         let schema = generated_schema();
 
-        assert!(schema_property(&schema, &["codex", "defaults", "speed"]).is_some());
-        assert!(schema_property(&schema, &["opencode", "defaults", "speed"]).is_none());
-        assert!(schema_property(&schema, &["amp", "defaults", "speed"]).is_none());
-        assert!(schema_property(&schema, &["droid", "defaults", "speed"]).is_none());
-        assert!(schema_property(&schema, &["codebuff", "defaults", "speed"]).is_none());
-        assert!(schema_property(&schema, &["pi", "defaults", "piPath"]).is_some());
-        assert!(schema_property(&schema, &["goose", "defaults", "piPath"]).is_none());
-        assert!(schema_property(&schema, &["openclaw", "defaults", "openClawPath"]).is_some());
-        assert!(schema_property(&schema, &["kilo", "defaults", "openClawPath"]).is_none());
-        assert!(schema_property(&schema, &["gemini", "defaults", "openClawPath"]).is_none());
-        assert!(schema_property(&schema, &["kimi", "defaults", "openClawPath"]).is_none());
-        assert!(schema_property(&schema, &["qwen", "defaults", "openClawPath"]).is_none());
+        for key in [
+            "amp", "claude", "codebuff", "codex", "copilot", "droid", "gemini", "goose", "hermes",
+            "kilo", "kimi", "openclaw", "opencode", "pi", "qwen",
+        ] {
+            assert!(
+                schema_property(&schema, &[key]).is_none(),
+                "{key} leaked into schema"
+            );
+        }
     }
 
     #[test]
@@ -1082,12 +1112,12 @@ mod tests {
     }
 
     #[test]
-    fn generated_schema_keeps_legacy_root_definition_shape() {
+    fn generated_schema_keeps_agent_burn_root_definition_shape() {
         let schema = generated_schema();
 
         assert_eq!(
             schema["$ref"].as_str(),
-            Some("#/definitions/ccusage-config")
+            Some("#/definitions/agent-burn-config")
         );
         assert_eq!(
             schema["definitions"]
@@ -1096,19 +1126,15 @@ mod tests {
                 .keys()
                 .map(String::as_str)
                 .collect::<Vec<_>>(),
-            vec!["ccusage-config"]
+            vec!["agent-burn-config"]
         );
         assert_properties(
             &schema,
-            "ccusage-config",
-            &[
-                "$schema", "amp", "claude", "codebuff", "codex", "commands", "copilot", "defaults",
-                "gemini", "goose", "hermes", "kilo", "kimi", "opencode", "openclaw", "pi", "qwen",
-                "droid",
-            ],
+            "agent-burn-config",
+            &["$schema", "commands", "defaults"],
         );
         assert!(
-            schema["definitions"]["ccusage-config"]["properties"]["defaults"]["properties"]
+            schema["definitions"]["agent-burn-config"]["properties"]["defaults"]["properties"]
                 .is_object()
         );
     }
@@ -1117,134 +1143,20 @@ mod tests {
     fn schema_allows_cli_config_file_shape() {
         let schema = generated_schema();
         let config = serde_json::json!({
-            "$schema": "https://ccusage.com/config-schema.json",
+            "$schema": "https://github.com/Melvynx/agent-burn/config-schema.json",
             "defaults": {
                 "json": true,
                 "compact": true,
                 "timezone": "Asia/Tokyo"
             },
             "commands": {
-                "daily": {
-                    "since": "20260101"
+                "summary": {
+                    "value": true,
+                    "range": "month"
                 },
-                "weekly": {
-                    "startOfWeek": "monday"
-                }
-            },
-            "claude": {
-                "commands": {
-                    "weekly": {
-                        "startOfWeek": "monday"
-                    },
-                    "blocks": {
-                        "active": true,
-                        "tokenLimit": "500000",
-                        "sessionLength": 6
-                    },
-                    "statusline": {
-                        "visualBurnRate": "emoji-text",
-                        "costSource": "both",
-                        "refreshInterval": 3
-                    }
-                }
-            },
-            "codex": {
-                "commands": {
-                    "monthly": {
-                        "speed": "standard",
-                        "since": "20260101"
-                    }
-                }
-            },
-            "opencode": {
-                "commands": {
-                    "weekly": {
-                        "json": true
-                    }
-                }
-            },
-            "amp": {
-                "commands": {
-                    "daily": {
-                        "breakdown": true
-                    }
-                }
-            },
-            "droid": {
-                "commands": {
-                    "daily": {
-                        "json": true
-                    }
-                }
-            },
-            "codebuff": {
-                "commands": {
-                    "daily": {
-                        "json": true
-                    }
-                }
-            },
-            "pi": {
-                "commands": {
-                    "daily": {
-                        "piPath": "/tmp/pi-sessions"
-                    }
-                }
-            },
-            "goose": {
-                "commands": {
-                    "daily": {
-                        "json": true
-                    }
-                }
-            },
-            "openclaw": {
-                "commands": {
-                    "daily": {
-                        "openClawPath": "/tmp/openclaw"
-                    }
-                }
-            },
-            "hermes": {
-                "commands": {
-                    "daily": {
-                        "json": true
-                    }
-                }
-            },
-            "kilo": {
-                "commands": {
-                    "daily": {
-                        "json": true
-                    }
-                }
-            },
-            "copilot": {
-                "commands": {
-                    "session": {
-                        "json": true
-                    }
-                }
-            },
-            "gemini": {
-                "commands": {
-                    "session": {
-                        "json": true
-                    }
-                }
-            },
-            "kimi": {
-                "commands": {
-                    "session": {
-                        "json": true
-                    }
-                }
-            },
-            "qwen": {
-                "commands": {
-                    "session": {
-                        "json": true
-                    }
+                "harness": {
+                    "value": true,
+                    "offline": true
                 }
             }
         });
@@ -1256,7 +1168,7 @@ mod tests {
     fn schema_allows_repository_example_config() {
         let schema = generated_schema();
         let config =
-            serde_json::from_str::<Value>(include_str!("../../../../ccusage.example.json"))
+            serde_json::from_str::<Value>(include_str!("../../../../agent-burn.example.json"))
                 .unwrap();
 
         assert_value_keys_allowed_by_schema(&config, &schema, &schema);
@@ -1283,28 +1195,12 @@ mod tests {
             Some(&json!("asc"))
         );
         assert_eq!(
-            property_default(&schema, &["commands", "weekly", "startOfWeek"]),
-            Some(&json!("sunday"))
+            property_default(&schema, &["commands", "summary", "value"]),
+            Some(&json!(false))
         );
         assert_eq!(
-            property_default(&schema, &["commands", "blocks", "sessionLength"]),
-            Some(&json!(5.0))
-        );
-        assert_eq!(
-            property_default(&schema, &["commands", "statusline", "offline"]),
-            Some(&json!(true))
-        );
-        assert_eq!(
-            property_default(&schema, &["commands", "statusline", "visualBurnRate"]),
-            Some(&json!("off"))
-        );
-        assert_eq!(
-            property_default(&schema, &["commands", "statusline", "refreshInterval"]),
-            Some(&json!(1))
-        );
-        assert_eq!(
-            property_default(&schema, &["codex", "defaults", "speed"]),
-            Some(&json!("auto"))
+            property_default(&schema, &["commands", "harness", "value"]),
+            Some(&json!(false))
         );
     }
 
@@ -1350,15 +1246,11 @@ mod tests {
 
         insta::assert_json_snapshot!(json!({
             "rootRef": schema["$ref"],
-            "rootProperties": definition_properties(&schema, "ccusage-config"),
-            "rootAdditionalProperties": schema["definitions"]["ccusage-config"]["additionalProperties"],
+            "rootProperties": definition_properties(&schema, "agent-burn-config"),
+            "rootAdditionalProperties": schema["definitions"]["agent-burn-config"]["additionalProperties"],
             "defaults": schema_node(&schema, &["defaults"]),
-            "rootDaily": schema_node(&schema, &["commands", "daily"]),
-            "claudeStatusline": schema_node(&schema, &["claude", "commands", "statusline"]),
-            "codexDefaults": schema_node(&schema, &["codex", "defaults"]),
-            "opencodeWeekly": schema_node(&schema, &["opencode", "commands", "weekly"]),
-            "piDefaults": schema_node(&schema, &["pi", "defaults"]),
-            "openclawDefaults": schema_node(&schema, &["openclaw", "defaults"]),
+            "summary": schema_node(&schema, &["commands", "summary"]),
+            "harness": schema_node(&schema, &["commands", "harness"]),
         }));
     }
 
@@ -1423,7 +1315,7 @@ mod tests {
     }
 
     fn schema_node<'a>(schema: &'a Value, path: &[&str]) -> &'a Value {
-        let mut node = &schema["definitions"]["ccusage-config"];
+        let mut node = &schema["definitions"]["agent-burn-config"];
         for segment in path {
             node = &node["properties"][*segment];
         }

@@ -4,8 +4,8 @@ import { groupIconMdPlugin, groupIconVitePlugin } from 'vitepress-plugin-group-i
 import llmstxt from 'vitepress-plugin-llms';
 
 export default defineConfig({
-	title: 'ccusage',
-	description: 'Usage analysis tool for coding (agent) CLIs',
+	title: 'Agent Burn',
+	description: 'Local subscription value reporting for Claude Code and Codex usage',
 	base: '/',
 	cleanUrls: true,
 	ignoreDeadLinks: true,
@@ -15,16 +15,16 @@ export default defineConfig({
 		['meta', { name: 'theme-color', content: '#646cff' }],
 		['meta', { property: 'og:type', content: 'website' }],
 		['meta', { property: 'og:locale', content: 'en' }],
-		['meta', { property: 'og:title', content: 'ccusage | Coding (Agent) CLI Usage Analysis' }],
-		['meta', { property: 'og:site_name', content: 'ccusage' }],
+		['meta', { property: 'og:title', content: 'Agent Burn | Subscription Value Reports' }],
+		['meta', { property: 'og:site_name', content: 'Agent Burn' }],
 		[
 			'meta',
 			{
 				property: 'og:image',
-				content: 'https://cdn.jsdelivr.net/gh/ryoppippi/ccusage@main/docs/public/logo.png',
+				content: 'https://cdn.jsdelivr.net/gh/Melvynx/agent-burn@main/docs/public/logo.png',
 			},
 		],
-		['meta', { property: 'og:url', content: 'https://github.com/ryoppippi/ccusage' }],
+		['meta', { property: 'og:url', content: 'https://github.com/Melvynx/agent-burn' }],
 	],
 
 	themeConfig: {
@@ -35,12 +35,9 @@ export default defineConfig({
 			{
 				text: 'Links',
 				items: [
-					{ text: 'GitHub', link: 'https://github.com/ryoppippi/ccusage' },
-					{ text: 'npm', link: 'https://www.npmjs.com/package/ccusage' },
-					{ text: 'Changelog', link: 'https://github.com/ryoppippi/ccusage/releases' },
-					{ text: 'DeepWiki', link: 'https://deepwiki.com/ryoppippi/ccusage' },
-					{ text: 'Package Stats', link: 'https://tanstack.com/ccusage?npmPackage=ccusage' },
-					{ text: 'Sponsor', link: 'https://github.com/sponsors/ryoppippi' },
+					{ text: 'GitHub', link: 'https://github.com/Melvynx/agent-burn' },
+					{ text: 'npm', link: 'https://www.npmjs.com/package/agent-burn' },
+					{ text: 'Changelog', link: 'https://github.com/Melvynx/agent-burn/releases' },
 				],
 			},
 		],
@@ -58,11 +55,8 @@ export default defineConfig({
 				{
 					text: 'Usage Views',
 					items: [
-						{ text: 'All Sources (Default)', link: '/guide/all-reports' },
-						{ text: 'Daily Usage', link: '/guide/daily-reports' },
-						{ text: 'Weekly Usage', link: '/guide/weekly-reports' },
-						{ text: 'Monthly Usage', link: '/guide/monthly-reports' },
-						{ text: 'Session Usage', link: '/guide/session-reports' },
+						{ text: 'Summary', link: '/guide/getting-started' },
+						{ text: 'Harness', link: '/guide/cli-options#harness' },
 					],
 				},
 				{
@@ -70,20 +64,6 @@ export default defineConfig({
 					items: [
 						{ text: 'Claude Code', link: '/guide/claude/' },
 						{ text: 'Codex', link: '/guide/codex/' },
-						{ text: 'OpenCode', link: '/guide/opencode/' },
-						{ text: 'Amp', link: '/guide/amp/' },
-						{ text: 'Droid', link: '/guide/droid/' },
-						{ text: 'Codebuff', link: '/guide/codebuff/' },
-						{ text: 'Hermes Agent', link: '/guide/hermes/' },
-						{ text: 'pi-agent', link: '/guide/pi/' },
-						{ text: 'Goose', link: '/guide/goose/' },
-						{ text: 'Kilo', link: '/guide/kilo/' },
-						{ text: 'Qwen', link: '/guide/qwen/' },
-						{ text: 'GitHub Copilot CLI', link: '/guide/copilot/' },
-						{ text: 'Gemini CLI', link: '/guide/gemini/' },
-						{ text: 'Kimi', link: '/guide/kimi/' },
-						{ text: 'OpenClaw', link: '/guide/openclaw/' },
-						{ text: 'Source Support Q&A', link: '/guide/source-support-qa' },
 					],
 				},
 				{
@@ -93,32 +73,23 @@ export default defineConfig({
 						{ text: 'Command-Line Options', link: '/guide/cli-options' },
 						{ text: 'Environment Variables', link: '/guide/environment-variables' },
 						{ text: 'Configuration Files', link: '/guide/config-files' },
-						{ text: 'Cost Calculation Modes', link: '/guide/cost-modes' },
 					],
 				},
 				{
 					text: 'Integration',
 					items: [{ text: 'JSON Output', link: '/guide/json-output' }],
 				},
-				{
-					text: 'Community',
-					items: [
-						{ text: 'Community Projects', link: '/guide/community-projects' },
-						{ text: 'Sponsors', link: '/guide/sponsors' },
-					],
-				},
 			],
 		},
 
 		socialLinks: [
-			{ icon: 'github', link: 'https://github.com/ryoppippi/ccusage' },
-			{ icon: 'npm', link: 'https://www.npmjs.com/package/ccusage' },
-			{ icon: 'twitter', link: 'https://x.com/cc_usage' },
+			{ icon: 'github', link: 'https://github.com/Melvynx/agent-burn' },
+			{ icon: 'npm', link: 'https://www.npmjs.com/package/agent-burn' },
 		],
 
 		footer: {
 			message: 'Released under the MIT License.',
-			copyright: 'Copyright © 2025 ryoppippi',
+			copyright: 'Copyright © 2026 Melvynx',
 		},
 
 		search: {
@@ -126,7 +97,7 @@ export default defineConfig({
 		},
 
 		editLink: {
-			pattern: 'https://github.com/ryoppippi/ccusage/edit/main/docs/:path',
+			pattern: 'https://github.com/Melvynx/agent-burn/edit/main/docs/:path',
 			text: 'Edit this page on GitHub',
 		},
 
@@ -149,14 +120,10 @@ export default defineConfig({
 			cloudflareRedirect({
 				mode: 'generate',
 				entries: [
-					{ from: '/raycast', to: 'https://www.raycast.com/nyatinte/ccusage', status: 302 },
-					{ from: '/gh', to: 'https://github.com/ryoppippi/ccusage', status: 302 },
-					{ from: '/npm', to: 'https://www.npmjs.com/package/ccusage', status: 302 },
-					{ from: '/deepwiki', to: 'https://deepwiki.com/ryoppippi/ccusage', status: 302 },
-					{ from: '/sponsor', to: 'https://github.com/sponsors/ryoppippi', status: 302 },
+					{ from: '/gh', to: 'https://github.com/Melvynx/agent-burn', status: 302 },
+					{ from: '/npm', to: 'https://www.npmjs.com/package/agent-burn', status: 302 },
 					{ from: '/guide/custom-paths', to: '/guide/claude/', status: 301 },
 					{ from: '/guide/directory-detection', to: '/guide/claude/', status: 301 },
-					{ from: '/guide/related-projects', to: '/guide/community-projects', status: 301 },
 				],
 			}) as any,
 			groupIconVitePlugin(),

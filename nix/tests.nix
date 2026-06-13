@@ -1,7 +1,7 @@
 # Rust workspace test run as a Nix derivation so it shares the crane
 # `cargoArtifacts` cache (warm on the per-job Blacksmith sticky disk) instead of
 # recompiling into an uncached `rust/target` on every CI run. Built by the CI
-# test job via `nix build .#ccusage-tests`; the derivation succeeds only when
+# test job via `nix build .#agent-burn-tests`; the derivation succeeds only when
 # `cargo test --workspace` passes.
 { inputs, ... }:
 let
@@ -21,27 +21,27 @@ in
       };
       rustToolchain = pkgs.rust-bin.fromRustupToolchainFile (root + /rust-toolchain.toml);
       craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
-      inherit (config.packages.ccusage.passthru) cargoArtifacts commonArgs;
+      inherit (config.packages.agent-burn.passthru) cargoArtifacts commonArgs;
       nixFilter = inputs.nix-filter.lib;
       # Scope the source to the Rust tree plus the few out-of-tree files the
       # build and tests pull in at compile time, so the derivation only rebuilds
       # when something it actually depends on changes — not on every docs, TS, or
       # config edit elsewhere in the repo:
       #   * rust/build.rs           reads ../../../flake.lock
-      #   * config_schema.rs tests  include_str! ../../../../ccusage.example.json
-      #   * ccusage-cli tests       include_str! ../../../../apps/ccusage/package.json
+      #   * config_schema.rs tests  include_str! ../../../../agent-burn.example.json
+      #   * ccusage-cli tests       include_str! ../../../../apps/agent-burn/package.json
       testSrc = nixFilter {
         inherit root;
         include = [
           "rust"
           "flake.lock"
-          "ccusage.example.json"
-          "apps/ccusage/package.json"
+          "agent-burn.example.json"
+          "apps/agent-burn/package.json"
         ];
       };
     in
     {
-      packages.ccusage-tests = craneLib.cargoTest (
+      packages."agent-burn-tests" = craneLib.cargoTest (
         commonArgs
         // {
           src = testSrc;

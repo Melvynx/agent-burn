@@ -1,0 +1,131 @@
+---
+source: crates/ccusage-cli/src/tests.rs
+expression: "json!({\n    \"defaultSummary\": cli_snapshot(parse(&[\"agent-burn\", \"--json\"])),\n    \"summary\":\n    cli_snapshot(parse(&[\"agent-burn\", \"summary\", \"week\", \"--value\",\n    \"--timezone\", \"Europe/Zurich\",])), \"harness\":\n    cli_snapshot(parse(&[\"agent-burn\", \"harness\", \"claude\", \"--value\",\n    \"--claude-plan\", \"max-20x\", \"--offline\",])),\n})"
+---
+{
+  "defaultSummary": {
+    "command": null,
+    "shared": {
+      "breakdown": false,
+      "color": false,
+      "compact": false,
+      "config": null,
+      "debug": false,
+      "debugSamples": 5,
+      "jq": null,
+      "json": true,
+      "mode": "Auto",
+      "noColor": false,
+      "noCost": false,
+      "noOffline": false,
+      "offline": false,
+      "order": "Asc",
+      "since": null,
+      "singleThread": false,
+      "timezone": null,
+      "until": null
+    }
+  },
+  "harness": {
+    "command": {
+      "agent": "claude",
+      "claudePlan": "max-20x",
+      "codexPlan": null,
+      "html": false,
+      "range": null,
+      "shared": {
+        "breakdown": false,
+        "color": false,
+        "compact": false,
+        "config": null,
+        "debug": false,
+        "debugSamples": 5,
+        "jq": null,
+        "json": false,
+        "mode": "Auto",
+        "noColor": false,
+        "noCost": false,
+        "noOffline": false,
+        "offline": true,
+        "order": "Asc",
+        "since": null,
+        "singleThread": false,
+        "timezone": null,
+        "until": null
+      },
+      "type": "summary",
+      "value": true
+    },
+    "shared": {
+      "breakdown": false,
+      "color": false,
+      "compact": false,
+      "config": null,
+      "debug": false,
+      "debugSamples": 5,
+      "jq": null,
+      "json": false,
+      "mode": "Auto",
+      "noColor": false,
+      "noCost": false,
+      "noOffline": false,
+      "offline": false,
+      "order": "Asc",
+      "since": null,
+      "singleThread": false,
+      "timezone": null,
+      "until": null
+    }
+  },
+  "summary": {
+    "command": {
+      "agent": null,
+      "claudePlan": null,
+      "codexPlan": null,
+      "html": false,
+      "range": "Week",
+      "shared": {
+        "breakdown": false,
+        "color": false,
+        "compact": false,
+        "config": null,
+        "debug": false,
+        "debugSamples": 5,
+        "jq": null,
+        "json": false,
+        "mode": "Auto",
+        "noColor": false,
+        "noCost": false,
+        "noOffline": false,
+        "offline": false,
+        "order": "Asc",
+        "since": null,
+        "singleThread": false,
+        "timezone": "Europe/Zurich",
+        "until": null
+      },
+      "type": "summary",
+      "value": true
+    },
+    "shared": {
+      "breakdown": false,
+      "color": false,
+      "compact": false,
+      "config": null,
+      "debug": false,
+      "debugSamples": 5,
+      "jq": null,
+      "json": false,
+      "mode": "Auto",
+      "noColor": false,
+      "noCost": false,
+      "noOffline": false,
+      "offline": false,
+      "order": "Asc",
+      "since": null,
+      "singleThread": false,
+      "timezone": null,
+      "until": null
+    }
+  }
+}

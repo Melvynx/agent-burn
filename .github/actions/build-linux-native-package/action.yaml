@@ -1,11 +1,11 @@
 name: Build Linux native package
-description: Build, stage, archive, and upload a Linux ccusage native package
+description: Build, stage, archive, and upload a Linux agent-burn native package
 inputs:
   arch:
     description: Native package architecture
     required: true
   binary:
-    description: Path to the built ccusage binary
+    description: Path to the built agent-burn binary
     required: true
   nix-github-token:
     description: Whether Nix builds may use the GitHub token from Nix config
@@ -28,9 +28,9 @@ runs:
         NIX_GITHUB_TOKEN: ${{ inputs.nix-github-token }}
       run: |
         if [ "$NIX_GITHUB_TOKEN" = "false" ]; then
-          NIX_CONFIG="access-tokens =" nix build .#ccusage-static --print-build-logs
+          NIX_CONFIG="access-tokens =" nix build .#agent-burn-static --print-build-logs
         else
-          nix build .#ccusage-static --print-build-logs
+          nix build .#agent-burn-static --print-build-logs
         fi
 
     - name: Verify Linux binary is static
@@ -52,16 +52,16 @@ runs:
       env:
         ARCH: ${{ inputs.arch }}
         BINARY: ${{ inputs.binary }}
-      run: apps/ccusage/scripts/stage-native-package.nu --platform linux --arch "$ARCH" --binary "$BINARY"
+      run: apps/agent-burn/scripts/stage-native-package.nu --platform linux --arch "$ARCH" --binary "$BINARY"
 
     - name: Archive native package binary
       shell: bash
       env:
         ARCH: ${{ inputs.arch }}
-      run: tar -cf "ccusage-native-linux-$ARCH.tar" "packages/ccusage-linux-$ARCH/bin"
+      run: tar -cf "agent-burn-native-linux-$ARCH.tar" "packages/agent-burn-linux-$ARCH/bin"
 
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
-        name: ccusage-native-linux-${{ inputs.arch }}
-        path: ccusage-native-linux-${{ inputs.arch }}.tar
+        name: agent-burn-native-linux-${{ inputs.arch }}
+        path: agent-burn-native-linux-${{ inputs.arch }}.tar
         if-no-files-found: error

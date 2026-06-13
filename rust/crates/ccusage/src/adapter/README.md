@@ -18,7 +18,7 @@ Use one subdirectory per agent. The usual shape is:
 - `report.rs` - JSON/table row shaping when agent-specific.
 - `types.rs` - source-local types when they are not shared outside the adapter.
 
-Use `apps/ccusage/src` only for the remaining npm launcher, package scripts,
+Use `apps/agent-burn/src` only for the remaining npm launcher, package scripts,
 schema artifacts, and benchmarks. Do not add new TypeScript runtime adapter
 logic unless the work is explicitly scoped to the package layer.
 

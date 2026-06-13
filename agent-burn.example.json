@@ -1,0 +1,20 @@
+{
+	"$schema": "./apps/agent-burn/config-schema.json",
+	"defaults": {
+		"timezone": "Europe/Zurich",
+		"mode": "auto",
+		"offline": false,
+		"noCost": false,
+		"breakdown": false
+	},
+	"commands": {
+		"summary": {
+			"value": true,
+			"range": "month"
+		},
+		"harness": {
+			"value": true,
+			"offline": true
+		}
+	}
+}

@@ -16,7 +16,7 @@ in
       };
       rustToolchain = pkgs.rust-bin.fromRustupToolchainFile (root + /rust-toolchain.toml);
       craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
-      inherit (config.packages.ccusage.passthru)
+      inherit (config.packages.agent-burn.passthru)
         cargoArtifacts
         commonArgs
         version
@@ -31,7 +31,7 @@ in
           (nixFilter.matchName "coverage")
         ];
       };
-      ccusage-clippy = craneLib.cargoClippy (
+      agentBurnClippy = craneLib.cargoClippy (
         commonArgs
         // {
           src = repoSrc;
@@ -42,8 +42,8 @@ in
           cargoClippyExtraArgs = "--all-targets -- -D warnings";
         }
       );
-      ccusage-fmt = craneLib.cargoFmt {
-        pname = "ccusage-rust";
+      agentBurnFmt = craneLib.cargoFmt {
+        pname = "agent-burn-rust";
         inherit version;
         src = repoSrc;
         sourceRoot = "source/rust";
@@ -57,7 +57,7 @@ in
         // {
           pname = "generate-config-schema";
           inherit cargoArtifacts;
-          cargoExtraArgs = "-p ccusage --bin generate-config-schema";
+          cargoExtraArgs = "-p agent-burn --bin generate-config-schema";
           doCheck = false;
           meta = {
             mainProgram = "generate-config-schema";
@@ -67,8 +67,8 @@ in
       # Fail `nix flake check` when the committed config schema drifts from what
       # the Rust source generates. This catches PRs that add or change a config
       # field without regenerating the schema (run
-      # `just ccusage::generate-schema` to fix). Only the tracked
-      # apps/ccusage/config-schema.json is checked; docs/public/config-schema.json
+      # `just agent-burn::generate-schema` to fix). Only the tracked
+      # apps/agent-burn/config-schema.json is checked; docs/public/config-schema.json
       # is a gitignored build copy.
       config-schema =
         pkgs.runCommand "config-schema-check"
@@ -88,9 +88,9 @@ in
             generate-config-schema generated.json
             oxfmt --write generated.json
 
-            if ! diff -u apps/ccusage/config-schema.json generated.json; then
-              echo "ERROR: apps/ccusage/config-schema.json is out of sync with the Rust schema source." >&2
-              echo "Run 'nix run .#generate-schema' (or 'just ccusage::generate-schema') and commit the result." >&2
+            if ! diff -u apps/agent-burn/config-schema.json generated.json; then
+              echo "ERROR: apps/agent-burn/config-schema.json is out of sync with the Rust schema source." >&2
+              echo "Run 'nix run .#generate-schema' (or 'just agent-burn::generate-schema') and commit the result." >&2
               exit 1
             fi
 
@@ -112,14 +112,16 @@ in
           '';
     in
     {
-      # `nix flake check` deliberately omits a full `config.packages.ccusage`
-      # build: ccusage-clippy already compiles the entire workspace with
+      # `nix flake check` deliberately omits a full `config.packages.agent-burn`
+      # build: agent-burn-clippy already compiles the entire workspace with
       # `--all-targets` (catching any build break), and the build-native-packages
       # CI job produces and verifies the actual release binary. Building the
       # optimized native package here too only duplicated a ~70s release compile
       # on cache-cold runners.
       checks = {
-        inherit ccusage-clippy ccusage-fmt config-schema;
+        "agent-burn-clippy" = agentBurnClippy;
+        "agent-burn-fmt" = agentBurnFmt;
+        inherit config-schema;
         oxlint = mkRepoCheck "oxlint-check" [ pkgs.oxlint ] ''
           oxlint --config nix/oxlint-check.json .
         '';
@@ -127,7 +129,7 @@ in
           gitleaks detect --source . --config .gitleaks.toml --no-git
         '';
         config-example = mkRepoCheck "config-example-check" [ pkgs.check-jsonschema ] ''
-          check-jsonschema --schemafile apps/ccusage/config-schema.json ccusage.example.json
+          check-jsonschema --schemafile apps/agent-burn/config-schema.json agent-burn.example.json
         '';
         publint =
           mkRepoCheck "publint-check"
@@ -144,12 +146,12 @@ in
               const path = require("node:path");
 
               const generatedArtifacts = new Map([
-                ["@ccusage/ccusage-darwin-arm64", ["bin/ccusage"]],
-                ["@ccusage/ccusage-darwin-x64", ["bin/ccusage"]],
-                ["@ccusage/ccusage-linux-arm64", ["bin/ccusage"]],
-                ["@ccusage/ccusage-linux-x64", ["bin/ccusage"]],
-                ["@ccusage/ccusage-win32-arm64", ["bin/ccusage.exe"]],
-                ["@ccusage/ccusage-win32-x64", ["bin/ccusage.exe"]],
+                ["agent-burn-darwin-arm64", ["bin/agent-burn"]],
+                ["agent-burn-darwin-x64", ["bin/agent-burn"]],
+                ["agent-burn-linux-arm64", ["bin/agent-burn"]],
+                ["agent-burn-linux-x64", ["bin/agent-burn"]],
+                ["agent-burn-win32-arm64", ["bin/agent-burn.exe"]],
+                ["agent-burn-win32-x64", ["bin/agent-burn.exe"]],
               ]);
 
               function touchGeneratedFile(packageDir, relativePath) {

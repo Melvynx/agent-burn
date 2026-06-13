@@ -1,0 +1,30 @@
+{
+	"name": "agent-burn-win32-x64",
+	"version": "20.0.11",
+	"description": "Native agent-burn binary for Windows x64",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Melvynx/agent-burn.git",
+		"directory": "packages/agent-burn-win32-x64"
+	},
+	"files": [
+		"bin/agent-burn.exe"
+	],
+	"os": [
+		"win32"
+	],
+	"cpu": [
+		"x64"
+	],
+	"type": "commonjs",
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"prepack": "../../apps/agent-burn/scripts/verify-native-package.nu && publint"
+	},
+	"devDependencies": {
+		"publint": "catalog:lint"
+	}
+}

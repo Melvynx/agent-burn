@@ -4,7 +4,7 @@
  * models.dev ships per-model TOML sources rather than a prebuilt catalog, so we
  * reuse its own `generateCatalog` routine (the same code that backs
  * https://models.dev/api.json) and then compact the result down to the
- * Anthropic-relevant models and the few pricing fields ccusage consumes. The
+ * Anthropic-relevant models and the few pricing fields Agent Burn consumes. The
  * embedded output is a flat map keyed by runtime model id. The output is
  * committed to the repository and embedded at build time, so every platform
  * ships the identical, pinned data without any build-time network access. The
@@ -20,7 +20,7 @@ import {
 	shouldReplaceModelsDevPricingCandidate,
 } from './models-dev-compact.ts';
 
-/** Model ids/keys we keep; ccusage is Claude-first, so we embed Anthropic models. */
+/** Model ids/keys we keep; Agent Burn is Claude-first, so we embed Anthropic models. */
 const KEEP = /claude|anthropic/i;
 
 type Cost = {

@@ -48,7 +48,7 @@ pub(crate) fn run(args: AgentCommandArgs) -> Result<()> {
 }
 
 fn empty_usage_message() -> &'static str {
-    "No GitHub Copilot CLI usage data found.\nEnable Copilot OpenTelemetry file export before starting or resuming Copilot sessions.\nSee https://ccusage.com/guide/copilot/#data-source"
+    "No GitHub Copilot CLI usage data found.\nEnable Copilot OpenTelemetry file export before starting or resuming Copilot sessions.\nSee https://github.com/Melvynx/agent-burn/guide/copilot/#data-source"
 }
 
 #[cfg(test)]
@@ -58,6 +58,8 @@ mod tests {
     #[test]
     fn empty_usage_message_links_to_copilot_docs() {
         let message = empty_usage_message();
-        assert!(message.contains("https://ccusage.com/guide/copilot/#data-source"));
+        assert!(
+            message.contains("https://github.com/Melvynx/agent-burn/guide/copilot/#data-source")
+        );
     }
 }

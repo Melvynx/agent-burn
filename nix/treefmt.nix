@@ -20,13 +20,13 @@ in
       };
       rustToolchain = pkgs.rust-bin.fromRustupToolchainFile (root + /rust-toolchain.toml);
       craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
-      inherit (config.packages.ccusage.passthru) cargoArtifacts commonArgs;
+      inherit (config.packages.agent-burn.passthru) cargoArtifacts commonArgs;
       generateConfigSchema = craneLib.buildPackage (
         commonArgs
         // {
           pname = "generate-config-schema";
           inherit cargoArtifacts;
-          cargoExtraArgs = "-p ccusage --bin generate-config-schema";
+          cargoExtraArgs = "-p agent-burn --bin generate-config-schema";
           doCheck = false;
           meta = {
             mainProgram = "generate-config-schema";
@@ -34,7 +34,7 @@ in
         }
       );
       schemaGen = pkgs.writeShellApplication {
-        name = "ccusage-schema-gen";
+        name = "agent-burn-schema-gen";
         runtimeInputs = [
           pkgs.coreutils
           pkgs.diffutils
@@ -50,11 +50,11 @@ in
           trap 'rm -f "$tmp"' EXIT
           generate-config-schema "$tmp"
           oxfmt --write "$tmp"
-          if ! cmp -s "$tmp" apps/ccusage/config-schema.json; then
-            cp -f "$tmp" apps/ccusage/config-schema.json
+          if ! cmp -s "$tmp" apps/agent-burn/config-schema.json; then
+            cp -f "$tmp" apps/agent-burn/config-schema.json
           fi
-          if [ -d docs/public ] && ! cmp -s apps/ccusage/config-schema.json docs/public/config-schema.json; then
-            cp -f apps/ccusage/config-schema.json docs/public/config-schema.json
+          if [ -d docs/public ] && ! cmp -s apps/agent-burn/config-schema.json docs/public/config-schema.json; then
+            cp -f apps/agent-burn/config-schema.json docs/public/config-schema.json
           fi
         '';
       };
@@ -147,7 +147,7 @@ in
           schema-gen = {
             command = lib.getExe schemaGen;
             includes = [
-              "apps/ccusage/config-schema.json"
+              "apps/agent-burn/config-schema.json"
               "rust/crates/ccusage/src/config_schema.rs"
               "rust/crates/ccusage/src/bin/generate_config_schema.rs"
             ];
@@ -156,7 +156,7 @@ in
         };
       };
 
-      # `nix run .#generate-schema` regenerates apps/ccusage/config-schema.json
+      # `nix run .#generate-schema` regenerates apps/agent-burn/config-schema.json
       # (and the docs copy) from the current Rust source. It reuses the exact
       # script the treefmt formatter and the config-schema flake check rely on,
       # so the three can never drift apart. Run it from the repo root.

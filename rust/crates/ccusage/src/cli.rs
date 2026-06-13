@@ -8,7 +8,7 @@ pub(crate) fn parse() -> Cli {
     let args = env::args_os().collect::<Vec<_>>();
     let arg_strings = args_to_strings(args.iter().skip(1).cloned()).unwrap_or_else(|message| {
         eprintln!("{message}");
-        eprintln!("Run 'ccusage --help' for usage.");
+        eprintln!("Run 'agent-burn --help' for usage.");
         process::exit(2);
     });
     let config = ConfigContext::from_args(&arg_strings);
@@ -20,7 +20,7 @@ pub(crate) fn parse() -> Cli {
     )
     .unwrap_or_else(|message| {
         eprintln!("{message}");
-        eprintln!("Run 'ccusage --help' for usage.");
+        eprintln!("Run 'agent-burn --help' for usage.");
         process::exit(2);
     })
 }

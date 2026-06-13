@@ -9,27 +9,7 @@ pub struct Cli {
 }
 
 pub enum Command {
-    All(AgentCommandArgs),
-    Daily(DailyArgs),
-    Monthly(SharedArgs),
-    Weekly(WeeklyArgs),
-    Session(SessionArgs),
-    Blocks(BlocksArgs),
-    Statusline(StatuslineArgs),
-    Codex(AgentCommandArgs),
-    OpenCode(AgentCommandArgs),
-    Amp(AgentCommandArgs),
-    Droid(AgentCommandArgs),
-    Codebuff(AgentCommandArgs),
-    Hermes(AgentCommandArgs),
-    Pi(AgentCommandArgs),
-    Goose(AgentCommandArgs),
-    Kilo(AgentCommandArgs),
-    Copilot(AgentCommandArgs),
-    Gemini(AgentCommandArgs),
-    Kimi(AgentCommandArgs),
-    Qwen(AgentCommandArgs),
-    OpenClaw(AgentCommandArgs),
+    Summary(SummaryArgs),
 }
 
 #[derive(Clone, Debug, Default)]
@@ -68,6 +48,42 @@ impl SharedArgs {
 
 pub fn normalize_date_bound(value: &str) -> String {
     value.replace('-', "")
+}
+
+/// Arguments shared by two sibling commands:
+/// - `summary` — the all-agents cost overview (`agent` is `None`).
+/// - `harness <agent>` — the focused per-agent detail (weekly limit vs time),
+///   where `agent` is `Some("codex" | "claude")`.
+#[derive(Clone)]
+pub struct SummaryArgs {
+    pub shared: SharedArgs,
+    pub value: bool,
+    pub claude_plan: Option<String>,
+    pub codex_plan: Option<String>,
+    pub range: Option<SummaryRange>,
+    /// `Some(agent)` selects the `harness <agent>` detail view; `None` is the
+    /// `summary` overview.
+    pub agent: Option<String>,
+    /// Generate an interactive HTML report (and open it) in addition to the
+    /// terminal output. Overview-only.
+    pub html: bool,
+}
+
+/// A convenience time range for `agent-burn summary`, resolved to a `--since`
+/// bound at run time (it needs the current date and timezone).
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SummaryRange {
+    Today,
+    /// Week-to-date (since Monday of the current week).
+    Wtd,
+    /// Month-to-date (since the 1st of the current month).
+    Mtd,
+    /// Year-to-date (since January 1st).
+    Ytd,
+    /// The last 7 days.
+    Week,
+    /// The last 30 days.
+    Month,
 }
 
 #[derive(Clone)]
@@ -132,19 +148,6 @@ pub enum AgentReportKind {
     Monthly,
     Session,
 }
-
-pub(crate) const STANDARD_AGENT_REPORTS: &[(&str, AgentReportKind)] = &[
-    ("daily", AgentReportKind::Daily),
-    ("monthly", AgentReportKind::Monthly),
-    ("session", AgentReportKind::Session),
-];
-
-pub(crate) const OPENCODE_AGENT_REPORTS: &[(&str, AgentReportKind)] = &[
-    ("daily", AgentReportKind::Daily),
-    ("weekly", AgentReportKind::Weekly),
-    ("monthly", AgentReportKind::Monthly),
-    ("session", AgentReportKind::Session),
-];
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum CodexSpeed {

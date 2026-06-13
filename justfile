@@ -11,7 +11,7 @@
 #
 # Run `just --list` (or `just <module>::--list`) to see everything.
 
-mod ccusage 'apps/ccusage'
+mod agent-burn 'apps/agent-burn'
 mod docs
 mod rust
 
@@ -20,7 +20,7 @@ default:
     @just --list
 
 # Build every workspace package
-build: ccusage::build docs::build
+build: agent-burn::build docs::build
 
 # Type-check and lint TypeScript with oxlint's type-aware checker
 typecheck:
@@ -32,11 +32,11 @@ test: rust::test test-node
 
 # Run Node's built-in test runner for TypeScript package and tooling tests
 test-node:
-    TZ=UTC node --test apps/ccusage/src/cli.test.ts nix/models-dev-compact.test.ts
+    TZ=UTC node --test apps/agent-burn/src/cli.test.ts nix/models-dev-compact.test.ts
 
 # Generate a large benchmark fixture for PR performance comparisons
 generate-large-fixture output_dir codex_output_dir size_mib="1024":
-    apps/ccusage/scripts/generate-large-fixture.nu --output-dir "{{output_dir}}" --codex-output-dir "{{codex_output_dir}}" --size-mib {{size_mib}}
+    apps/agent-burn/scripts/generate-large-fixture.nu --output-dir "{{output_dir}}" --codex-output-dir "{{codex_output_dir}}" --size-mib {{size_mib}}
 
 # Format the whole tree (Nix, Rust, JS/TS, workflows, typos) via treefmt
 fmt:
@@ -46,7 +46,7 @@ fmt:
 check:
     nix flake check
 
-# Regenerate apps/ccusage/config-schema.json from the Rust source
+# Regenerate apps/agent-burn/config-schema.json from the Rust source
 schema:
     nix run .#generate-schema
 
@@ -70,6 +70,6 @@ update-models-dev-pricing:
     just check
 
 # Bump every package version (Rust included via bump.config.ts), then commit, tag, push
-release: ccusage::typecheck ccusage::build
+release: agent-burn::typecheck agent-burn::build
     pnpm bumpp -r
     git checkout -- $(git ls-files '*package.json')

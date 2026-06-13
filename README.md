@@ -1,1 +1,1 @@
-./apps/ccusage/README.md
+./apps/agent-burn/README.md

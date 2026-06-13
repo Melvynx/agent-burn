@@ -18,7 +18,7 @@ in
       };
       rustToolchain = pkgs.rust-bin.fromRustupToolchainFile (root + /rust-toolchain.toml);
       craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
-      ccusage = import ../default.nix {
+      agentBurn = import ../default.nix {
         inherit
           craneLib
           inputs
@@ -26,10 +26,10 @@ in
           root
           ;
       };
-      ccusageProgram = pkgs.lib.getExe' ccusage "ccusage";
+      agentBurnProgram = pkgs.lib.getExe' agentBurn "agent-burn";
       # Regeneration-only output for committed models.dev snapshots;
       # `just gen-models-dev-pricing` builds this and copies them into the source
-      # tree. It is not part of the ccusage build, which embeds the committed files.
+      # tree. It is not part of the agent-burn build, which embeds the committed files.
       models-dev-pricing = pkgs.callPackage ../nix/models-dev-pricing.nix {
         modelsDevSrc = inputs.models-dev;
       };
@@ -39,17 +39,18 @@ in
       apps = {
         default = {
           type = "app";
-          program = ccusageProgram;
+          program = agentBurnProgram;
         };
-        ccusage = {
+        "agent-burn" = {
           type = "app";
-          program = ccusageProgram;
+          program = agentBurnProgram;
         };
       };
 
       packages = {
-        default = ccusage;
-        inherit ccusage models-dev-pricing publint;
+        default = agentBurn;
+        "agent-burn" = agentBurn;
+        inherit models-dev-pricing publint;
       };
     };
 }

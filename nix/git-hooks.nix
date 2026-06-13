@@ -39,7 +39,7 @@ in
               ];
               priority = 0;
             };
-            ccusage-treefmt = {
+            agent-burn-treefmt = {
               enable = true;
               name = "treefmt";
               # `--no-cache` keeps the hook safe under prek's parallel,
@@ -64,7 +64,7 @@ in
               stages = [ "pre-commit" ];
               priority = 20;
             };
-            ccusage-treefmt-check = {
+            agent-burn-treefmt-check = {
               enable = true;
               name = "treefmt";
               entry = "${lib.getExe config.treefmt.build.wrapper} --fail-on-change";
@@ -83,7 +83,7 @@ in
               stages = [ "pre-push" ];
               priority = 0;
             };
-            ccusage-oxlint-check = {
+            agent-burn-oxlint-check = {
               enable = true;
               name = "oxlint";
               entry = "${lib.getExe pkgs.oxlint} .";
@@ -92,7 +92,7 @@ in
               stages = [ "pre-push" ];
               priority = 0;
             };
-            ccusage-clippy = {
+            agent-burn-clippy = {
               enable = true;
               name = "clippy";
               entry = "${lib.getExe' rustToolchain "cargo"} clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings";
@@ -104,7 +104,7 @@ in
             node-test = {
               enable = true;
               name = "node test";
-              entry = "${lib.getExe pkgs.nodejs} --test apps/ccusage/src/cli.test.ts nix/models-dev-compact.test.ts";
+              entry = "${lib.getExe pkgs.nodejs} --test apps/agent-burn/src/cli.test.ts nix/models-dev-compact.test.ts";
               files = "\\.(ts|tsx|js|jsx|mjs|cjs)$";
               pass_filenames = false;
               stages = [ "pre-push" ];

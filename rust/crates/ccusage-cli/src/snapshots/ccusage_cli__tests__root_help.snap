@@ -3,67 +3,35 @@ source: crates/ccusage-cli/src/tests.rs
 expression: help_text()
 ---
 USAGE:
-  ccusage [daily] <OPTIONS>
-  ccusage <COMMANDS>
+  agent-burn [summary] [RANGE] <OPTIONS>
+  agent-burn harness <codex|claude> <OPTIONS>
 
 COMMANDS:
-  daily                      Show all detected coding (agent) CLI usage grouped by date
-  monthly                    Show all detected coding (agent) CLI usage grouped by month
-  weekly                     Show all detected coding (agent) CLI usage grouped by week
-  session                    Show all detected coding (agent) CLI usage grouped by session
-  blocks                     Show usage report grouped by session billing blocks
-  statusline                 Display compact status line for Claude Code hooks with hybrid time+file caching (Beta)
-  claude                     Show Claude Code usage commands
-  codex                      Show Codex token usage commands
-  opencode                   Show OpenCode token usage commands
-  amp                        Show Amp token usage commands
-  droid                      Show Droid usage commands
-  codebuff                   Show Codebuff usage commands
-  hermes                     Show Hermes usage commands
-  pi                         Show pi-agent usage commands
-  goose                      Show Goose usage commands
-  kilo                       Show Kilo usage commands
-  copilot                    Show GitHub Copilot CLI usage commands
-  gemini                     Show Gemini CLI usage commands
-  kimi                       Show Kimi usage commands
-  qwen                       Show Qwen usage commands
-  openclaw                   Show OpenClaw usage commands
+  summary                    Compare API-equivalent agent usage with subscription value
+  harness                    Inspect one subscription harness with live limits and value
 
 For more info, run any command with the `--help` flag:
-  ccusage daily --help
-  ccusage monthly --help
-  ccusage weekly --help
-  ccusage session --help
-  ccusage blocks --help
-  ccusage statusline --help
-  ccusage claude --help
-  ccusage codex --help
-  ccusage opencode --help
-  ccusage amp --help
-  ccusage droid --help
-  ccusage codebuff --help
-  ccusage hermes --help
-  ccusage pi --help
-  ccusage goose --help
-  ccusage kilo --help
-  ccusage copilot --help
-  ccusage gemini --help
-  ccusage kimi --help
-  ccusage qwen --help
-  ccusage openclaw --help
+  agent-burn summary --help
+  agent-burn harness --help
 
 OPTIONS:
   -j, --json                           Output in JSON format (default: false)
   -s, --since <since>                  Filter from date (YYYY-MM-DD or YYYYMMDD)
   -u, --until <until>                  Filter until date (inclusive)
-  -z, --timezone <timezone>            Timezone for date grouping (IANA)
-  --all                                Accepted for compatibility; all detected supported agents are included by default (default: false)
-  -O, --offline                        Use cached pricing data where supported (default: false)
-  --no-offline                         Negatable of -O, --offline
+  -z, --timezone <timezone>            Timezone for date grouping (IANA) (default: system timezone)
+  -m, --mode <mode>                    Cost calculation mode (default: auto, choices: auto | calculate | display)
+  -o, --order <order>                  Sort order for loaded usage rows (default: asc, choices: asc | desc)
+  -b, --breakdown                      Include per-model cost breakdowns (default: false)
+  -O, --offline                        Use cached pricing and skip live subscription-limit calls (default: false)
+  --no-offline                         Allow live pricing and subscription-limit calls
   --compact                            Force compact table layout for narrow terminals (default: false)
+  --single-thread                      Disable parallel JSONL file loading (default: false)
   --no-cost                            Hide cost information in table and JSON output (default: false)
   --color                              Enable colored output. FORCE_COLOR=1 has the same effect. (default: auto)
   --no-color                           Disable colored output. NO_COLOR=1 has the same effect. (default: auto)
   --config <config>                    Path to configuration file (default: auto-discovery)
+  -q, --jq <jq>                        Run a jq-style filter against JSON output
+  -d, --debug                          Show pricing mismatch information for debugging (default: false)
+  --debug-samples <debug-samples>      Number of sample discrepancies to show in debug output (default: 5)
   -h, --help                           Display this help message
   -v, --version                        Display this version

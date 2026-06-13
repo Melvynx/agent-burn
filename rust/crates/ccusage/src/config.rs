@@ -99,7 +99,15 @@ fn load_config_value(path: Option<&Path>) -> Option<Value> {
 fn discover_config_paths() -> Vec<PathBuf> {
     let mut paths = Vec::new();
     if let Ok(cwd) = env::current_dir() {
+        paths.push(cwd.join(".agent-burn").join("agent-burn.json"));
         paths.push(cwd.join(".ccusage").join("ccusage.json"));
+    }
+    if let Some(home) = crate::home::home_dir() {
+        paths.push(
+            home.join(".config")
+                .join("agent-burn")
+                .join("agent-burn.json"),
+        );
     }
     paths.extend(
         claude_config_dirs()

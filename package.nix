@@ -22,15 +22,15 @@ let
       || lib.hasSuffix "/codex-auto-review-fallbacks.json" path;
   };
   commonArgs = {
-    pname = "ccusage";
+    pname = "agent-burn";
     inherit version src;
     strictDeps = true;
     doCheck = false;
-    cargoExtraArgs = "-p ccusage --bin ccusage";
+    cargoExtraArgs = "-p agent-burn --bin agent-burn";
     CCUSAGE_PRICING_JSON_PATH = "${inputs.litellm}/model_prices_and_context_window.json";
     RUSTFLAGS =
       lib.optionalString stdenv.isLinux "-C link-arg=-fuse-ld=mold"
-      # The nixpkgs Darwin stdenv injects -liconv even though ccusage uses no
+      # The nixpkgs Darwin stdenv injects -liconv even though agent-burn uses no
       # iconv symbols, recording an unused /nix/store libiconv dependency that
       # crashes non-Nix Macs (#1251). dead_strip_dylibs drops dylib load
       # commands with no referenced symbols, so the unused libiconv is removed
@@ -62,13 +62,13 @@ craneLib.buildPackage (
       # arrive after the linker has resolved dead_strip_dylibs.  Rewrite the
       # install name as a robust fallback so the safety gate below doesn't fail
       # on a dylib that carries no referenced symbols.
-      for lib in $(otool -L "$out/bin/ccusage" | tail -n +2 | awk '{print $1}' | grep -E '^/nix/store/[^/]+-libiconv-'); do
-        install_name_tool -change "$lib" /usr/lib/libiconv.2.dylib "$out/bin/ccusage"
+      for lib in $(otool -L "$out/bin/agent-burn" | tail -n +2 | awk '{print $1}' | grep -E '^/nix/store/[^/]+-libiconv-'); do
+        install_name_tool -change "$lib" /usr/lib/libiconv.2.dylib "$out/bin/agent-burn"
       done
       # Every remaining dylib MUST be a macOS system path.  grep prints the
       # offending entries when it matches — fail the build for any matches.
-      if otool -L "$out/bin/ccusage" | tail -n +2 | awk '{print $1}' | grep -Ev '^(/usr/lib/|/System/Library/)'; then
-        echo "error: ccusage links dylibs that do not exist on end-user machines" >&2
+      if otool -L "$out/bin/agent-burn" | tail -n +2 | awk '{print $1}' | grep -Ev '^(/usr/lib/|/System/Library/)'; then
+        echo "error: agent-burn links dylibs that do not exist on end-user machines" >&2
         exit 1
       fi
     '';
@@ -82,9 +82,9 @@ craneLib.buildPackage (
     };
     meta = {
       description = "Analyze coding agent CLI token usage and costs from local data";
-      homepage = "https://github.com/ccusage/ccusage";
+      homepage = "https://github.com/Melvynx/agent-burn";
       license = lib.licenses.mit;
-      mainProgram = "ccusage";
+      mainProgram = "agent-burn";
     };
   }
 )

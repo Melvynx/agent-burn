@@ -1,5 +1,10 @@
 mod daily;
+mod limits;
 mod paths;
+mod plan;
+
+pub(crate) use limits::usage_limits;
+pub(crate) use plan::detected_plan_tier;
 
 use std::{
     fs,

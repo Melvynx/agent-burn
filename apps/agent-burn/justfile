@@ -1,0 +1,34 @@
+# Recipes for the published `agent-burn` npm package. Run from the repo root as
+# `just agent-burn::<recipe>`, or from this directory as `just <recipe>`.
+
+[private]
+default:
+    @just --list
+
+# Verify native binary glue for the published package.
+build: build-package
+
+build-package:
+    just ensure-native-binary
+    publint
+
+prepack:
+    just build-package
+
+build-rust:
+    cargo build --manifest-path ../../rust/Cargo.toml --release --bin agent-burn
+
+ensure-native-binary:
+    scripts/ensure-native-binary.nu
+
+generate-schema:
+    cargo run --quiet --manifest-path ../../rust/Cargo.toml --bin generate-config-schema -- config-schema.json
+    oxfmt --write config-schema.json
+    cp config-schema.json ../../docs/public/config-schema.json
+
+start *args:
+    cargo run --manifest-path ../../rust/Cargo.toml --bin agent-burn -- {{args}}
+
+# Type-check the package through the root oxlint type-aware checker.
+typecheck:
+    just --justfile ../../justfile typecheck

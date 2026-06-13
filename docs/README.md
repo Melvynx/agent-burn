@@ -1,17 +1,14 @@
 # Documentation Site
 
-This directory contains the VitePress documentation website for ccusage.
-
-The public site is hosted on Cloudflare at https://ccusage.com.
+This directory contains the VitePress documentation website for Agent Burn.
 
 ## Structure
 
-- `guide/` - user guides and tutorials.
-- `public/` - screenshots, static assets, and generated config schema.
-- `.vitepress/` - VitePress configuration and theme customization.
+- `guide/` - user guides for the `summary` and `harness` commands.
+- `public/` - static assets and generated config schema.
+- `.vitepress/` - VitePress configuration.
 
-The docs build copies `apps/ccusage/config-schema.json` to
-`docs/public/config-schema.json` before running VitePress.
+The docs build copies `apps/agent-burn/config-schema.json` to `docs/public/config-schema.json` before running VitePress.
 
 ## Commands
 
@@ -20,5 +17,4 @@ just docs::dev
 just docs::build
 just docs::preview
 just docs::typecheck
-just fmt
 ```

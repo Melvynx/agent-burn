@@ -60,7 +60,7 @@ importers:
         specifier: catalog:release
         version: 0.0.75
 
-  apps/ccusage:
+  apps/agent-burn:
     devDependencies:
       '@types/node':
         specifier: catalog:types
@@ -69,24 +69,24 @@ importers:
         specifier: catalog:lint
         version: 0.3.12
     optionalDependencies:
-      '@ccusage/ccusage-darwin-arm64':
+      'agent-burn-darwin-arm64':
         specifier: workspace:*
-        version: link:../../packages/ccusage-darwin-arm64
-      '@ccusage/ccusage-darwin-x64':
+        version: link:../../packages/agent-burn-darwin-arm64
+      'agent-burn-darwin-x64':
         specifier: workspace:*
-        version: link:../../packages/ccusage-darwin-x64
-      '@ccusage/ccusage-linux-arm64':
+        version: link:../../packages/agent-burn-darwin-x64
+      'agent-burn-linux-arm64':
         specifier: workspace:*
-        version: link:../../packages/ccusage-linux-arm64
-      '@ccusage/ccusage-linux-x64':
+        version: link:../../packages/agent-burn-linux-arm64
+      'agent-burn-linux-x64':
         specifier: workspace:*
-        version: link:../../packages/ccusage-linux-x64
-      '@ccusage/ccusage-win32-arm64':
+        version: link:../../packages/agent-burn-linux-x64
+      'agent-burn-win32-arm64':
         specifier: workspace:*
-        version: link:../../packages/ccusage-win32-arm64
-      '@ccusage/ccusage-win32-x64':
+        version: link:../../packages/agent-burn-win32-arm64
+      'agent-burn-win32-x64':
         specifier: workspace:*
-        version: link:../../packages/ccusage-win32-x64
+        version: link:../../packages/agent-burn-win32-x64
 
   docs:
     devDependencies:
@@ -109,37 +109,37 @@ importers:
         specifier: catalog:docs
         version: 1.13.0
 
-  packages/ccusage-darwin-arm64:
+  packages/agent-burn-darwin-arm64:
     devDependencies:
       publint:
         specifier: catalog:lint
         version: 0.3.12
 
-  packages/ccusage-darwin-x64:
+  packages/agent-burn-darwin-x64:
     devDependencies:
       publint:
         specifier: catalog:lint
         version: 0.3.12
 
-  packages/ccusage-linux-arm64:
+  packages/agent-burn-linux-arm64:
     devDependencies:
       publint:
         specifier: catalog:lint
         version: 0.3.12
 
-  packages/ccusage-linux-x64:
+  packages/agent-burn-linux-x64:
     devDependencies:
       publint:
         specifier: catalog:lint
         version: 0.3.12
 
-  packages/ccusage-win32-arm64:
+  packages/agent-burn-win32-arm64:
     devDependencies:
       publint:
         specifier: catalog:lint
         version: 0.3.12
 
-  packages/ccusage-win32-x64:
+  packages/agent-burn-win32-x64:
     devDependencies:
       publint:
         specifier: catalog:lint

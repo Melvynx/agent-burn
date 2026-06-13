@@ -1,0 +1,41 @@
+{
+	"name": "agent-burn",
+	"version": "20.0.11",
+	"description": "Compare local coding-agent usage against subscription limits and API-equivalent value",
+	"homepage": "https://github.com/Melvynx/agent-burn#readme",
+	"bugs": {
+		"url": "https://github.com/Melvynx/agent-burn/issues"
+	},
+	"license": "MIT",
+	"author": "Melvynx",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Melvynx/agent-burn.git",
+		"directory": "apps/agent-burn"
+	},
+	"bin": {
+		"agent-burn": "./src/cli.js",
+		"burn": "./src/cli.js"
+	},
+	"files": [
+		"config-schema.json",
+		"src/cli.js"
+	],
+	"type": "module",
+	"scripts": {
+		"build": "scripts/ensure-native-binary.nu && publint",
+		"prepack": "pnpm run build"
+	},
+	"devDependencies": {
+		"@types/node": "catalog:types",
+		"publint": "catalog:lint"
+	},
+	"optionalDependencies": {
+		"agent-burn-darwin-arm64": "workspace:*",
+		"agent-burn-darwin-x64": "workspace:*",
+		"agent-burn-linux-arm64": "workspace:*",
+		"agent-burn-linux-x64": "workspace:*",
+		"agent-burn-win32-arm64": "workspace:*",
+		"agent-burn-win32-x64": "workspace:*"
+	}
+}

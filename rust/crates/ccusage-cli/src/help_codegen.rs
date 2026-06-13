@@ -272,41 +272,41 @@ mod tests {
                     "description": "Output in JSON format"
                 }
             ],
-            "session_options": [
+            "summary_options": [
                 {
-                    "flags": "-i, --id <ID>",
-                    "description": "Show a specific session"
+                    "flags": "--value",
+                    "description": "Show subscription value"
                 }
             ]
         });
         let command_spec = json!({
             "combinedOptions": {
-                "agent_session_options": ["agent_options", "session_options"]
+                "summary_combined_options": ["agent_options", "summary_options"]
             },
             "root": {
-                "usage": ["ccusage <COMMANDS>"],
+                "usage": ["agent-burn <COMMANDS>"],
                 "commands": [
                     {
-                        "name": "session",
-                        "description": "Show usage grouped by session"
+                        "name": "summary",
+                        "description": "Show subscription value summary"
                     }
                 ]
             },
             "pages": [
                 {
-                    "path": ["session"],
-                    "description": "Show usage grouped by session",
-                    "usage": "ccusage session <OPTIONS>",
-                    "options": "agent_session_options"
+                    "path": ["summary"],
+                    "description": "Show subscription value summary",
+                    "usage": "agent-burn summary <OPTIONS>",
+                    "options": "summary_combined_options"
                 }
             ]
         });
 
         let output = generate_cli_help_source(&option_sets, &command_spec);
 
-        assert!(output.contains("const fn agent_session_options() -> &'static str"));
+        assert!(output.contains("const fn summary_combined_options() -> &'static str"));
         assert!(output.contains("OPTIONS:\\n  --json"));
-        assert!(output.contains("-i, --id <ID>"));
+        assert!(output.contains("--value"));
     }
 
     #[test]
@@ -322,30 +322,30 @@ mod tests {
         let command_spec = json!({
             "combinedOptions": {},
             "root": {
-                "usage": ["ccusage <COMMANDS>"],
+                "usage": ["agent-burn <COMMANDS>"],
                 "commands": [
                     {
-                        "name": "agent",
-                        "description": "Show agent usage commands"
+                        "name": "harness",
+                        "description": "Show one subscription harness"
                     }
                 ]
             },
             "pages": [
                 {
-                    "path": ["agent"],
-                    "description": "Usage reports for agent.",
-                    "usage": "ccusage agent <COMMANDS>",
+                    "path": ["harness"],
+                    "description": "Subscription harness reports.",
+                    "usage": "agent-burn harness <COMMANDS>",
                     "commands": [
                         {
-                            "name": "daily",
-                            "description": "Show usage by day"
+                            "name": "claude",
+                            "description": "Show Claude harness"
                         }
                     ]
                 },
                 {
-                    "path": ["agent", "daily"],
-                    "description": "Show usage by day",
-                    "usage": "ccusage agent daily <OPTIONS>",
+                    "path": ["harness", "claude"],
+                    "description": "Show Claude harness",
+                    "usage": "agent-burn harness claude <OPTIONS>",
                     "options": "agent_options"
                 }
             ]
@@ -354,9 +354,9 @@ mod tests {
         let output = generate_cli_help_source(&option_sets, &command_spec);
 
         assert!(output.contains("const ROOT_COMMANDS"));
-        assert!(output.contains("path: &[\"agent\"]"));
-        assert!(output.contains("path: &[\"agent\", \"daily\"]"));
-        assert!(output.contains("commands: &[(\"daily\", \"Show usage by day\")]"));
+        assert!(output.contains("path: &[\"harness\"]"));
+        assert!(output.contains("path: &[\"harness\", \"claude\"]"));
+        assert!(output.contains("commands: &[(\"claude\", \"Show Claude harness\")]"));
     }
 
     #[test]

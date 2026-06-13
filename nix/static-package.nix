@@ -1,18 +1,18 @@
-# Distribution-only Linux build, kept separate from the default `ccusage`
+# Distribution-only Linux build, kept separate from the default `agent-burn`
 # package on purpose:
 #
-#   * `ccusage` (package.nix) is the host-native build used for `nix run`,
+#   * `agent-burn` (package.nix) is the host-native build used for `nix run`,
 #     the dev shell, `nix flake check`, and schema generation. On Linux it is
 #     glibc-dynamic with a runpath into `/nix/store`, so it is fast for local
 #     work but NOT portable to end-user machines.
-#   * `ccusage-static` (this file) cross-compiles to musl and links fully
+#   * `agent-burn-static` (this file) cross-compiles to musl and links fully
 #     statically, producing the portable binary that `release.yaml` ships to
-#     npm. The release matrix runs `nix build .#ccusage-static` for Linux;
+#     npm. The release matrix runs `nix build .#agent-burn-static` for Linux;
 #     macOS arm64 uses the native Nix build, while macOS x64 and Windows fall
 #     back to `cargo build` because Nix cannot target those runners.
 #
-# So Linux release artifacts must come from `.#ccusage-static`, never the
-# default `.#ccusage`, which would embed unusable `/nix/store` paths.
+# So Linux release artifacts must come from `.#agent-burn-static`, never the
+# default `.#agent-burn`, which would embed unusable `/nix/store` paths.
 {
   inputs,
   ...
@@ -34,7 +34,7 @@ in
       };
     in
     pkgs.lib.mkIf pkgs.stdenv.isLinux {
-      packages.ccusage-static =
+      packages."agent-burn-static" =
         let
           linuxStaticTarget =
             if system == "x86_64-linux" then "x86_64-unknown-linux-musl" else "aarch64-unknown-linux-musl";
@@ -49,8 +49,8 @@ in
               targets = [ linuxStaticTarget ];
             }
           );
-          staticCommonArgs = config.packages.ccusage.passthru.commonArgs // {
-            cargoExtraArgs = "-p ccusage --bin ccusage --target ${linuxStaticTarget}";
+          staticCommonArgs = config.packages.agent-burn.passthru.commonArgs // {
+            cargoExtraArgs = "-p agent-burn --bin agent-burn --target ${linuxStaticTarget}";
             nativeBuildInputs = with staticPkgs; [
               mold
               pkg-config
@@ -58,8 +58,8 @@ in
             buildInputs = [ ];
           };
           # Share the same deps-only cache key, then add static target settings.
-          staticDepsOnlyArgs = config.packages.ccusage.passthru.depsOnlyArgs // {
-            cargoExtraArgs = "-p ccusage --bin ccusage --target ${linuxStaticTarget}";
+          staticDepsOnlyArgs = config.packages.agent-burn.passthru.depsOnlyArgs // {
+            cargoExtraArgs = "-p agent-burn --bin agent-burn --target ${linuxStaticTarget}";
             nativeBuildInputs = with staticPkgs; [
               mold
               pkg-config
@@ -83,13 +83,13 @@ in
             # so it would not run on end-user machines without the build-time
             # loader path. READELF is exported by the cross bintools wrapper.
             postInstall = ''
-              if "''${READELF:-readelf}" -l $out/bin/ccusage | grep -q INTERP; then
-                echo "error: ccusage-static is not statically linked" >&2
+              if "''${READELF:-readelf}" -l $out/bin/agent-burn | grep -q INTERP; then
+                echo "error: agent-burn-static is not statically linked" >&2
                 exit 1
               fi
             '';
-            meta = config.packages.ccusage.meta // {
-              description = "Static Linux build of ccusage";
+            meta = config.packages.agent-burn.meta // {
+              description = "Static Linux build of agent-burn";
             };
           }
         );
