@@ -1,9 +1,9 @@
 [workspace]
 members = [
-	"crates/ccusage",
-	"crates/ccusage-cli",
-	"crates/ccusage-terminal",
-	"crates/ccusage-test-support",
+	"crates/agent-burn",
+	"crates/agent-burn-cli",
+	"crates/agent-burn-terminal",
+	"crates/agent-burn-test-support",
 ]
 resolver = "2"
 

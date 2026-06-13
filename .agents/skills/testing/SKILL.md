@@ -1,13 +1,13 @@
 ---
 name: testing
-description: Guides ccusage Rust and Node tests. Use when adding or fixing cargo tests, Node test files, CLI snapshots, Claude model pricing, LiteLLM compatibility, or fixture-backed tests.
+description: Guides agent-burn Rust and Node tests. Use when adding or fixing cargo tests, Node test files, CLI snapshots, Claude model pricing, LiteLLM compatibility, or fixture-backed tests.
 ---
 
-# ccusage Testing
+# agent-burn Testing
 
 Use the `tdd` skill for logic changes, Red-Green-Refactor workflow, focused
 runner commands, Rust test syntax, and general test readability rules. This
-skill owns ccusage-specific Rust and Node test rules: fixtures, adapter
+skill owns agent-burn-specific Rust and Node test rules: fixtures, adapter
 coverage, pricing/model behavior, CLI output, schema artifacts, and package
 tooling.
 

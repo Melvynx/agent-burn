@@ -27,17 +27,17 @@ Use these skills before working in this repository:
 
 Check the nearest package-specific `AGENTS.md` before editing package code:
 
-- `apps/agent-burn/AGENTS.md` - main Claude Code usage CLI and library
+- `apps/agent-burn/AGENTS.md` - published Agent Burn CLI package
 - `docs/AGENTS.md` - VitePress documentation site
 
 ## Always-On Reminders
 
-- The canonical user-facing CLI is `ccusage` with agent subcommands such as `ccusage amp`, `ccusage codex`, `ccusage opencode`, and `ccusage pi`.
-- Standalone agent wrapper packages have been removed. Do not add docs, tests, or features that promote `ccusage-amp`, `ccusage-codex`, `ccusage-opencode`, or `ccusage-pi`.
+- The canonical user-facing CLI is `agent-burn` with only `summary` and `harness` commands.
+- Standalone agent wrapper packages and legacy report commands have been removed. Do not add docs, tests, or features that promote `agent-burn-amp`, `agent-burn-codex`, `agent-burn-opencode`, `agent-burn-pi`, `daily`, `weekly`, `monthly`, `session`, `blocks`, or `statusline`.
 - Runtime libraries for bundled packages belong in `devDependencies` unless explicitly requested otherwise.
 - When initializing this repository environment, run `direnv allow` so the pinned Nix dev shell is activated.
 - Prefer tools provided by the Nix dev shell before falling back to ad hoc installs: `rg`, `fd`, `fzf`, `delta`, `dust`, `jq`, `gh`, `hyperfine`, `similarity`, `ast-grep`, `typos`, and `typos-lsp`. When a missing tool would be useful for repeated agent work in this repository, add it to `flake.nix`.
-- The production CLI is Rust-first under `rust/crates/ccusage`. Put new runtime behavior there unless the work is specifically about npm packaging, generated schemas, docs tooling, or benchmark scripts.
+- The production CLI is Rust-first under `rust/crates/agent-burn`. Put new runtime behavior there unless the work is specifically about npm packaging, generated schemas, docs tooling, or benchmark scripts.
 - For Rust code, keep modules small, keep `pub(crate)` surfaces narrow, prefer fixture-backed parser/loader tests, and run cargo checks through the `just` recipes when possible.
 - TypeScript rules still apply to `.ts`, `.tsx`, `.js`, and `.jsx` package/tooling files. Use `typescript` there, especially `satisfies` and `as const satisfies` for typed literals.
 - For TypeScript package code, use `logger.ts` instead of `console.log`, use `.ts` extensions for local imports, and avoid dynamic imports.

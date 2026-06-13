@@ -1,7 +1,57 @@
-import { cloudflareRedirect } from '@ryoppippi/vite-plugin-cloudflare-redirect';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+
 import { defineConfig } from 'vitepress';
 import { groupIconMdPlugin, groupIconVitePlugin } from 'vitepress-plugin-group-icons';
 import llmstxt from 'vitepress-plugin-llms';
+
+type RedirectEntry = {
+	from: `/${string}`;
+	to: string;
+	status: 301 | 302;
+};
+
+const redirects = [
+	{ from: '/gh', to: 'https://github.com/Melvynx/agent-burn', status: 302 },
+	{ from: '/npm', to: 'https://www.npmjs.com/package/agent-burn', status: 302 },
+	{ from: '/guide/custom-paths', to: '/guide/claude/', status: 301 },
+	{ from: '/guide/directory-detection', to: '/guide/claude/', status: 301 },
+] as const satisfies readonly RedirectEntry[];
+
+function staticRedirects(entries: readonly RedirectEntry[]) {
+	let outDir = '';
+
+	return {
+		name: 'agent-burn-static-redirects',
+		configResolved(config: { build: { outDir: string } }) {
+			outDir = config.build.outDir;
+		},
+		closeBundle() {
+			const rules = entries
+				.map(entry => `${entry.from} ${entry.to} ${entry.status}`)
+				.join('\n');
+			writeFileSync(join(outDir, '_redirects'), `${rules}\n`);
+
+			for (const entry of entries) {
+				const route = entry.from.replace(/^\/+/, '').replace(/\/$/, '');
+				const pagePath = join(outDir, route, 'index.html');
+				const encodedTarget = JSON.stringify(entry.to);
+				mkdirSync(dirname(pagePath), { recursive: true });
+				writeFileSync(
+					pagePath,
+					[
+						'<!doctype html>',
+						'<meta charset="utf-8">',
+						`<meta http-equiv="refresh" content="0; url=${entry.to}">`,
+						`<script>location.replace(${encodedTarget})</script>`,
+						`<a href=${encodedTarget}>Redirect</a>`,
+						'',
+					].join('\n'),
+				);
+			}
+		},
+	};
+}
 
 export default defineConfig({
 	title: 'Agent Burn',
@@ -56,7 +106,7 @@ export default defineConfig({
 					text: 'Usage Views',
 					items: [
 						{ text: 'Summary', link: '/guide/getting-started' },
-						{ text: 'Harness', link: '/guide/cli-options#harness' },
+						{ text: 'Harness', link: '/guide/cli-options' },
 					],
 				},
 				{
@@ -117,15 +167,7 @@ export default defineConfig({
 
 	vite: {
 		plugins: [
-			cloudflareRedirect({
-				mode: 'generate',
-				entries: [
-					{ from: '/gh', to: 'https://github.com/Melvynx/agent-burn', status: 302 },
-					{ from: '/npm', to: 'https://www.npmjs.com/package/agent-burn', status: 302 },
-					{ from: '/guide/custom-paths', to: '/guide/claude/', status: 301 },
-					{ from: '/guide/directory-detection', to: '/guide/claude/', status: 301 },
-				],
-			}) as any,
+			staticRedirects(redirects),
 			groupIconVitePlugin(),
 			...llmstxt(),
 		],

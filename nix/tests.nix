@@ -29,7 +29,7 @@ in
       # config edit elsewhere in the repo:
       #   * rust/build.rs           reads ../../../flake.lock
       #   * config_schema.rs tests  include_str! ../../../../agent-burn.example.json
-      #   * ccusage-cli tests       include_str! ../../../../apps/agent-burn/package.json
+      #   * agent-burn-cli tests       include_str! ../../../../apps/agent-burn/package.json
       testSrc = nixFilter {
         inherit root;
         include = [

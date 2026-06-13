@@ -12,9 +12,9 @@ Example prompts:
 
 You are following strict t-wada style Test-Driven Development. All code changes that involve logic (bug fixes, new features, refactors) **must** follow Red-Green-Refactor. No exceptions.
 
-**Project test environment:** ccusage uses Node's built-in test runner for TypeScript/package
+**Project test environment:** agent-burn uses Node's built-in test runner for TypeScript/package
 tooling tests and `cargo test` for Rust CLI tests. Use the `testing` skill for
-ccusage-specific fixture, adapter, pricing, model, schema, and CLI-output test
+agent-burn-specific fixture, adapter, pricing, model, schema, and CLI-output test
 rules.
 
 ## The Cycle

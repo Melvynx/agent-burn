@@ -1,6 +1,6 @@
 # AGENTS.md - agent-burn Package
 
-This is the published `agent-burn` npm package. The CLI implementation lives in Rust under `../../rust/crates/ccusage`; this package provides the npm metadata, package runner launcher, and schema artifact.
+This is the published `agent-burn` npm package. The CLI implementation lives in Rust under `../../rust/crates/agent-burn`; this package provides the npm metadata, package runner launcher, and schema artifact.
 
 ## Skills
 
@@ -12,7 +12,7 @@ This is the published `agent-burn` npm package. The CLI implementation lives in 
 ## Package Notes
 
 - Published bin launcher: `src/cli.js`
-- Rust CLI implementation: `../../rust/crates/ccusage`
+- Rust CLI implementation: `../../rust/crates/agent-burn`
 - Fixture scripts: `scripts/generate-large-fixture.nu`
 
 The package is distributed as the canonical native CLI. Keep the public surface centered on `agent-burn summary`, `agent-burn harness claude`, `agent-burn harness codex`, and stable `--json` output instead of library-style TypeScript exports.

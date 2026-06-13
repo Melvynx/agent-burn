@@ -6,9 +6,9 @@ version = 4
 name = "agent-burn"
 version = "20.0.11"
 dependencies = [
- "ccusage-cli",
- "ccusage-terminal",
- "ccusage-test-support",
+ "agent-burn-cli",
+ "agent-burn-terminal",
+ "agent-burn-test-support",
  "compact_str",
  "insta",
  "jiff",
@@ -23,6 +23,30 @@ dependencies = [
  "smallvec",
  "sqlite",
  "ureq",
+]
+
+[[package]]
+name = "agent-burn-cli"
+version = "20.0.11"
+dependencies = [
+ "insta",
+ "serde_json",
+]
+
+[[package]]
+name = "agent-burn-terminal"
+version = "20.0.11"
+dependencies = [
+ "insta",
+ "terminal_size",
+ "unicode-width",
+]
+
+[[package]]
+name = "agent-burn-test-support"
+version = "20.0.11"
+dependencies = [
+ "assert_fs",
 ]
 
 [[package]]
@@ -124,30 +148,6 @@ dependencies = [
  "jobserver",
  "libc",
  "shlex",
-]
-
-[[package]]
-name = "ccusage-cli"
-version = "20.0.11"
-dependencies = [
- "insta",
- "serde_json",
-]
-
-[[package]]
-name = "ccusage-terminal"
-version = "20.0.11"
-dependencies = [
- "insta",
- "terminal_size",
- "unicode-width",
-]
-
-[[package]]
-name = "ccusage-test-support"
-version = "20.0.11"
-dependencies = [
- "assert_fs",
 ]
 
 [[package]]

@@ -7,7 +7,7 @@
 just test-node
 
 # Run a specific test file.
-node --test apps/ccusage/src/cli.test.ts
+node --test apps/agent-burn/src/cli.test.ts
 
 # Run tests matching a name pattern.
 node --test --test-name-pattern "returns 0 for an empty cart" path/to/file.test.ts

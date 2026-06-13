@@ -51,7 +51,7 @@ in
       };
       # Build the schema generator straight from the current Rust source so the
       # drift check below can never go stale: it always reflects whatever
-      # `rust/crates/ccusage/src/config_schema.rs` looks like right now.
+      # `rust/crates/agent-burn/src/config_schema.rs` looks like right now.
       generateConfigSchema = craneLib.buildPackage (
         commonArgs
         // {

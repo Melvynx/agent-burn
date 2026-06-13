@@ -1,32 +1,30 @@
 ---
 name: development
-description: Guides ccusage monorepo development. Use when editing packages, docs, shared configuration, bundled CLI packaging, dependencies, exports, or validation commands.
+description: Guides agent-burn monorepo development. Use when editing packages, docs, shared configuration, bundled CLI packaging, dependencies, exports, or validation commands.
 ---
 
-# ccusage Development
+# agent-burn Development
 
 ## Repository Shape
 
 This is a monorepo. Check the nearest package-specific `AGENTS.md` before editing a package:
 
-- `apps/ccusage/AGENTS.md` - main Claude Code usage CLI and library
+- `apps/agent-burn/AGENTS.md` - published Agent Burn CLI package
 - `docs/AGENTS.md` - VitePress documentation site
 
-The production CLI implementation is Rust-first under `rust/crates/ccusage`.
-The `apps/ccusage` package now mainly provides npm metadata, a TypeScript bin
+The production CLI implementation is Rust-first under `rust/crates/agent-burn`.
+The `apps/agent-burn` package now mainly provides npm metadata, a TypeScript bin
 launcher, generated schema artifacts, benchmarks, and release packaging.
 
-The canonical user-facing command is `ccusage` with agent subcommands:
+The canonical user-facing command is `agent-burn` with only two public commands:
 
 ```sh
-ccusage daily
-ccusage codex daily
-ccusage opencode daily
-ccusage amp daily
-ccusage pi daily
+agent-burn summary
+agent-burn harness claude
+agent-burn harness codex
 ```
 
-Standalone agent wrapper packages have been removed. Prefer `ccusage <agent> ...` in docs, tests, examples, and new behavior, and do not reintroduce wrapper commands such as `ccusage-codex`, `ccusage-opencode`, `ccusage-amp`, or `ccusage-pi`.
+Standalone agent wrapper packages and legacy report commands have been removed. Prefer `agent-burn summary` and `agent-burn harness <claude|codex>` in docs, tests, examples, and new behavior. Do not reintroduce wrapper commands such as `agent-burn-codex`, `agent-burn-opencode`, `agent-burn-amp`, or `agent-burn-pi`, and do not reintroduce `daily`, `weekly`, `monthly`, `session`, `blocks`, or `statusline` as public commands.
 
 Agent implementations live in the Rust CLI unless the work is specifically about
 the remaining TypeScript package surface. Treat package runtime libraries as

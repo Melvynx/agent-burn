@@ -1,11 +1,11 @@
 ---
 name: profile
-description: Profiles ccusage performance. Use when debugging slow Rust CLI commands, TypeScript package scripts, launchers, benchmarks, packaging hot paths, or branch-vs-main speed changes.
+description: Profiles agent-burn performance. Use when debugging slow Rust CLI commands, TypeScript package scripts, launchers, benchmarks, packaging hot paths, or branch-vs-main speed changes.
 ---
 
-# ccusage Profile
+# agent-burn Profile
 
-Use this skill for ccusage performance work. The production CLI is Rust-first,
+Use this skill for agent-burn performance work. The production CLI is Rust-first,
 but the TypeScript launcher and Nushell benchmark/package scripts still need
 focused profiling when those paths are in scope.
 
@@ -19,4 +19,4 @@ reproduction.
 
 Read `references/typescript.md` for Node profiler commands, package script
 profiling, TypeScript launcher/Nushell benchmark setup, profile reading, and
-ccusage-specific performance lessons.
+agent-burn-specific performance lessons.

@@ -8,7 +8,7 @@ target/
 result
 result-*
 *.tgz
-packages/ccusage-*/bin/
+packages/agent-burn-*/bin/
 
 # code coverage
 coverage

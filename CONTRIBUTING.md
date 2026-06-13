@@ -1,4 +1,4 @@
-# Contributing to ccusage
+# Contributing to agent-burn
 
 This guide exists to save maintainers and contributors time.
 
@@ -49,7 +49,7 @@ just typecheck
 just test
 ```
 
-Use the canonical `ccusage` command in docs and tests. Standalone wrapper packages such as `ccusage-codex`, `ccusage-opencode`, `ccusage-amp`, and `ccusage-pi` have been removed and should not be reintroduced.
+Use the canonical `agent-burn summary` and `agent-burn harness <claude|codex>` commands in docs and tests. Standalone wrapper packages and legacy report commands have been removed and should not be reintroduced.
 
 Do not proactively create documentation files unless the change requires user-facing documentation.
 
@@ -57,7 +57,7 @@ Do not proactively create documentation files unless the change requires user-fa
 
 ### Why are new issues and PRs auto-closed?
 
-ccusage receives agent-assisted reports and changes. Auto-closing gives maintainers a buffer to review issues on their own schedule and reopen the ones that are concrete, reproducible, and worth investigating.
+agent-burn receives agent-assisted reports and changes. Auto-closing gives maintainers a buffer to review issues on their own schedule and reopen the ones that are concrete, reproducible, and worth investigating.
 
 ### Why might an issue get no reply?
 

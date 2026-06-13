@@ -1,9 +1,9 @@
 ---
 name: docs
-description: Routes ccusage documentation impact work. Use when code or behavior changes affect README files, docs guides, VitePress navigation, screenshots, schema docs, or user-facing commands/options.
+description: Routes agent-burn documentation impact work. Use when code or behavior changes affect README files, docs guides, VitePress navigation, screenshots, schema docs, or user-facing commands/options.
 ---
 
-# ccusage Docs
+# agent-burn Docs
 
 Use this skill when a change may affect user-facing documentation, even when the
 edited files are outside `docs/`.
@@ -14,7 +14,7 @@ When adding or changing a user-facing agent, command, option, report mode,
 configuration shape, JSON field, screenshot-visible output, or example, audit:
 
 - root `README.md`
-- `apps/ccusage/README.md`
+- `apps/agent-burn/README.md`
 - relevant `docs/guide/` pages
 - related cross-links
 - VitePress navigation
@@ -27,7 +27,7 @@ documentation audit and point to the right local docs guidance.
 - Read `docs/README.md` for docs site structure and commands.
 - Read `docs/AGENTS.md` for docs writing conventions, screenshot placement,
   accessibility, schema-copy behavior, and markdown linting notes.
-- Read `apps/ccusage/AGENTS.md` before changing package README content tied to
+- Read `apps/agent-burn/AGENTS.md` before changing package README content tied to
   the published npm package.
 
 ## Scope

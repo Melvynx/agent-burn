@@ -2,19 +2,19 @@
 
 Use fixture-backed Rust tests for parser, path discovery, SQLite loading,
 dedupe, aggregation, pricing, and CLI output parity. Prefer
-`ccusage-test-support` for temporary filesystem setup instead of hand-rolled
+`agent-burn-test-support` for temporary filesystem setup instead of hand-rolled
 `env::temp_dir()` paths.
 
 ## Filesystem Fixtures
 
-Use the internal `ccusage-test-support` crate for Rust tests that need temporary
+Use the internal `agent-burn-test-support` crate for Rust tests that need temporary
 files or directories. The fixture owns an `assert_fs::TempDir`, so everything is
 removed automatically when the fixture variable drops at the end of the test.
 
 For small inline trees, prefer `fs_fixture!`:
 
 ```rust
-use ccusage_test_support::fs_fixture;
+use agent_burn_test_support::fs_fixture;
 
 let fixture = fs_fixture!({
     "projects/example/session.jsonl": "{}\n",
@@ -26,7 +26,7 @@ let file_path = fixture.path("projects/example/session.jsonl");
 For incremental setup, use `Fixture` directly:
 
 ```rust
-use ccusage_test_support::Fixture;
+use agent_burn_test_support::Fixture;
 
 let fixture = Fixture::new();
 fixture.create_dir_all("projects/example/session");

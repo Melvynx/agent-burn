@@ -98,9 +98,9 @@ jobs:
         run: |
           # Only the compacted snapshot affects the build; if a models.dev bump
           # leaves the Anthropic pricing unchanged, drop the lock-only churn.
-          if git diff --quiet -- rust/crates/ccusage/src/models-dev-pricing.json; then
+          if git diff --quiet -- rust/crates/agent-burn/src/models-dev-pricing.json; then
             echo "models.dev pricing snapshot is unchanged; skipping PR."
-            git checkout -- flake.lock rust/crates/ccusage/src/models-dev-pricing.json
+            git checkout -- flake.lock rust/crates/agent-burn/src/models-dev-pricing.json
           fi
       - name: Validate updated pricing snapshot
         run: |
@@ -124,7 +124,7 @@ jobs:
 
           branch="automation/models-dev-pricing"
           git checkout -B "$branch"
-          git add flake.lock rust/crates/ccusage/src/models-dev-pricing.json
+          git add flake.lock rust/crates/agent-burn/src/models-dev-pricing.json
           git commit -m "chore(pricing): update models.dev snapshot"
           git push --force origin "$branch"
 

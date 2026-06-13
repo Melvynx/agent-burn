@@ -1,6 +1,6 @@
 ---
 name: rust
-description: Guides ccusage Rust implementation work. Use when editing rust/crates, native packaging, parser/module layout, pricing embedding, or Rust/TypeScript parity.
+description: Guides agent-burn Rust implementation work. Use when editing rust/crates, native packaging, parser/module layout, pricing embedding, or Rust/TypeScript parity.
 paths:
   - 'rust/**/*.rs'
   - 'rust/**/*.toml'
@@ -8,9 +8,9 @@ paths:
 globs: 'rust/**/*.rs,rust/**/*.toml,rust/**/build.rs'
 ---
 
-# ccusage Rust
+# agent-burn Rust
 
-Use this skill for the native Rust CLI under `rust/crates/ccusage` and `rust/crates/ccusage-terminal`.
+Use this skill for the native Rust CLI under `rust/crates/agent-burn` and `rust/crates/agent-burn-terminal`.
 
 ## Source Parity
 
@@ -19,12 +19,12 @@ the user explicitly scopes a behavior change. Before implementing or refactoring
 an agent, inspect the current Rust adapter and the agent source reference docs:
 
 ```sh
-fd . rust/crates/ccusage/src/adapter/<agent>
-sed -n '1,220p' rust/crates/ccusage/src/adapter/<agent>/README.md
+fd . rust/crates/agent-burn/src/adapter/<agent>
+sed -n '1,220p' rust/crates/agent-burn/src/adapter/<agent>/README.md
 ```
 
 When porting behavior from the historical TypeScript implementation, first find
-the relevant commit or tag that still contains `apps/ccusage/src/adapter`, then
+the relevant commit or tag that still contains `apps/agent-burn/src/adapter`, then
 compare against that source. Do not assume `origin/main` still contains the
 TypeScript adapter.
 
@@ -55,7 +55,7 @@ When changing pricing:
 - Use the `litellm` flake input as the canonical pinned pricing revision for
   embedded pricing.
 - For Nix builds, pass the locked LiteLLM `model_prices_and_context_window.json`
-  to `build.rs` through `CCUSAGE_PRICING_JSON_PATH`.
+  to `build.rs` through `AGENT_BURN_PRICING_JSON_PATH`.
 - For non-Nix Cargo builds, have `build.rs` read the same `litellm` revision from
   `flake.lock` and fetch that pinned raw JSON at build time.
 - Do not check generated LiteLLM pricing snapshots into the repository.

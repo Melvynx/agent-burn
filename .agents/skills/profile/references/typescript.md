@@ -11,7 +11,7 @@ Inspect script options with `--help`, but do not treat help output as a
 profiling workload.
 
 ```sh
-node --cpu-prof --cpu-prof-dir ./profiles apps/ccusage/dist/cli.js <args>
+node --cpu-prof --cpu-prof-dir ./profiles apps/agent-burn/dist/cli.js <args>
 ```
 
 For package scripts, inject profiler flags without rewriting the command:
@@ -23,7 +23,7 @@ NODE_OPTIONS="--cpu-prof --cpu-prof-dir=./profiles" pnpm <script>
 Keep benchmark runs quiet and deterministic:
 
 ```sh
-LOG_LEVEL=0 COLUMNS=200 node --cpu-prof apps/ccusage/dist/cli.js <args>
+LOG_LEVEL=0 COLUMNS=200 node --cpu-prof apps/agent-burn/dist/cli.js <args>
 ```
 
 ## Branch Comparison
@@ -33,20 +33,20 @@ can be built and profiled without switching the active checkout.
 
 ```sh
 git fetch origin main
-git worktree add /tmp/ccusage-main origin/main
+git worktree add /tmp/agent-burn-main origin/main
 pnpm install
-pnpm --filter ccusage build
-cd /tmp/ccusage-main
+pnpm --filter agent-burn build
+cd /tmp/agent-burn-main
 pnpm install
-pnpm --filter ccusage build
+pnpm --filter agent-burn build
 ```
 
 Run the same command against both builds. Prefer the published package entry
 shape when profiling package startup or launcher behavior.
 
 ```sh
-LOG_LEVEL=0 COLUMNS=200 node apps/ccusage/dist/cli.js daily --offline --json >/tmp/head.json
-LOG_LEVEL=0 COLUMNS=200 node /tmp/ccusage-main/apps/ccusage/dist/cli.js daily --offline --json >/tmp/main.json
+LOG_LEVEL=0 COLUMNS=200 node apps/agent-burn/dist/cli.js summary --offline --json >/tmp/head.json
+LOG_LEVEL=0 COLUMNS=200 node /tmp/agent-burn-main/apps/agent-burn/dist/cli.js summary --offline --json >/tmp/main.json
 jq -e . /tmp/head.json >/dev/null
 jq -e . /tmp/main.json >/dev/null
 ```
@@ -56,15 +56,15 @@ change:
 
 ```sh
 hyperfine --warmup 4 --runs 10 --shell none \
-	"node apps/ccusage/dist/cli.js daily --offline --json" \
-	"node /tmp/ccusage-main/apps/ccusage/dist/cli.js daily --offline --json" \
-	--export-json /tmp/ccusage-hyperfine.json
+	"node apps/agent-burn/dist/cli.js summary --offline --json" \
+	"node /tmp/agent-burn-main/apps/agent-burn/dist/cli.js summary --offline --json" \
+	--export-json /tmp/agent-burn-hyperfine.json
 ```
 
 If `hyperfine` is missing, use comma first:
 
 ```sh
-, hyperfine --warmup 4 --runs 10 --shell none "node apps/ccusage/dist/cli.js daily --offline --json"
+, hyperfine --warmup 4 --runs 10 --shell none "node apps/agent-burn/dist/cli.js summary --offline --json"
 ```
 
 ## Reading Profiles
@@ -88,16 +88,16 @@ rg -n "Map#set|JSON.parse|Intl|postMessage|write|data-loader|table" profiles/*.m
 For `.cpuprofile`, open Chrome DevTools Performance tab or VS Code's CPU
 profiler and inspect both bottom-up self time and call tree context.
 
-## ccusage Lessons
+## agent-burn Lessons
 
-- Past ccusage performance work found wins by profiling the real bundled CLI on
+- Past agent-burn performance work found wins by profiling the real bundled CLI on
   real Claude logs, then validating with hyperfine and JSON parity.
 - Avoid adopting a profile-inspired prototype unless hyperfine shows an
   end-to-end win.
 - Keep rejected experiments documented in commit messages when they explain why
   a tempting profile hotspot was not changed.
-- Always verify output parity for `daily`, `session`, `monthly`, `weekly`, and
-  `blocks` JSON when changing aggregation order.
+- Always verify output parity for `summary` and `harness` JSON when changing
+  aggregation order.
 - Replace hot exact-key `Map` indexes with null-prototype object indexes only
   when keys are plain strings and inherited keys are covered.
 - Pipe large JSON output through `jq -e .` so benchmark-style piping still

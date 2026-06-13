@@ -1,0 +1,8 @@
+[package]
+name = "agent-burn-test-support"
+version = "20.0.11"
+edition = "2024"
+publish = false
+
+[dependencies]
+assert_fs = "1"

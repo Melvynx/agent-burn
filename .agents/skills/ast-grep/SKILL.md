@@ -1,6 +1,6 @@
 ---
 name: ast-grep
-description: Guides ccusage structural code searches with ast-grep. Use when finding Rust or TypeScript syntax patterns, validating migrations, or writing AST-based search commands.
+description: Guides agent-burn structural code searches with ast-grep. Use when finding Rust or TypeScript syntax patterns, validating migrations, or writing AST-based search commands.
 ---
 
 # ast-grep

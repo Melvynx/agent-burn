@@ -1,15 +1,15 @@
 ---
 name: nushell
-description: Guides ccusage Nushell scripts. Use when adding, editing, formatting, or validating .nu scripts, Nix shebangs, GitHub Actions script calls, or just recipes that invoke Nushell.
+description: Guides agent-burn Nushell scripts. Use when adding, editing, formatting, or validating .nu scripts, Nix shebangs, GitHub Actions script calls, or just recipes that invoke Nushell.
 paths:
   - '**/*.nu'
 globs: '*.nu'
 ---
 
-# ccusage Nushell
+# agent-burn Nushell
 
 Use this skill for repository scripts written in Nushell, especially under
-`.github/scripts/` and `apps/ccusage/scripts/`.
+`.github/scripts/` and `apps/agent-burn/scripts/`.
 
 ## Runtime Shape
 

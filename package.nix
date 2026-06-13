@@ -27,7 +27,7 @@ let
     strictDeps = true;
     doCheck = false;
     cargoExtraArgs = "-p agent-burn --bin agent-burn";
-    CCUSAGE_PRICING_JSON_PATH = "${inputs.litellm}/model_prices_and_context_window.json";
+    AGENT_BURN_PRICING_JSON_PATH = "${inputs.litellm}/model_prices_and_context_window.json";
     RUSTFLAGS =
       lib.optionalString stdenv.isLinux "-C link-arg=-fuse-ld=mold"
       # The nixpkgs Darwin stdenv injects -liconv even though agent-burn uses no
@@ -46,7 +46,7 @@ let
   };
   # Keep the dependency artifact keyed only by inputs that affect Cargo deps.
   # Pricing snapshots and release versions are embedded by the final package.
-  depsOnlyArgs = builtins.removeAttrs commonArgs [ "CCUSAGE_PRICING_JSON_PATH" ] // {
+  depsOnlyArgs = builtins.removeAttrs commonArgs [ "AGENT_BURN_PRICING_JSON_PATH" ] // {
     version = "0.0.0";
   };
   cargoArtifacts = craneLib.buildDepsOnly depsOnlyArgs;

@@ -1,0 +1,11 @@
+---
+source: crates/agent-burn-terminal/src/title.rs
+expression: "lines.join(\"\\n\")"
+---
+
+╭────────────────────────────────────────────╮
+│                                            │
+│  Coding (Agent) CLI Usage Report - Daily   │
+│          Detected: Claude, Codex           │
+│                                            │
+╰────────────────────────────────────────────╯

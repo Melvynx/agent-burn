@@ -148,8 +148,8 @@ in
             command = lib.getExe schemaGen;
             includes = [
               "apps/agent-burn/config-schema.json"
-              "rust/crates/ccusage/src/config_schema.rs"
-              "rust/crates/ccusage/src/bin/generate_config_schema.rs"
+              "rust/crates/agent-burn/src/config_schema.rs"
+              "rust/crates/agent-burn/src/bin/generate_config_schema.rs"
             ];
             priority = 10;
           };

@@ -1,0 +1,33 @@
+---
+source: crates/agent-burn-cli/src/tests.rs
+expression: "help_text_for_args(&[\"agent-burn\".to_string(), \"harness\".to_string()])"
+---
+Focused weekly rate-limit detail for one harness: limit used vs time elapsed, value extrapolation, and a day-by-day breakdown.
+
+USAGE:
+  agent-burn harness <codex|claude> <OPTIONS>
+
+OPTIONS:
+  -j, --json                           Output in JSON format (default: false)
+  -s, --since <since>                  Filter from date (YYYY-MM-DD or YYYYMMDD)
+  -u, --until <until>                  Filter until date (inclusive)
+  -z, --timezone <timezone>            Timezone for date grouping (IANA) (default: system timezone)
+  -m, --mode <mode>                    Cost calculation mode (default: auto, choices: auto | calculate | display)
+  -o, --order <order>                  Sort order for loaded usage rows (default: asc, choices: asc | desc)
+  -b, --breakdown                      Include per-model cost breakdowns (default: false)
+  -O, --offline                        Use cached pricing and skip live subscription-limit calls (default: false)
+  --no-offline                         Allow live pricing and subscription-limit calls
+  --compact                            Force compact table layout for narrow terminals (default: false)
+  --single-thread                      Disable parallel JSONL file loading (default: false)
+  --no-cost                            Hide cost information in table and JSON output (default: false)
+  --color                              Enable colored output. FORCE_COLOR=1 has the same effect. (default: auto)
+  --no-color                           Disable colored output. NO_COLOR=1 has the same effect. (default: auto)
+  --config <config>                    Path to configuration file (default: auto-discovery)
+  -q, --jq <jq>                        Run a jq-style filter against JSON output
+  -d, --debug                          Show pricing mismatch information for debugging (default: false)
+  --debug-samples <debug-samples>      Number of sample discrepancies to show in debug output (default: 5)
+  -h, --help                           Display this help message
+  -v, --version                        Display this version
+  --value                              Show subscription value for the focused harness (default: false)
+  --claude-plan <claude-plan>          Claude plan for value calculation: pro | max-5x | max-20x | a monthly price
+  --codex-plan <codex-plan>            Codex plan override: plus | pro | a monthly price

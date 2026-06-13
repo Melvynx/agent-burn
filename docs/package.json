@@ -9,7 +9,6 @@
 		"dev": "cp ../apps/agent-burn/config-schema.json public/config-schema.json && vitepress dev"
 	},
 	"devDependencies": {
-		"@ryoppippi/vite-plugin-cloudflare-redirect": "catalog:docs",
 		"@types/node": "catalog:types",
 		"@types/react": "catalog:types",
 		"vitepress": "catalog:docs",
