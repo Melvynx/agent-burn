@@ -1,6 +1,6 @@
 [package]
 name = "agent-burn-cli"
-version = "20.0.11"
+version = "20.0.12"
 edition = "2024"
 build = "build.rs"
 

@@ -1,5 +1,7 @@
+mod chart;
 mod loader;
 mod report;
+mod report_html;
 mod subscription;
 mod summary;
 mod types;

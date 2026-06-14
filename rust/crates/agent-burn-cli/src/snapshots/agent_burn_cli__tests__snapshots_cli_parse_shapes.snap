@@ -29,6 +29,7 @@ expression: "json!({\n    \"defaultSummary\": cli_snapshot(parse(&[\"agent-burn\
   "harness": {
     "command": {
       "agent": "claude",
+      "chart": false,
       "claudePlan": "max-20x",
       "codexPlan": null,
       "html": false,
@@ -80,6 +81,7 @@ expression: "json!({\n    \"defaultSummary\": cli_snapshot(parse(&[\"agent-burn\
   "summary": {
     "command": {
       "agent": null,
+      "chart": false,
       "claudePlan": null,
       "codexPlan": null,
       "html": false,

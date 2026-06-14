@@ -130,6 +130,7 @@ fn main() -> Result<()> {
             range: None,
             agent: None,
             html: false,
+            chart: false,
         }),
     }
 }

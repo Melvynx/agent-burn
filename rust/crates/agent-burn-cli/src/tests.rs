@@ -97,6 +97,7 @@ fn command_snapshot(command: Option<Command>) -> Value {
             "range": args.range.map(|range| format!("{range:?}")),
             "agent": args.agent,
             "html": args.html,
+            "chart": args.chart,
         }),
     }
 }

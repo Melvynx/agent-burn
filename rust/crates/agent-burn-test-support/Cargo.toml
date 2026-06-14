@@ -1,6 +1,6 @@
 [package]
 name = "agent-burn-test-support"
-version = "20.0.11"
+version = "20.0.12"
 edition = "2024"
 publish = false
 

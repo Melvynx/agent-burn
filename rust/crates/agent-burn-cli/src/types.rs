@@ -64,6 +64,8 @@ pub struct SummaryArgs {
     /// Generate an interactive HTML report (and open it) in addition to the
     /// terminal output. Overview-only.
     pub html: bool,
+    /// Append a day-by-day stacked-by-model chart to the terminal output.
+    pub chart: bool,
 }
 
 /// A convenience time range for `agent-burn summary`, resolved to a `--since`

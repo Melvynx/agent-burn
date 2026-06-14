@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>agent-burn · usage report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#000; --surface:#0a0a0a; --raised:#141414;
+    --fg:#ededed; --muted:#888; --subtle:#a1a1aa;
+    --border:#262626; --border-strong:#3d3d3d;
+    --bar:#2a2a2a; --accent:#0070f3; --warn:#f5a623;
+    --sans:"Geist",ui-sans-serif,system-ui,sans-serif;
+    --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  .shell{max-width:1120px;margin:0 auto;padding:32px 20px 96px}
+  header{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:26px;gap:16px;flex-wrap:wrap}
+  .word{font-family:var(--mono);font-weight:600;letter-spacing:-.02em;font-size:15px}
+  .word b{color:var(--warn)}
+  .meta{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;font-size:11px;color:var(--muted);margin:0 0 12px}
+  .hero{display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:22px}
+  .hero .big{font-family:var(--mono);font-size:46px;font-weight:500;letter-spacing:-.03em;line-height:.95}
+  .hero .sub{font-family:var(--mono);font-size:14px;color:var(--muted);padding-bottom:4px}
+  .controls{display:flex;gap:10px;align-items:center;margin-left:auto;flex-wrap:wrap}
+  .chips{display:inline-flex;border:1px solid var(--border)}
+  .chips button{font-family:var(--mono);font-size:11px;letter-spacing:.06em;background:transparent;color:var(--muted);border:0;border-right:1px solid var(--border);padding:7px 12px;cursor:pointer;transition:color .12s,background .12s}
+  .chips button:last-child{border-right:0}
+  .chips button.on{background:var(--fg);color:#000}
+  .chips button:hover:not(.on){color:var(--fg)}
+  .toggle{display:inline-flex;border:1px solid var(--border)}
+  .toggle button{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;background:transparent;color:var(--muted);border:0;padding:7px 14px;cursor:pointer}
+  .toggle button.on{background:var(--fg);color:#000}
+  .rangelbl{font-family:var(--mono);font-size:11px;color:var(--subtle)}
+  .panel{border:1px solid var(--border);background:var(--surface);padding:18px 20px;margin-bottom:24px}
+  .chartwrap{height:360px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  @media(max-width:760px){.cols{grid-template-columns:1fr}.hero .big{font-size:38px}}
+  .listpanel{border:1px solid var(--border);background:var(--surface);padding:6px 18px}
+  .row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:13px}
+  .row:last-child{border-bottom:0}
+  .dot{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
+  .row .name{width:30%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .track{flex:1;height:7px;background:var(--bar);overflow:hidden}
+  .row .fill{height:100%;border-radius:0}
+  .row .val{width:92px;text-align:right;color:var(--fg)}
+  .row .pct{width:46px;text-align:right;color:var(--muted)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .card{border:1px solid var(--border);background:var(--surface);padding:16px 18px}
+  .card h3{font-family:var(--mono);font-size:13px;margin:0 0 12px;font-weight:600;text-transform:capitalize}
+  .kv{display:flex;justify-content:space-between;font-family:var(--mono);font-size:13px;padding:5px 0;color:var(--muted)}
+  .kv b{color:var(--fg);font-weight:500}
+  .kv .y{color:var(--warn)}
+  .gauge{height:6px;background:var(--bar);margin:6px 0 2px}
+  .gauge>span{display:block;height:100%}
+  .more{font-family:var(--mono);font-size:12px;color:var(--accent);cursor:pointer;padding:12px 0 4px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="word">agent&#8209;<b>burn</b> · usage report</div>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <div class="hero">
+    <div>
+      <p class="label">total spend</p>
+      <div class="big" id="heroTotal"></div>
+    </div>
+    <div class="sub" id="heroSub"></div>
+    <div class="controls">
+      <span class="rangelbl" id="rangeLbl"></span>
+      <div class="chips" id="chips"></div>
+      <div class="toggle">
+        <button id="mCost" class="on">Cost</button>
+        <button id="mTok">Tokens</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="label" id="chartLabel">daily cost by model</p>
+  <div class="panel"><div class="chartwrap"><canvas id="daily"></canvas></div></div>
+
+  <div class="cols">
+    <div><p class="label">agents</p><div class="listpanel" id="agents"></div></div>
+    <div><p class="label">models</p><div class="listpanel" id="models"></div></div>
+  </div>
+
+  <div id="subWrap" style="display:none">
+    <p class="label">subscription value</p>
+    <div class="cards" id="subs"></div>
+  </div>
+</div>
+
+<script id="report-data" type="application/json">__REPORT_DATA__</script>
+<script>
+const DATA = JSON.parse(document.getElementById("report-data").textContent);
+const DAYS = DATA.history.days;
+const OTHER = DATA.history.otherColor;
+const N = DAYS.length;
+let metric = "cost";                 // cost | tokens
+let start = 0, end = N;              // [start, end) window into DAYS
+
+const nf = new Intl.NumberFormat("en-US");
+const money = v => v>=1e6?"$"+(v/1e6).toFixed(1)+"M": v>=1e3?"$"+(v/1e3).toFixed(1)+"k":"$"+v.toFixed(2);
+const toks = v => v>=1e9?(v/1e9).toFixed(1)+"B": v>=1e6?(v/1e6).toFixed(1)+"M": v>=1e3?(v/1e3).toFixed(1)+"K":nf.format(v);
+const fmt = v => metric==="cost"? money(v) : toks(v)+" tok";
+const mKey = ()=> metric==="cost"?"mc":"mt";
+const aKey = ()=> metric==="cost"?"ac":"at";
+
+// Sum a per-series array over the window: returns array[length].
+function sumSeries(key, len){
+  const out = new Array(len).fill(0);
+  for(let d=start; d<end; d++){ const a=DAYS[d][key]; for(let i=0;i<len;i++) out[i]+=a[i]||0; }
+  return out;
+}
+function windowTotal(){ const k=mKey(); let t=0; for(let d=start;d<end;d++){ const a=DAYS[d][k]; for(let i=0;i<a.length;i++) t+=a[i]; } return t; }
+
+function renderHero(){
+  const total = windowTotal();
+  const tokTotal = (metric==="cost") ? sumAll("mt") : total;
+  const costTotal = (metric==="cost") ? total : sumAll("mc");
+  document.getElementById("heroTotal").textContent = metric==="cost"? money(costTotal): toks(tokTotal)+" tok";
+  document.getElementById("heroSub").textContent = metric==="cost"? toks(sumAll("mt"))+" tokens" : money(sumAll("mc"));
+  const from = DAYS[start]?.d, to = DAYS[end-1]?.d;
+  document.getElementById("rangeLbl").textContent = (from&&to)? from+" → "+to : "";
+  const gen = (DATA.generatedAt||"").replace("T"," ").replace(/\..*/,"");
+  const p = DATA.period;
+  document.getElementById("meta").textContent = (p? p.from+" → "+p.to+"  ·  ":"")+"generated "+gen;
+  document.getElementById("chartLabel").textContent = "daily "+(metric==="cost"?"cost":"tokens")+" by model";
+}
+function sumAll(key){ let t=0; for(let d=start;d<end;d++){ const a=DAYS[d][key]; for(let i=0;i<a.length;i++) t+=a[i]; } return t; }
+
+function renderList(elId, items, sums, isModel){
+  const el = document.getElementById(elId); el.innerHTML="";
+  const total = sums.reduce((a,b)=>a+b,0)||1;
+  const rows = items.map((it,i)=>({it,v:sums[i]})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
+  const max = rows.length?rows[0].v:1;
+  const cap = isModel?14:rows.length;
+  const make = r=>{
+    const row=document.createElement("div"); row.className="row";
+    const name = isModel? (r.it.short||r.it.model) : r.it.agent;
+    row.innerHTML=`<span class="dot" style="background:${r.it.color}"></span>
+      <span class="name" title="${isModel?r.it.model:r.it.agent}">${name}</span>
+      <span class="track"><span class="fill" style="width:${(r.v/max*100).toFixed(1)}%;background:${r.it.color}"></span></span>
+      <span class="val">${fmt(r.v)}</span><span class="pct">${(r.v/total*100).toFixed(0)}%</span>`;
+    return row;
+  };
+  rows.slice(0,cap).forEach(r=>el.appendChild(make(r)));
+  if(rows.length>cap){
+    const m=document.createElement("div"); m.className="more"; m.textContent=`show all ${rows.length}`;
+    m.onclick=()=>{ rows.slice(cap).forEach(r=>el.insertBefore(make(r),m)); m.remove(); };
+    el.appendChild(m);
+  }
+}
+
+let chart;
+function renderChart(){
+  const labels = DAYS.slice(start,end).map(x=>x.d.slice(5));
+  const key=mKey();
+  // palette models -> own dataset; grey models -> folded into "other"
+  const datasets=[]; const otherIdx=[];
+  DATA.models.forEach((m,i)=>{
+    if(m.color===OTHER){ otherIdx.push(i); return; }
+    datasets.push({ label:m.short||m.model, stack:"s", color:m.color,
+      data:DAYS.slice(start,end).map(x=>x[key][i]||0),
+      backgroundColor:m.color, borderWidth:0, borderRadius:0, barPercentage:.98, categoryPercentage:.96 });
+  });
+  if(otherIdx.length){
+    datasets.push({ label:"other", stack:"s",
+      data:DAYS.slice(start,end).map(x=>otherIdx.reduce((s,i)=>s+(x[key][i]||0),0)),
+      backgroundColor:OTHER, borderWidth:0, borderRadius:0, barPercentage:.98, categoryPercentage:.96 });
+  }
+  const unit = metric==="cost";
+  if(chart) chart.destroy();
+  chart=new Chart(document.getElementById("daily"),{type:"bar",data:{labels,datasets},options:{
+    responsive:true,maintainAspectRatio:false,animation:{duration:250},
+    plugins:{legend:{labels:{color:"#aaa",font:{family:"Geist Mono",size:11},boxWidth:10,boxHeight:10,padding:14,usePointStyle:true,pointStyle:"rectRounded"}},
+      tooltip:{backgroundColor:"#0a0a0a",borderColor:"#333",borderWidth:1,titleColor:"#fff",bodyColor:"#ccc",cornerRadius:0,padding:10,
+        callbacks:{label:(c)=>" "+c.dataset.label+": "+(unit?money(c.parsed.y):toks(c.parsed.y))}}},
+    scales:{x:{stacked:true,grid:{color:"#161616"},border:{color:"#262626"},ticks:{color:"#777",font:{family:"Geist Mono",size:10},maxRotation:0,autoSkipPadding:14}},
+      y:{stacked:true,grid:{color:"#161616"},border:{color:"#262626"},ticks:{color:"#777",font:{family:"Geist Mono",size:10},callback:(v)=>unit?money(v):toks(v)}}}
+  }});
+}
+
+function renderSubs(){
+  const sub=DATA.subscription;
+  if(!sub||!sub.agents||!sub.agents.length) return;
+  document.getElementById("subWrap").style.display="block";
+  const el=document.getElementById("subs"); el.innerHTML="";
+  sub.agents.forEach(a=>{
+    const card=document.createElement("div"); card.className="card";
+    const plan=a.plan? a.plan+(a.pricePerMonth?` · $${a.pricePerMonth.toFixed(0)}/mo`:"") : "plan not detected";
+    let html=`<h3>${a.agent} · ${plan}</h3>`;
+    if(a.window){ const w=a.window;
+      html+=`<div class="kv"><span>weekly limit used</span><b>${w.usedPercent.toFixed(0)}%</b></div>
+      <div class="gauge"><span style="width:${Math.min(w.usedPercent,100)}%;background:#fff"></span></div>`; }
+    if(a.estimate){
+      html+=`<div class="kv"><span>full quota / mo</span><b>${money(a.estimate.monthlyValue)}</b></div>`;
+      if(a.estimate.valueMultiple) html+=`<div class="kv"><span>value</span><b class="y">${a.estimate.valueMultiple.toFixed(1)}×</b></div>`;
+    } else if(a.periodUsage!=null){
+      html+=`<div class="kv"><span>spent this period</span><b>${money(a.periodUsage)}</b></div>`;
+    }
+    card.innerHTML=html; el.appendChild(card);
+  });
+}
+
+function render(){
+  renderHero();
+  renderList("agents", DATA.agents, sumSeries(aKey(), DATA.agents.length), false);
+  renderList("models", DATA.models, sumSeries(mKey(), DATA.models.length), true);
+  renderChart();
+}
+
+// date-range chips: rolling windows (N days) + calendar to-date (wtd/mtd/ytd)
+const LAST = N? DAYS[N-1].d : null;
+function idxSince(dateStr){ let i=0; while(i<N && DAYS[i].d < dateStr) i++; return i; }
+function monthStart(){ return LAST? LAST.slice(0,8)+"01" : "0000-00-00"; }
+function yearStart(){ return LAST? LAST.slice(0,4)+"-01-01" : "0000-00-00"; }
+function weekStart(){ // Monday of the week containing the last day (UTC)
+  if(!LAST) return "0000-00-00";
+  const dt=new Date(LAST+"T00:00:00Z"); const dow=dt.getUTCDay(); // 0=Sun..6=Sat
+  dt.setUTCDate(dt.getUTCDate()-((dow+6)%7));
+  return dt.toISOString().slice(0,10);
+}
+const PRESETS=[
+  ["WTD","wtd"],["MTD","mtd"],["YTD","ytd"],
+  ["7D",7],["30D",30],["90D",90],["1Y",365],["ALL",Infinity],
+];
+function setWindow(p){
+  if(p==="wtd") start=idxSince(weekStart());
+  else if(p==="mtd") start=idxSince(monthStart());
+  else if(p==="ytd") start=idxSince(yearStart());
+  else if(p===Infinity) start=0;
+  else start=Math.max(0,N-p);
+  end=N;
+}
+(function(){
+  const box=document.getElementById("chips");
+  const def = N<=45?"ALL":"30D"; // default view
+  PRESETS.forEach(([lbl,p])=>{
+    const b=document.createElement("button"); b.textContent=lbl;
+    if(lbl===def){ b.classList.add("on"); setWindow(p); }
+    b.onclick=()=>{ box.querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); setWindow(p); render(); };
+    box.appendChild(b);
+  });
+})();
+document.getElementById("mCost").onclick=()=>{metric="cost";document.getElementById("mCost").classList.add("on");document.getElementById("mTok").classList.remove("on");render();};
+document.getElementById("mTok").onclick=()=>{metric="tokens";document.getElementById("mTok").classList.add("on");document.getElementById("mCost").classList.remove("on");render();};
+
+render(); renderSubs();
+</script>
+</body>
+</html>

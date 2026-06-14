@@ -106,6 +106,7 @@ fn parse_summary_command(
 ) -> Result<Command, String> {
     let mut value = false;
     let mut html = false;
+    let mut chart = false;
     let mut claude_plan = None;
     let mut codex_plan = None;
     let mut range = None;
@@ -125,6 +126,7 @@ fn parse_summary_command(
         match parser.next_flag()?.as_str() {
             "--value" => value = true,
             "--html" => html = true,
+            "--chart" => chart = true,
             "--range" => range = Some(parse_summary_range(&parser.value_for("--range")?)?),
             "--claude-plan" => claude_plan = Some(parser.value_for("--claude-plan")?),
             "--codex-plan" => codex_plan = Some(parser.value_for("--codex-plan")?),
@@ -139,6 +141,7 @@ fn parse_summary_command(
         range,
         agent: None,
         html,
+        chart,
     }))
 }
 
@@ -183,6 +186,7 @@ fn parse_harness_command(
         range: None,
         agent: Some(agent),
         html: false,
+        chart: false,
     }))
 }
 

@@ -38,8 +38,8 @@ pub(super) fn run(args: SummaryArgs) -> Result<()> {
         codex_plan,
         range,
         agent,
-        // HTML report wiring lands in a follow-up.
-        html: _,
+        html,
+        chart,
     } = args;
     if let Some(agent) = agent {
         return run_harness_weekly(
@@ -91,7 +91,50 @@ pub(super) fn run(args: SummaryArgs) -> Result<()> {
     if let Some(subscription) = subscription.as_ref() {
         subscription.print(&shared);
     }
+    if chart {
+        super::chart::print_daily_by_model(&result.rows, &shared);
+    }
+    if html {
+        let payload = report_payload(&summary, &result.rows, subscription.as_ref());
+        match super::report_html::write_and_open(&payload, utc_now()) {
+            Ok(path) => println!("\nReport: file://{}", path.display()),
+            Err(error) => eprintln!("Failed to write HTML report: {error}"),
+        }
+    }
     Ok(())
+}
+
+/// Build the embedded JSON payload for the interactive HTML report: the full
+/// per-day cost/token matrix (so the browser can re-filter any date range) plus
+/// stable per-model and per-agent colours, totals, and subscription value.
+fn report_payload(
+    summary: &Summary,
+    rows: &[AllRow],
+    subscription: Option<&Subscription>,
+) -> Value {
+    let mut data = super::chart::dashboard_data(rows);
+    if let Some(object) = data.as_object_mut() {
+        object.insert(
+            "generatedAt".to_string(),
+            json!(crate::format_rfc3339_millis(utc_now())),
+        );
+        object.insert(
+            "period".to_string(),
+            summary
+                .period
+                .as_ref()
+                .map(|(from, to)| json!({ "from": from, "to": to }))
+                .unwrap_or(Value::Null),
+        );
+        object.insert(
+            "totals".to_string(),
+            json!({ "cost": json_float(summary.total_cost), "tokens": summary.total_tokens }),
+        );
+        if let Some(subscription) = subscription {
+            object.insert("subscription".to_string(), subscription.to_json());
+        }
+    }
+    data
 }
 
 /// Resolve a quick time range into a `--since` bound, relative to today in the

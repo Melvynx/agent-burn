@@ -30,6 +30,7 @@ OPTIONS:
   -v, --version                        Display this version
   --range <range>                      Quick time range (also accepted as a bare word, e.g. `summary mtd`) (choices: today | wtd | mtd | ytd | week | month)
   --value                              Show subscription value: API-equivalent usage vs monthly plan price (default: false)
-  --html                               Generate and open an interactive HTML report (default: false)
+  --html                               Generate and open an interactive HTML report (Vercel-styled, with a daily-by-model chart) (default: false)
+  --chart                              Append a day-by-day stacked-by-model chart to the terminal output (default: false)
   --claude-plan <claude-plan>          Claude plan for value calculation: pro | max-5x | max-20x | a monthly price
   --codex-plan <codex-plan>            Codex plan override: plus | pro | a monthly price

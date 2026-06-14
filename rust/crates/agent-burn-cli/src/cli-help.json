@@ -125,7 +125,12 @@
 		},
 		{
 			"flags": "--html",
-			"description": "Generate and open an interactive HTML report",
+			"description": "Generate and open an interactive HTML report (Vercel-styled, with a daily-by-model chart)",
+				"default": "false"
+			},
+			{
+				"flags": "--chart",
+				"description": "Append a day-by-day stacked-by-model chart to the terminal output",
 			"default": "false"
 		},
 		{
