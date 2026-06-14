@@ -1,6 +1,6 @@
 {
 	"name": "agent-burn-linux-x64",
-	"version": "20.0.13",
+	"version": "20.0.14",
 	"description": "Static native agent-burn binary for Linux x64",
 	"license": "MIT",
 	"repository": {

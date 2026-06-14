@@ -1,6 +1,6 @@
 {
 	"name": "agent-burn-monorepo",
-	"version": "20.0.13",
+	"version": "20.0.14",
 	"private": true,
 	"workspaces": [
 		"apps/*",
