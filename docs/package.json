@@ -1,6 +1,6 @@
 {
 	"name": "@agent-burn/docs",
-	"version": "20.0.15",
+	"version": "20.0.16",
 	"private": true,
 	"description": "Documentation for Agent Burn subscription value reporting",
 	"type": "module",
