@@ -1,6 +1,6 @@
 {
 	"name": "agent-burn-darwin-x64",
-	"version": "20.0.14",
+	"version": "20.0.15",
 	"description": "Native agent-burn binary for macOS x64",
 	"license": "MIT",
 	"repository": {

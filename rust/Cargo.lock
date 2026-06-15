@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "agent-burn"
-version = "20.0.13"
+version = "20.0.15"
 dependencies = [
  "agent-burn-cli",
  "agent-burn-terminal",
@@ -27,7 +27,7 @@ dependencies = [
 
 [[package]]
 name = "agent-burn-cli"
-version = "20.0.13"
+version = "20.0.15"
 dependencies = [
  "insta",
  "serde_json",
@@ -35,7 +35,7 @@ dependencies = [
 
 [[package]]
 name = "agent-burn-terminal"
-version = "20.0.13"
+version = "20.0.15"
 dependencies = [
  "insta",
  "terminal_size",
@@ -44,7 +44,7 @@ dependencies = [
 
 [[package]]
 name = "agent-burn-test-support"
-version = "20.0.13"
+version = "20.0.15"
 dependencies = [
  "assert_fs",
 ]
