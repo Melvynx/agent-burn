@@ -236,6 +236,10 @@
 									"markdownDescription": "Force compact table layout for narrow terminals.",
 									"type": "boolean"
 								},
+								"cursorPlan": {
+									"description": "Cursor plan override: pro, pro+, ultra, or a monthly price.",
+									"type": "string"
+								},
 								"debug": {
 									"default": false,
 									"description": "Show pricing mismatch information for debugging.",
@@ -367,6 +371,7 @@
 									"description": "Quick time range for summary.",
 									"enum": [
 										"today",
+										"yesterday",
 										"wtd",
 										"mtd",
 										"ytd",

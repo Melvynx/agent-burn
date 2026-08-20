@@ -8,7 +8,7 @@ agent-burn harness claude --json --offline
 agent-burn summary --value --claude-plan max-20x
 ```
 
-Agent Burn reads local Claude Code usage files from the standard Claude directories and can use live limit data when credentials are available. Use `--offline` when you want a purely local run with embedded pricing.
+Agent Burn reads local Claude Code usage files from the standard Claude directories and can use live limit data when credentials are available. The harness also shows a 30-day spend mix across input, output, cache write, and cached input tokens. Use `--offline` when you want a purely local run with embedded pricing.
 
 Plan overrides:
 

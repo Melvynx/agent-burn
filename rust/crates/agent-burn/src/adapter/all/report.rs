@@ -460,6 +460,7 @@ pub(super) fn agent_label(agent: &str) -> &str {
         "openclaw" => "OpenClaw",
         "kilo" => "Kilo",
         "copilot" => "GitHub Copilot CLI",
+        "cursor" => "Cursor",
         "gemini" => "Gemini CLI",
         "kimi" => "Kimi",
         "qwen" => "Qwen",

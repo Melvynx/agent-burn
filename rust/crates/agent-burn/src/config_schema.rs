@@ -85,6 +85,8 @@ pub(crate) struct SummaryOptions {
     pub(crate) claude_plan: Option<String>,
     /// Codex plan override.
     pub(crate) codex_plan: Option<String>,
+    /// Cursor plan override.
+    pub(crate) cursor_plan: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
@@ -191,7 +193,7 @@ fn agent_burn_schema_from(generated: &Value) -> Value {
         json!({
             "range": {
                 "type": "string",
-                "enum": ["today", "wtd", "mtd", "ytd", "week", "month"],
+                "enum": ["today", "yesterday", "wtd", "mtd", "ytd", "week", "month"],
                 "description": "Quick time range for summary."
             },
             "value": {
@@ -211,6 +213,10 @@ fn agent_burn_schema_from(generated: &Value) -> Value {
             "codexPlan": {
                 "type": "string",
                 "description": "Codex plan override: plus, pro, or a monthly price."
+            },
+            "cursorPlan": {
+                "type": "string",
+                "description": "Cursor plan override: pro, pro+, ultra, or a monthly price."
             }
         }),
     );
@@ -552,7 +558,14 @@ mod tests {
             &["commands", "summary"],
             &with_keys(
                 &shared,
-                &["claudePlan", "codexPlan", "html", "range", "value"],
+                &[
+                    "claudePlan",
+                    "codexPlan",
+                    "cursorPlan",
+                    "html",
+                    "range",
+                    "value",
+                ],
             ),
         );
         assert_schema_properties(
@@ -567,8 +580,8 @@ mod tests {
         let schema = generated_schema();
 
         for key in [
-            "amp", "claude", "codebuff", "codex", "copilot", "droid", "gemini", "goose", "hermes",
-            "kilo", "kimi", "openclaw", "opencode", "pi", "qwen",
+            "amp", "claude", "codebuff", "codex", "copilot", "cursor", "droid", "gemini", "goose",
+            "hermes", "kilo", "kimi", "openclaw", "opencode", "pi", "qwen",
         ] {
             assert!(
                 schema_property(&schema, &[key]).is_none(),

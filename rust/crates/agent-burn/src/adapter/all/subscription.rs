@@ -73,6 +73,8 @@ impl Subscription {
         claude_input: Option<ClaudeInput>,
         claude_spec: Option<&str>,
         claude_detected_tier: Option<&str>,
+        cursor_spec: Option<&str>,
+        cursor_detected: Option<&str>,
     ) -> Self {
         let cost_of = |agent: &str| {
             agents
@@ -109,6 +111,19 @@ impl Subscription {
                 window,
                 short_window,
                 live_limits,
+            });
+        }
+
+        if let Some(period_usage) = cost_of("cursor") {
+            let (plan_name, price) = resolve_cursor(cursor_detected, cursor_spec);
+            values.push(AgentValue {
+                agent: "cursor",
+                plan_name,
+                price,
+                period_usage,
+                window: None,
+                short_window: None,
+                live_limits: false,
             });
         }
 
@@ -288,6 +303,7 @@ fn agent_color(agent: &str) -> Color {
     match agent {
         "claude" => Color::Magenta,
         "codex" => Color::Green,
+        "cursor" => Color::Red,
         _ => Color::Cyan,
     }
 }
@@ -337,12 +353,22 @@ pub(super) struct WeeklyView<'a> {
     pub(super) monthly_equiv: f64,
     /// This agent's top models (last 30d): `(model, cost, tokens)`, by cost desc.
     pub(super) models: Vec<(String, f64, u64)>,
+    /// Trailing-30-day spend split by billable token class.
+    pub(super) spend_mix: Vec<SpendMixItem>,
     /// `(week_start, cost)` over the last several calendar weeks.
     pub(super) weekly_trend: Vec<(String, f64)>,
     /// Number of gpt-image generations in the last 30d (Codex; 0 otherwise).
     pub(super) image_count: usize,
     /// Estimated per-image price used for the image-generation line.
     pub(super) image_price: f64,
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct SpendMixItem {
+    pub(super) key: &'static str,
+    pub(super) label: &'static str,
+    pub(super) tokens: u64,
+    pub(super) cost: f64,
 }
 
 pub(super) fn print_weekly(view: &WeeklyView, shared: &SharedArgs) {
@@ -359,6 +385,7 @@ pub(super) fn print_weekly(view: &WeeklyView, shared: &SharedArgs) {
     out.push('\n');
 
     print_economics(&mut out, view, color, shared);
+    print_spend_mix(&mut out, view, color, shared);
     print_this_week(&mut out, view, color, shared);
     print_daily(&mut out, view, color, shared);
     print_models(&mut out, view, color, shared);
@@ -429,7 +456,92 @@ fn print_economics(out: &mut String, view: &WeeklyView, color: Color, shared: &S
     }
 }
 
-/// Section 2 — the live weekly rate-limit window: used vs time, pace, projection.
+/// Section 2 - trailing-month spend by token class: uncached input, output,
+/// cache creation/write, and cached input/cache read.
+fn print_spend_mix(out: &mut String, view: &WeeklyView, color: Color, shared: &SharedArgs) {
+    if view.spend_mix.is_empty() {
+        return;
+    }
+    out.push_str("\n  spend mix · 30d\n");
+    let total_tokens = view.spend_mix.iter().map(|item| item.tokens).sum::<u64>();
+    let total_cost = view.spend_mix.iter().map(|item| item.cost).sum::<f64>();
+    let max_value = view
+        .spend_mix
+        .iter()
+        .map(|item| {
+            if shared.no_cost {
+                item.tokens as f64
+            } else {
+                item.cost
+            }
+        })
+        .fold(0.0_f64, f64::max);
+    let label_width = view
+        .spend_mix
+        .iter()
+        .map(|item| item.label.len())
+        .max()
+        .unwrap_or(0);
+    let token_width = view
+        .spend_mix
+        .iter()
+        .map(|item| format_compact_tokens(item.tokens).len())
+        .max()
+        .unwrap_or(0);
+    let cost_width = view
+        .spend_mix
+        .iter()
+        .map(|item| money(item.cost).len())
+        .max()
+        .unwrap_or(0);
+
+    for item in &view.spend_mix {
+        let token_percent = percent(item.tokens as f64, total_tokens as f64);
+        let cost_percent = percent(item.cost, total_cost);
+        let metric_value = if shared.no_cost {
+            item.tokens as f64
+        } else {
+            item.cost
+        };
+        out.push_str("    ");
+        out.push_str(&crate::color(
+            shared,
+            format!("{:<label_width$}", item.label),
+            color,
+        ));
+        out.push_str("   ");
+        if !shared.no_cost {
+            out.push_str(&crate::color(
+                shared,
+                format!("{:>cost_width$}", money(item.cost)),
+                Color::Green,
+            ));
+            out.push_str("  ");
+            out.push_str(&crate::color(
+                shared,
+                format!("{:>4}", percent_label(cost_percent)),
+                Color::Grey,
+            ));
+            out.push_str("  ");
+        }
+        out.push_str(&crate::color(
+            shared,
+            format!("{:>token_width$} tok", format_compact_tokens(item.tokens)),
+            Color::Grey,
+        ));
+        out.push_str("  ");
+        out.push_str(&crate::color(
+            shared,
+            format!("{:>4}", percent_label(token_percent)),
+            Color::Grey,
+        ));
+        out.push_str("  ");
+        out.push_str(&mini_bar(shared, metric_value, max_value, color));
+        out.push('\n');
+    }
+}
+
+/// Section 3 — the live weekly rate-limit window: used vs time, pace, projection.
 fn print_this_week(out: &mut String, view: &WeeklyView, color: Color, shared: &SharedArgs) {
     out.push_str("\n  this week\n");
     let Some(window) = view.window.as_ref() else {
@@ -491,7 +603,7 @@ fn print_this_week(out: &mut String, view: &WeeklyView, color: Color, shared: &S
     }
 }
 
-/// Section 3 — day-by-day spend within the current week.
+/// Section 4 — day-by-day spend within the current week.
 fn print_daily(out: &mut String, view: &WeeklyView, color: Color, shared: &SharedArgs) {
     if view.daily.is_empty() {
         return;
@@ -500,7 +612,7 @@ fn print_daily(out: &mut String, view: &WeeklyView, color: Color, shared: &Share
     print_bar_rows(out, &view.daily, color, shared);
 }
 
-/// Section 4 — the agent's top models over the trailing month.
+/// Section 5 — the agent's top models over the trailing month.
 fn print_models(out: &mut String, view: &WeeklyView, color: Color, shared: &SharedArgs) {
     if view.models.is_empty() {
         return;
@@ -573,7 +685,7 @@ fn print_models(out: &mut String, view: &WeeklyView, color: Color, shared: &Shar
     }
 }
 
-/// Section 5 — weekly spend trend over the last several weeks.
+/// Section 6 — weekly spend trend over the last several weeks.
 fn print_weekly_trend(out: &mut String, view: &WeeklyView, color: Color, shared: &SharedArgs) {
     if view.weekly_trend.len() < 2 {
         return;
@@ -668,8 +780,27 @@ pub(super) fn weekly_to_json(view: &WeeklyView) -> Value {
         })),
         "daily": view.daily.iter().map(|(date, cost)| json!({ "date": date, "cost": json_float(*cost) })).collect::<Vec<_>>(),
         "topModels": view.models.iter().take(6).map(|(model, cost, tokens)| json!({ "model": model, "cost": json_float(*cost), "tokens": tokens })).collect::<Vec<_>>(),
+        "spendMix": spend_mix_json(&view.spend_mix),
         "weeklyTrend": view.weekly_trend.iter().map(|(week, cost)| json!({ "weekStart": week, "cost": json_float(*cost) })).collect::<Vec<_>>(),
     })
+}
+
+fn spend_mix_json(items: &[SpendMixItem]) -> Vec<Value> {
+    let total_tokens = items.iter().map(|item| item.tokens).sum::<u64>() as f64;
+    let total_cost = items.iter().map(|item| item.cost).sum::<f64>();
+    items
+        .iter()
+        .map(|item| {
+            json!({
+                "key": item.key,
+                "label": item.label,
+                "tokens": item.tokens,
+                "tokenPercent": json_float(percent(item.tokens as f64, total_tokens)),
+                "costUSD": json_float(item.cost),
+                "costPercent": json_float(percent(item.cost, total_cost)),
+            })
+        })
+        .collect()
 }
 
 fn bar_line(shared: &SharedArgs, label: &str, percent: f64, color: Color) -> String {
@@ -697,6 +828,22 @@ fn mini_bar(shared: &SharedArgs, value: f64, max: f64, color: Color) -> String {
         crate::color(shared, "\u{2588}".repeat(filled), color),
         crate::color(shared, "\u{2591}".repeat(WIDTH - filled), Color::Grey),
     )
+}
+
+fn percent(value: f64, total: f64) -> f64 {
+    if total > 0.0 {
+        value / total * 100.0
+    } else {
+        0.0
+    }
+}
+
+fn percent_label(value: f64) -> String {
+    if value > 0.0 && value < 0.5 {
+        "<1%".to_string()
+    } else {
+        format!("{value:.0}%")
+    }
 }
 
 fn plan_label_parts(name: Option<&str>, price: Option<f64>) -> String {
@@ -792,6 +939,31 @@ fn resolve_claude_tier(tier: &str) -> Option<PlanInfo> {
     } else {
         None
     }
+}
+
+fn resolve_cursor(membership: Option<&str>, spec: Option<&str>) -> (Option<String>, Option<f64>) {
+    let resolved = spec
+        .and_then(resolve_cursor_plan)
+        .or_else(|| membership.and_then(resolve_cursor_plan));
+    (
+        resolved.as_ref().and_then(|info| info.name.clone()),
+        resolved.map(|info| info.price),
+    )
+}
+
+fn resolve_cursor_plan(spec: &str) -> Option<PlanInfo> {
+    price_override(spec).or_else(|| {
+        let spec = spec.to_ascii_lowercase();
+        if spec.contains("ultra") {
+            known("Ultra", 200.0)
+        } else if spec.contains("plus") || spec.contains("pro+") {
+            known("Pro+", 60.0)
+        } else if spec.contains("pro") {
+            known("Pro", 20.0)
+        } else {
+            None
+        }
+    })
 }
 
 fn resolve_codex_plan(spec: &str) -> Option<PlanInfo> {
@@ -897,6 +1069,8 @@ mod tests {
             Some(claude_input),
             None,
             Some("default_claude_max_20x"),
+            None,
+            None,
         );
 
         assert_eq!(subscription.agents.len(), 2);
@@ -911,6 +1085,35 @@ mod tests {
         assert_eq!(claude.price, Some(200.0));
         assert!(claude.live_limits);
         assert!(claude.window.is_some());
+    }
+
+    #[test]
+    fn maps_cursor_plans() {
+        assert_eq!(resolve_cursor(Some("ultra"), None).1, Some(200.0));
+        assert_eq!(resolve_cursor(Some("pro+"), None).1, Some(60.0));
+        assert_eq!(resolve_cursor(Some("pro"), Some("ultra")).1, Some(200.0));
+        assert_eq!(resolve_cursor(None, Some("60")).1, Some(60.0));
+    }
+
+    #[test]
+    fn includes_cursor_value_card_without_weekly_limit() {
+        let subscription = Subscription::build(
+            &[("cursor", 12.0)],
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some("ultra"),
+            None,
+        );
+        assert_eq!(subscription.agents.len(), 1);
+        assert_eq!(subscription.agents[0].agent, "cursor");
+        assert_eq!(subscription.agents[0].plan_name.as_deref(), Some("Ultra"));
+        assert_eq!(subscription.agents[0].price, Some(200.0));
+        assert!(!subscription.agents[0].live_limits);
+        assert!(subscription.agents[0].window.is_none());
     }
 
     #[test]

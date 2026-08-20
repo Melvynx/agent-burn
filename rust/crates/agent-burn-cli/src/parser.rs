@@ -109,6 +109,7 @@ fn parse_summary_command(
     let mut chart = false;
     let mut claude_plan = None;
     let mut codex_plan = None;
+    let mut cursor_plan = None;
     let mut range = None;
     while let Some(arg) = parser.peek() {
         if arg == "--all" {
@@ -130,6 +131,7 @@ fn parse_summary_command(
             "--range" => range = Some(parse_summary_range(&parser.value_for("--range")?)?),
             "--claude-plan" => claude_plan = Some(parser.value_for("--claude-plan")?),
             "--codex-plan" => codex_plan = Some(parser.value_for("--codex-plan")?),
+            "--cursor-plan" => cursor_plan = Some(parser.value_for("--cursor-plan")?),
             flag => return Err(format!("Unknown summary option '{flag}'")),
         }
     }
@@ -138,6 +140,7 @@ fn parse_summary_command(
         value,
         claude_plan,
         codex_plan,
+        cursor_plan,
         range,
         agent: None,
         html,
@@ -183,6 +186,7 @@ fn parse_harness_command(
         value,
         claude_plan,
         codex_plan,
+        cursor_plan: None,
         range: None,
         agent: Some(agent),
         html: false,
@@ -193,13 +197,14 @@ fn parse_harness_command(
 fn parse_summary_range(value: &str) -> Result<SummaryRange, String> {
     match value {
         "today" | "day" => Ok(SummaryRange::Today),
+        "yesterday" => Ok(SummaryRange::Yesterday),
         "wtd" => Ok(SummaryRange::Wtd),
         "mtd" => Ok(SummaryRange::Mtd),
         "ytd" => Ok(SummaryRange::Ytd),
         "week" => Ok(SummaryRange::Week),
         "month" => Ok(SummaryRange::Month),
         _ => Err(format!(
-            "Invalid summary range '{value}'. Use today | wtd | mtd | ytd | week | month."
+            "Invalid summary range '{value}'. Use today | yesterday | wtd | mtd | ytd | week | month."
         )),
     }
 }
@@ -292,6 +297,7 @@ fn option_takes_value(arg: &str) -> bool {
             | "--config"
             | "--claude-plan"
             | "--codex-plan"
+            | "--cursor-plan"
             | "--range"
     )
 }

@@ -127,6 +127,7 @@ fn main() -> Result<()> {
             value: false,
             claude_plan: None,
             codex_plan: None,
+            cursor_plan: None,
             range: None,
             agent: None,
             html: false,

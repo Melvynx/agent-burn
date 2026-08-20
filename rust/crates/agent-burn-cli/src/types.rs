@@ -57,6 +57,7 @@ pub struct SummaryArgs {
     pub value: bool,
     pub claude_plan: Option<String>,
     pub codex_plan: Option<String>,
+    pub cursor_plan: Option<String>,
     pub range: Option<SummaryRange>,
     /// `Some(agent)` selects the `harness <agent>` detail view; `None` is the
     /// `summary` overview.
@@ -73,6 +74,8 @@ pub struct SummaryArgs {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SummaryRange {
     Today,
+    /// The previous calendar day.
+    Yesterday,
     /// Week-to-date (since Monday of the current week).
     Wtd,
     /// Month-to-date (since the 1st of the current month).

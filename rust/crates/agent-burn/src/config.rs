@@ -162,6 +162,7 @@ fn option_takes_value(arg: &str) -> bool {
             | "--range"
             | "--claude-plan"
             | "--codex-plan"
+            | "--cursor-plan"
     )
 }
 

@@ -39,6 +39,7 @@ flags:
 
 - Claude Code: `rust/crates/agent-burn/src/adapter/claude/README.md`
 - Codex: `rust/crates/agent-burn/src/adapter/codex/README.md`
+- Cursor: `rust/crates/agent-burn/src/adapter/cursor/README.md`
 - OpenCode: `rust/crates/agent-burn/src/adapter/opencode/README.md`
 - Amp: `rust/crates/agent-burn/src/adapter/amp/README.md`
 - pi-agent: `rust/crates/agent-burn/src/adapter/pi/README.md`

@@ -8,6 +8,8 @@ Common variables:
 | --- | --- |
 | `CLAUDE_CONFIG_DIR` | Override Claude Code config/log root |
 | `CODEX_HOME` | Override Codex home directory |
+| `CURSOR_DATA_DIR` | Override Cursor application-support directory or `state.vscdb` |
+| `CURSOR_ACCESS_TOKEN` | Override the Cursor session token used for usage fetch |
 | `LOG_LEVEL=0` | Silence progress output in automation |
 
 Example:

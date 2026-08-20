@@ -10,6 +10,7 @@ Add subscription value:
 
 ```bash
 npx agent-burn@latest summary --value
+npx agent-burn@latest summary --chart --html
 ```
 
 Focus on one subscription harness:
@@ -27,6 +28,7 @@ Use a quick range:
 
 ```bash
 agent-burn summary today
+agent-burn summary yesterday
 agent-burn summary week
 agent-burn summary --range month
 ```
@@ -42,7 +44,7 @@ agent-burn summary --since 20260601 --until 20260613
 Agent Burn auto-detects some plan details from local data when possible. You can override them:
 
 ```bash
-agent-burn summary --value --claude-plan max-20x --codex-plan pro
+agent-burn summary --value --claude-plan max-20x --codex-plan pro --cursor-plan ultra
 agent-burn harness claude --value --claude-plan 200
 agent-burn harness codex --value --codex-plan plus
 ```

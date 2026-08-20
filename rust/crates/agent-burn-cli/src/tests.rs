@@ -94,6 +94,7 @@ fn command_snapshot(command: Option<Command>) -> Value {
             "value": args.value,
             "claudePlan": args.claude_plan,
             "codexPlan": args.codex_plan,
+            "cursorPlan": args.cursor_plan,
             "range": args.range.map(|range| format!("{range:?}")),
             "agent": args.agent,
             "html": args.html,
@@ -122,6 +123,8 @@ fn parses_summary_overview_options() {
         "max-20x",
         "--codex-plan",
         "pro",
+        "--cursor-plan",
+        "ultra",
     ]);
     let Some(Command::Summary(args)) = cli.command else {
         panic!("expected summary command");
@@ -132,6 +135,20 @@ fn parses_summary_overview_options() {
     assert!(args.agent.is_none());
     assert_eq!(args.claude_plan.as_deref(), Some("max-20x"));
     assert_eq!(args.codex_plan.as_deref(), Some("pro"));
+    assert_eq!(args.cursor_plan.as_deref(), Some("ultra"));
+}
+
+#[test]
+fn parses_yesterday_as_a_summary_range() {
+    let cli = parse(&["agent-burn", "summary", "yesterday"]);
+    let Some(Command::Summary(args)) = cli.command else {
+        panic!("expected summary command");
+    };
+
+    assert_eq!(
+        args.range.map(|range| format!("{range:?}")),
+        Some("Yesterday".to_string())
+    );
 }
 
 #[test]
@@ -171,6 +188,10 @@ fn rejects_removed_legacy_commands() {
     assert_eq!(
         parse_error(&["agent-burn", "harness"]),
         "Specify an agent: agent-burn harness <codex|claude>"
+    );
+    assert_eq!(
+        parse_error(&["agent-burn", "harness", "cursor"]),
+        "Unsupported agent 'cursor' for harness. Use 'agent-burn harness <codex|claude>'."
     );
 }
 

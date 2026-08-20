@@ -114,6 +114,7 @@ export default defineConfig({
 					items: [
 						{ text: 'Claude Code', link: '/guide/claude/' },
 						{ text: 'Codex', link: '/guide/codex/' },
+						{ text: 'Cursor', link: '/guide/cursor/' },
 					],
 				},
 				{
