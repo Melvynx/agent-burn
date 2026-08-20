@@ -8,7 +8,7 @@ agent-burn harness codex --json --offline
 agent-burn summary --value --codex-plan pro
 ```
 
-Agent Burn reads Codex data from `${CODEX_HOME:-~/.codex}`. The harness uses the local plan snapshot when available to estimate weekly-limit burn and subscription value.
+Agent Burn reads Codex data from `${CODEX_HOME:-~/.codex}`. The harness uses the local plan snapshot when available to estimate weekly-limit burn and subscription value, and it breaks the last 30 days of spend into input, output, and cached-input usage.
 
 Plan overrides:
 

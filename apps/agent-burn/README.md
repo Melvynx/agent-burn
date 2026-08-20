@@ -4,8 +4,8 @@ Agent Burn is a local CLI for answering one question: is your coding-agent subsc
 
 The public surface is intentionally small and centered on subscription-value reporting. The CLI keeps fast local log readers and cost aggregation logic, then exposes only two commands:
 
-- `agent-burn summary` for an all-up local usage and cost overview.
-- `agent-burn harness <claude|codex>` for focused weekly subscription-limit detail.
+- `agent-burn summary` for an all-up local usage and cost overview, including an easy day-by-day breakdown.
+- `agent-burn harness <claude|codex>` for focused weekly subscription-limit detail, including spend split by input, output, and cache usage.
 
 The npm package also installs `burn` as a short alias.
 
@@ -26,6 +26,7 @@ agent-burn summary
 
 # Quick date windows.
 agent-burn summary today
+agent-burn summary yesterday
 agent-burn summary week --value
 agent-burn summary --range month --value
 
@@ -40,7 +41,7 @@ agent-burn harness claude --json --offline
 
 ## Subscription Value
 
-`--value` compares local API-equivalent usage against known or supplied monthly subscription prices.
+`--value` compares local API-equivalent usage against known or supplied monthly subscription prices. Harness output also shows a trailing-30-day spend mix so you can see which token classes drive the bill.
 
 ```bash
 agent-burn summary --value
@@ -53,6 +54,7 @@ Supported plan overrides:
 
 - Claude: `pro`, `max-5x`, `max-20x`, or a raw monthly price.
 - Codex: `plus`, `pro`, or a raw monthly price.
+- Cursor: `pro`, `pro+`, `ultra`, or a raw monthly price.
 
 ## Shared Options
 
@@ -82,6 +84,7 @@ Primary source locations:
 | --- | --- |
 | Claude Code | `~/.claude`, `~/.config/claude/projects` |
 | Codex | `${CODEX_HOME:-~/.codex}` |
+| Cursor | Cursor `state.vscdb` plus the signed-in dashboard usage API |
 
 ## Development
 

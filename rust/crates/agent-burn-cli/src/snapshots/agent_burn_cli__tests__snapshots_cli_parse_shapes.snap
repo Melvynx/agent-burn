@@ -32,6 +32,7 @@ expression: "json!({\n    \"defaultSummary\": cli_snapshot(parse(&[\"agent-burn\
       "chart": false,
       "claudePlan": "max-20x",
       "codexPlan": null,
+      "cursorPlan": null,
       "html": false,
       "range": null,
       "shared": {
@@ -84,6 +85,7 @@ expression: "json!({\n    \"defaultSummary\": cli_snapshot(parse(&[\"agent-burn\
       "chart": false,
       "claudePlan": null,
       "codexPlan": null,
+      "cursorPlan": null,
       "html": false,
       "range": "Week",
       "shared": {

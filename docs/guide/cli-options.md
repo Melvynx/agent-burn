@@ -9,11 +9,12 @@ agent-burn harness <claude|codex>
 
 ### Summary
 
-`summary` aggregates detected local usage and optionally calculates subscription value.
+`summary` aggregates detected local usage, shows each selected day's cost and tokens in a compact visual breakdown, and optionally calculates subscription value.
 
 ```bash
 agent-burn summary
 agent-burn summary --value
+agent-burn summary yesterday
 agent-burn summary week --value
 agent-burn summary --range month --json
 ```
@@ -22,15 +23,17 @@ Summary-specific options:
 
 | Option | Description |
 | --- | --- |
-| `--range <today|wtd|mtd|ytd|week|month>` | Apply a quick date range |
+| `--range <today|yesterday|wtd|mtd|ytd|week|month>` | Apply a quick date range |
 | `--value` | Show subscription value |
-| `--html` | Reserved for the HTML report follow-up |
+| `--html` | Write and open an interactive HTML report with daily model/agent charts |
+| `--chart` | Append a day-by-day stacked-by-model chart to the terminal |
 | `--claude-plan <plan|price>` | Override Claude plan |
 | `--codex-plan <plan|price>` | Override Codex plan |
+| `--cursor-plan <plan|price>` | Override Cursor plan (`pro`, `pro+`, `ultra`, or a monthly price) |
 
 ### Harness
 
-`harness` focuses on one subscription window.
+`harness` focuses on one subscription window. The terminal view includes a trailing-30-day spend mix for input, output, cache write, and cached input tokens, with each class' token share and API-equivalent cost share.
 
 ```bash
 agent-burn harness claude --value

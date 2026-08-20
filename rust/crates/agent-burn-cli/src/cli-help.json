@@ -116,7 +116,7 @@
 		{
 			"flags": "--range <range>",
 			"description": "Quick time range (also accepted as a bare word, e.g. `summary mtd`)",
-			"choices": ["today", "wtd", "mtd", "ytd", "week", "month"]
+			"choices": ["today", "yesterday", "wtd", "mtd", "ytd", "week", "month"]
 		},
 		{
 			"flags": "--value",
@@ -140,6 +140,10 @@
 		{
 			"flags": "--codex-plan <codex-plan>",
 			"description": "Codex plan override: plus | pro | a monthly price"
+		},
+		{
+			"flags": "--cursor-plan <cursor-plan>",
+			"description": "Cursor plan override: pro | pro+ | ultra | a monthly price"
 		}
 	]
 }

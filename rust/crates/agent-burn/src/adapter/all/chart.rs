@@ -38,6 +38,7 @@ fn agent_hex(agent: &str) -> &'static str {
     match agent {
         "claude" => "#d96bf5",
         "codex" => "#34d399",
+        "cursor" => "#f97316",
         "gemini" => "#60a5fa",
         "droid" => "#fbbf24",
         "openclaw" | "opencode" => "#22d3ee",
@@ -297,4 +298,15 @@ fn stacked_bar(shared: &SharedArgs, per: &[f64], total: f64, max_total: f64) -> 
         Color::Grey,
     ));
     bar
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cursor_uses_dedicated_html_color() {
+        assert_eq!(agent_hex("cursor"), "#f97316");
+        assert_ne!(agent_hex("cursor"), "#94a3b8");
+    }
 }

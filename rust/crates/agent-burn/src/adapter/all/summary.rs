@@ -3,9 +3,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{Value, json};
 
 use crate::{
-    Color, IsoDate, MILLIS_PER_DAY, Result, TimestampMs,
-    adapter::{claude, codex},
+    Color, IsoDate, MILLIS_PER_DAY, ModelBreakdown, PricingMap, Result, TimestampMs,
+    adapter::{claude, codex, cursor},
     cli::{AgentReportKind, SharedArgs, SummaryArgs, SummaryRange, WeekDay},
+    cost::tiered_cost,
     fast::FxHashMap,
     format_currency, format_date_tz, format_utc_date, json_float, parse_iso_date, parse_tz,
     print_json_or_jq, utc_now, wants_json, week_start,
@@ -36,6 +37,7 @@ pub(super) fn run(args: SummaryArgs) -> Result<()> {
         value,
         claude_plan,
         codex_plan,
+        cursor_plan,
         range,
         agent,
         html,
@@ -65,6 +67,9 @@ pub(super) fn run(args: SummaryArgs) -> Result<()> {
         let claude_tier = (has("claude") && claude_plan.is_none())
             .then(claude::detected_plan_tier)
             .flatten();
+        let cursor_membership = (has("cursor") && cursor_plan.is_none())
+            .then(cursor::detected_membership)
+            .flatten();
         Some(Subscription::build(
             &agent_costs,
             summary.period.clone(),
@@ -73,6 +78,8 @@ pub(super) fn run(args: SummaryArgs) -> Result<()> {
             claude_in,
             claude_plan.as_deref(),
             claude_tier.as_deref(),
+            cursor_plan.as_deref(),
+            cursor_membership.as_deref(),
         ))
     } else {
         None
@@ -137,16 +144,26 @@ fn report_payload(
     data
 }
 
-/// Resolve a quick time range into a `--since` bound, relative to today in the
-/// configured timezone. Leaves `--until` open so the range runs through now.
+/// Resolve a quick time range relative to today in the configured timezone.
 fn apply_range(shared: &mut SharedArgs, range: SummaryRange) {
     let timezone = parse_tz(shared.timezone.as_deref());
     let today_str = format_date_tz(utc_now(), timezone.as_ref());
     let Some(today) = parse_iso_date(&today_str) else {
         return;
     };
-    let start = match range {
+    let (since, until) = range_bounds(today, range);
+    if let Some(since) = since {
+        shared.since = Some(compact_date(since));
+    }
+    if let Some(until) = until {
+        shared.until = Some(compact_date(until));
+    }
+}
+
+fn range_bounds(today: IsoDate, range: SummaryRange) -> (Option<IsoDate>, Option<IsoDate>) {
+    let since = match range {
         SummaryRange::Today => Some(today),
+        SummaryRange::Yesterday => today.checked_add_days(-1),
         SummaryRange::Wtd => {
             let days_since_monday = i64::from((today.weekday_from_sunday() + 6) % 7);
             today.checked_add_days(-days_since_monday)
@@ -156,12 +173,14 @@ fn apply_range(shared: &mut SharedArgs, range: SummaryRange) {
         SummaryRange::Week => today.checked_add_days(-6),
         SummaryRange::Month => today.checked_add_days(-29),
     };
-    if let Some(start) = start {
-        shared.since = Some(format!(
-            "{:04}{:02}{:02}",
-            start.year, start.month, start.day
-        ));
-    }
+    let until = matches!(range, SummaryRange::Yesterday)
+        .then(|| today.checked_add_days(-1))
+        .flatten();
+    (since, until)
+}
+
+fn compact_date(date: IsoDate) -> String {
+    format!("{:04}{:02}{:02}", date.year, date.month, date.day)
 }
 
 /// Render the focused weekly-limit view for a single agent: limit-used vs
@@ -213,6 +232,8 @@ fn run_harness_weekly(
     } else {
         0
     };
+    let spend_pricing =
+        PricingMap::load_with_overrides(true, false, shared.pricing_overrides.iter());
 
     let view = WeeklyView {
         agent,
@@ -223,6 +244,7 @@ fn run_harness_weekly(
         live_limits,
         monthly_equiv: agent_cost_last_days(rows, 30, agent),
         models: agent_models_last_days(rows, 30, agent),
+        spend_mix: agent_spend_mix_last_days(rows, 30, agent, &spend_pricing),
         weekly_trend: agent_weekly_trend(rows, agent, 8),
         image_count,
         image_price: CODEX_IMAGE_PRICE_ESTIMATE,
@@ -290,6 +312,209 @@ fn agent_models_last_days(rows: &[AllRow], days: i64, agent: &str) -> Vec<(Strin
         .collect();
     models.sort_by(|a, b| b.1.total_cmp(&a.1));
     models
+}
+
+fn agent_spend_mix_last_days(
+    rows: &[AllRow],
+    days: i64,
+    agent: &str,
+    pricing: &PricingMap,
+) -> Vec<subscription::SpendMixItem> {
+    let start = utc_now()
+        .checked_sub_millis(days * MILLIS_PER_DAY)
+        .unwrap_or_else(utc_now);
+    let start_date = format_utc_date(start);
+    agent_spend_mix_since(rows, &start_date, agent, pricing)
+}
+
+fn agent_spend_mix_since(
+    rows: &[AllRow],
+    start_date: &str,
+    agent: &str,
+    pricing: &PricingMap,
+) -> Vec<subscription::SpendMixItem> {
+    let mut totals = SpendMixTotals::default();
+    for row in rows.iter().filter(|row| row.period.as_str() >= start_date) {
+        if let Some(breakdown) = row
+            .agent_breakdowns
+            .as_ref()
+            .and_then(|breakdowns| breakdowns.iter().find(|b| b.agent == agent))
+        {
+            for model in &breakdown.model_breakdowns {
+                totals.add_model(agent, model, pricing);
+            }
+        }
+    }
+    totals.into_items()
+}
+
+#[derive(Default)]
+struct SpendMixTotals {
+    input_tokens: u64,
+    output_tokens: u64,
+    cache_creation_tokens: u64,
+    cache_read_tokens: u64,
+    input_cost: f64,
+    output_cost: f64,
+    cache_creation_cost: f64,
+    cache_read_cost: f64,
+}
+
+impl SpendMixTotals {
+    fn add_model(&mut self, agent: &str, model: &ModelBreakdown, pricing: &PricingMap) {
+        self.input_tokens += model.input_tokens;
+        self.output_tokens += model.output_tokens;
+        self.cache_creation_tokens += model.cache_creation_tokens;
+        self.cache_read_tokens += model.cache_read_tokens;
+
+        let costs = model_category_costs(agent, model, pricing);
+        self.input_cost += costs.input;
+        self.output_cost += costs.output;
+        self.cache_creation_cost += costs.cache_creation;
+        self.cache_read_cost += costs.cache_read;
+    }
+
+    fn into_items(self) -> Vec<subscription::SpendMixItem> {
+        [
+            ("input", "input", self.input_tokens, self.input_cost),
+            ("output", "output", self.output_tokens, self.output_cost),
+            (
+                "cacheCreation",
+                "cache write",
+                self.cache_creation_tokens,
+                self.cache_creation_cost,
+            ),
+            (
+                "cacheRead",
+                "cached input",
+                self.cache_read_tokens,
+                self.cache_read_cost,
+            ),
+        ]
+        .into_iter()
+        .filter(|(_, _, tokens, cost)| *tokens > 0 || *cost > 0.0)
+        .map(|(key, label, tokens, cost)| subscription::SpendMixItem {
+            key,
+            label,
+            tokens,
+            cost,
+        })
+        .collect()
+    }
+}
+
+#[derive(Default)]
+struct CategoryCosts {
+    input: f64,
+    output: f64,
+    cache_creation: f64,
+    cache_read: f64,
+}
+
+impl CategoryCosts {
+    fn total(&self) -> f64 {
+        self.input + self.output + self.cache_creation + self.cache_read
+    }
+
+    fn scale(mut self, factor: f64) -> Self {
+        self.input *= factor;
+        self.output *= factor;
+        self.cache_creation *= factor;
+        self.cache_read *= factor;
+        self
+    }
+}
+
+fn model_category_costs(
+    agent: &str,
+    model: &ModelBreakdown,
+    pricing: &PricingMap,
+) -> CategoryCosts {
+    let estimated = estimated_model_category_costs(agent, model, pricing);
+    let estimated_total = estimated.total();
+    if model.cost > 0.0 && estimated_total > 0.0 {
+        estimated.scale(model.cost / estimated_total)
+    } else if estimated_total > 0.0 {
+        estimated
+    } else {
+        token_weighted_category_costs(model)
+    }
+}
+
+fn estimated_model_category_costs(
+    agent: &str,
+    model: &ModelBreakdown,
+    pricing: &PricingMap,
+) -> CategoryCosts {
+    let Some(model_pricing) = pricing.find(&model.model_name) else {
+        return CategoryCosts::default();
+    };
+    let mut multiplier = if model.model_name.ends_with("-fast") {
+        model_pricing.fast_multiplier
+    } else {
+        1.0
+    };
+    if agent == "codex"
+        && matches!(
+            codex::resolve_codex_speed(crate::cli::CodexSpeed::Auto),
+            crate::cli::CodexSpeed::Fast
+        )
+    {
+        multiplier = if model_pricing.fast_multiplier == 1.0 {
+            2.0
+        } else {
+            model_pricing.fast_multiplier
+        };
+    }
+    let cache_read_rate = if agent == "codex" && !model_pricing.cache_read_explicit {
+        model_pricing.input
+    } else {
+        model_pricing.cache_read
+    };
+    CategoryCosts {
+        input: tiered_cost(
+            model.input_tokens,
+            model_pricing.input,
+            model_pricing.input_above_200k,
+        ),
+        output: tiered_cost(
+            model.output_tokens,
+            model_pricing.output,
+            model_pricing.output_above_200k,
+        ),
+        cache_creation: tiered_cost(
+            model.cache_creation_tokens,
+            model_pricing.cache_create,
+            model_pricing.cache_create_above_200k,
+        ),
+        cache_read: tiered_cost(
+            model.cache_read_tokens,
+            cache_read_rate,
+            if agent == "codex" && !model_pricing.cache_read_explicit {
+                model_pricing.input_above_200k
+            } else {
+                model_pricing.cache_read_above_200k
+            },
+        ),
+    }
+    .scale(multiplier)
+}
+
+fn token_weighted_category_costs(model: &ModelBreakdown) -> CategoryCosts {
+    let total_tokens = model.input_tokens
+        + model.output_tokens
+        + model.cache_creation_tokens
+        + model.cache_read_tokens;
+    if model.cost <= 0.0 || total_tokens == 0 {
+        return CategoryCosts::default();
+    }
+    let unit = model.cost / total_tokens as f64;
+    CategoryCosts {
+        input: model.input_tokens as f64 * unit,
+        output: model.output_tokens as f64 * unit,
+        cache_creation: model.cache_creation_tokens as f64 * unit,
+        cache_read: model.cache_read_tokens as f64 * unit,
+    }
 }
 
 /// One agent's weekly spend over the last `weeks` calendar weeks (Monday start).
@@ -435,9 +660,16 @@ struct ModelTotal {
     tokens: u64,
 }
 
+struct DayTotal {
+    date: String,
+    cost: f64,
+    tokens: u64,
+}
+
 struct Summary {
     total_cost: f64,
     total_tokens: u64,
+    days: Vec<DayTotal>,
     agents: Vec<AgentTotal>,
     models: Vec<ModelTotal>,
     period: Option<(String, String)>,
@@ -449,6 +681,7 @@ impl Summary {
     fn from_rows(rows: &[AllRow]) -> Self {
         let mut total_cost = 0.0;
         let mut total_tokens = 0u64;
+        let mut days: BTreeMap<String, DayTotal> = BTreeMap::new();
         let mut agents: Vec<AgentTotal> = Vec::new();
         let mut agent_index: FxHashMap<&'static str, usize> = FxHashMap::default();
         let mut models: Vec<ModelTotal> = Vec::new();
@@ -459,6 +692,13 @@ impl Summary {
         for row in rows {
             total_cost += row.total_cost;
             total_tokens += row.total_tokens;
+            let day = days.entry(row.period.clone()).or_insert_with(|| DayTotal {
+                date: row.period.clone(),
+                cost: 0.0,
+                tokens: 0,
+            });
+            day.cost += row.total_cost;
+            day.tokens += row.total_tokens;
             if first_period.is_none_or(|first| row.period.as_str() < first) {
                 first_period = Some(&row.period);
             }
@@ -523,6 +763,7 @@ impl Summary {
         Self {
             total_cost,
             total_tokens,
+            days: days.into_values().collect(),
             agents,
             models,
             period: first_period
@@ -608,6 +849,11 @@ fn print_summary(summary: &Summary, shared: &SharedArgs, detected_agents: &[&'st
     }
     out.push_str(&token_cell(shared, summary.total_tokens, 0));
     out.push('\n');
+
+    if !summary.days.is_empty() {
+        out.push('\n');
+        out.push_str(&render_days(summary, shared));
+    }
 
     if !summary.agents.is_empty() {
         out.push('\n');
@@ -712,6 +958,82 @@ fn print_summary(summary: &Summary, shared: &SharedArgs, detected_agents: &[&'st
     print!("{out}");
 }
 
+fn render_days(summary: &Summary, shared: &SharedArgs) -> String {
+    let no_cost = shared.no_cost;
+    let label_width = max_width(summary.days.iter().map(|day| day_label(&day.date).len()));
+    let cost_width = max_width(
+        summary
+            .days
+            .iter()
+            .map(|day| format_currency(day.cost).len()),
+    );
+    let token_width = max_width(
+        summary
+            .days
+            .iter()
+            .map(|day| format_compact_tokens(day.tokens).len()),
+    );
+    let percentages = summary
+        .days
+        .iter()
+        .map(|day| {
+            format!(
+                "{:.1}%",
+                percentage(
+                    metric_value(day.cost, day.tokens, no_cost),
+                    metric_value(summary.total_cost, summary.total_tokens, no_cost),
+                )
+            )
+        })
+        .collect::<Vec<_>>();
+    let percentage_width = max_width(percentages.iter().map(String::len));
+    let max_value = summary
+        .days
+        .iter()
+        .map(|day| metric_value(day.cost, day.tokens, no_cost))
+        .fold(0.0_f64, f64::max);
+
+    let mut out = heading(shared, "days");
+    for (day, percentage) in summary.days.iter().zip(percentages) {
+        let value = metric_value(day.cost, day.tokens, no_cost);
+        out.push_str("    ");
+        out.push_str(&crate::color(
+            shared,
+            format!("{:<label_width$}", day_label(&day.date)),
+            Color::Cyan,
+        ));
+        out.push_str("   ");
+        if !no_cost {
+            out.push_str(&cost_cell(shared, day.cost, cost_width, Color::Yellow));
+            out.push_str("   ");
+        }
+        out.push_str(&token_cell(shared, day.tokens, token_width));
+        out.push_str("  ");
+        out.push_str(&crate::color(
+            shared,
+            format!("{percentage:>percentage_width$}"),
+            Color::Grey,
+        ));
+        out.push_str("  ");
+        out.push_str(&render_bar(value, max_value, Color::Cyan, shared));
+        out.push('\n');
+    }
+    out
+}
+
+fn day_label(period: &str) -> String {
+    const WEEKDAYS: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const MONTHS: [&str; 12] = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    let Some(date) = parse_iso_date(period) else {
+        return period.to_string();
+    };
+    let weekday = WEEKDAYS[date.weekday_from_sunday() as usize];
+    let month = MONTHS[date.month.saturating_sub(1) as usize];
+    format!("{weekday} {month} {:02}", date.day)
+}
+
 /// Pick a stable color for a model or agent name based on its provider family,
 /// mirroring devrage's color-by-family layout within agent-burn's palette.
 fn family_color(name: &str) -> Color {
@@ -724,6 +1046,8 @@ fn family_color(name: &str) -> Color {
         Color::Blue
     } else if name.contains("droid") {
         Color::Yellow
+    } else if name.contains("cursor") || name.contains("composer") || name.contains("grok") {
+        Color::Red
     } else {
         Color::Cyan
     }
@@ -734,6 +1058,7 @@ fn agent_color(agent: &str) -> Color {
     match agent {
         "claude" => Color::Magenta,
         "codex" => Color::Green,
+        "cursor" => Color::Red,
         "gemini" => Color::Blue,
         "droid" => Color::Yellow,
         _ => Color::Cyan,
@@ -824,7 +1149,7 @@ pub(super) fn format_compact_tokens(value: u64) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::ModelBreakdown;
+    use crate::{ModelBreakdown, PricingMap};
 
     use super::*;
 
@@ -855,6 +1180,25 @@ mod tests {
         }
     }
 
+    fn model_token_breakdown(
+        name: &str,
+        input_tokens: u64,
+        output_tokens: u64,
+        cache_creation_tokens: u64,
+        cache_read_tokens: u64,
+        cost: f64,
+    ) -> ModelBreakdown {
+        ModelBreakdown {
+            model_name: name.to_string(),
+            input_tokens,
+            output_tokens,
+            cache_creation_tokens,
+            cache_read_tokens,
+            cost,
+            ..ModelBreakdown::default()
+        }
+    }
+
     fn day_row(cost: f64, tokens: u64, agents: Vec<AllRow>, models: Vec<ModelBreakdown>) -> AllRow {
         AllRow {
             period: "2026-01-01".to_string(),
@@ -880,6 +1224,16 @@ mod tests {
         assert_eq!(format_compact_tokens(3_100_000), "3.1M");
         assert_eq!(format_compact_tokens(12_345), "12.3K");
         assert_eq!(format_compact_tokens(999), "999");
+    }
+
+    #[test]
+    fn yesterday_range_is_bounded_to_the_previous_calendar_day() {
+        let today = IsoDate::from_ymd(2026, 7, 16).unwrap();
+
+        let (since, until) = range_bounds(today, SummaryRange::Yesterday);
+
+        assert_eq!(since.map(compact_date).as_deref(), Some("20260715"));
+        assert_eq!(until.map(compact_date).as_deref(), Some("20260715"));
     }
 
     #[test]
@@ -921,6 +1275,93 @@ mod tests {
         assert!((summary.models[0].cost - 11.0).abs() < 1e-9);
         assert_eq!(summary.models[0].tokens, 110);
         assert_eq!(summary.models[1].model, "gpt-5");
+    }
+
+    #[test]
+    fn keeps_daily_usage_in_chronological_order() {
+        let mut later = day_row(10.0, 100, Vec::new(), Vec::new());
+        later.period = "2026-07-16".to_string();
+        let mut earlier = day_row(5.0, 50, Vec::new(), Vec::new());
+        earlier.period = "2026-07-15".to_string();
+
+        let summary = Summary::from_rows(&[later, earlier]);
+
+        assert_eq!(summary.days.len(), 2);
+        assert_eq!(summary.days[0].date, "2026-07-15");
+        assert!((summary.days[0].cost - 5.0).abs() < f64::EPSILON);
+        assert_eq!(summary.days[0].tokens, 50);
+        assert_eq!(summary.days[1].date, "2026-07-16");
+        assert!((summary.days[1].cost - 10.0).abs() < f64::EPSILON);
+        assert_eq!(summary.days[1].tokens, 100);
+    }
+
+    #[test]
+    fn renders_daily_usage_as_aligned_rows_with_period_share_and_bars() {
+        let mut earlier = day_row(5.0, 50, Vec::new(), Vec::new());
+        earlier.period = "2026-07-15".to_string();
+        let mut later = day_row(10.0, 100, Vec::new(), Vec::new());
+        later.period = "2026-07-16".to_string();
+        let summary = Summary::from_rows(&[earlier, later]);
+        let shared = SharedArgs {
+            no_color: true,
+            ..SharedArgs::default()
+        };
+
+        assert_eq!(
+            render_days(&summary, &shared),
+            concat!(
+                "  days\n",
+                "    Wed Jul 15    $5.00    50 tokens  33.3%  ━━━━━━━━────────\n",
+                "    Thu Jul 16   $10.00   100 tokens  66.7%  ━━━━━━━━━━━━━━━━\n",
+            )
+        );
+    }
+
+    #[test]
+    fn agent_spend_mix_groups_token_classes_and_prices_them() {
+        let mut pricing = PricingMap::default();
+        pricing.load_json(
+            r#"{
+                "test-model": {
+                    "input_cost_per_token": 1.0,
+                    "output_cost_per_token": 10.0,
+                    "cache_creation_input_token_cost": 2.0,
+                    "cache_read_input_token_cost": 0.5
+                }
+            }"#,
+        );
+        let agent = AllRow {
+            period: "2026-01-01".to_string(),
+            agent: "claude",
+            models_used: vec!["test-model".to_string()],
+            input_tokens: 100,
+            output_tokens: 10,
+            cache_creation_tokens: 20,
+            cache_read_tokens: 50,
+            total_tokens: 180,
+            total_cost: 265.0,
+            metadata: None,
+            metadata_agents: Some(vec!["claude"]),
+            agent_breakdowns: None,
+            model_breakdowns: vec![model_token_breakdown("test-model", 100, 10, 20, 50, 265.0)],
+        };
+        let rows = vec![day_row(265.0, 180, vec![agent], Vec::new())];
+
+        let mix = agent_spend_mix_since(&rows, "2026-01-01", "claude", &pricing);
+
+        assert_eq!(mix.len(), 4);
+        assert_eq!(mix[0].key, "input");
+        assert_eq!(mix[0].tokens, 100);
+        assert!((mix[0].cost - 100.0).abs() < f64::EPSILON);
+        assert_eq!(mix[1].key, "output");
+        assert_eq!(mix[1].tokens, 10);
+        assert!((mix[1].cost - 100.0).abs() < f64::EPSILON);
+        assert_eq!(mix[2].key, "cacheCreation");
+        assert_eq!(mix[2].tokens, 20);
+        assert!((mix[2].cost - 40.0).abs() < f64::EPSILON);
+        assert_eq!(mix[3].key, "cacheRead");
+        assert_eq!(mix[3].tokens, 50);
+        assert!((mix[3].cost - 25.0).abs() < f64::EPSILON);
     }
 
     #[test]
