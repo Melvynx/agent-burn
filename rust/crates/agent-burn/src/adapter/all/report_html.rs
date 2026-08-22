@@ -77,3 +77,20 @@ fn open_command(path: &std::path::Path) -> Option<Command> {
         None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn html_template_can_group_daily_chart_by_agent() {
+        assert!(
+            TEMPLATE.contains("id=\"gAgent\""),
+            "HTML report must expose an Agent grouping control so Cursor appears on the chart"
+        );
+        assert!(
+            TEMPLATE.contains("DATA.agents"),
+            "HTML chart must plot the per-agent series, not only models"
+        );
+    }
+}

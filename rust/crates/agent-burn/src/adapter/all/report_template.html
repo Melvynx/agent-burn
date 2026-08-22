@@ -79,13 +79,17 @@
       <span class="rangelbl" id="rangeLbl"></span>
       <div class="chips" id="chips"></div>
       <div class="toggle">
+        <button id="gAgent" class="on">Agent</button>
+        <button id="gModel">Model</button>
+      </div>
+      <div class="toggle">
         <button id="mCost" class="on">Cost</button>
         <button id="mTok">Tokens</button>
       </div>
     </div>
   </div>
 
-  <p class="label" id="chartLabel">daily cost by model</p>
+  <p class="label" id="chartLabel">daily cost by agent</p>
   <div class="panel"><div class="chartwrap"><canvas id="daily"></canvas></div></div>
 
   <div class="cols">
@@ -106,6 +110,7 @@ const DAYS = DATA.history.days;
 const OTHER = DATA.history.otherColor;
 const N = DAYS.length;
 let metric = "cost";                 // cost | tokens
+let group = "agent";                 // agent | model
 let start = 0, end = N;              // [start, end) window into DAYS
 
 const nf = new Intl.NumberFormat("en-US");
@@ -134,7 +139,7 @@ function renderHero(){
   const gen = (DATA.generatedAt||"").replace("T"," ").replace(/\..*/,"");
   const p = DATA.period;
   document.getElementById("meta").textContent = (p? p.from+" → "+p.to+"  ·  ":"")+"generated "+gen;
-  document.getElementById("chartLabel").textContent = "daily "+(metric==="cost"?"cost":"tokens")+" by model";
+  document.getElementById("chartLabel").textContent = "daily "+(metric==="cost"?"cost":"tokens")+" by "+group;
 }
 function sumAll(key){ let t=0; for(let d=start;d<end;d++){ const a=DAYS[d][key]; for(let i=0;i<a.length;i++) t+=a[i]; } return t; }
 
@@ -162,21 +167,27 @@ function renderList(elId, items, sums, isModel){
 }
 
 let chart;
+function chartDataset(label, color, data){
+  return { label, stack:"s", data, backgroundColor:color, borderWidth:0, borderRadius:0, barPercentage:.98, categoryPercentage:.96 };
+}
 function renderChart(){
   const labels = DAYS.slice(start,end).map(x=>x.d.slice(5));
-  const key=mKey();
-  // palette models -> own dataset; grey models -> folded into "other"
-  const datasets=[]; const otherIdx=[];
-  DATA.models.forEach((m,i)=>{
-    if(m.color===OTHER){ otherIdx.push(i); return; }
-    datasets.push({ label:m.short||m.model, stack:"s", color:m.color,
-      data:DAYS.slice(start,end).map(x=>x[key][i]||0),
-      backgroundColor:m.color, borderWidth:0, borderRadius:0, barPercentage:.98, categoryPercentage:.96 });
-  });
-  if(otherIdx.length){
-    datasets.push({ label:"other", stack:"s",
-      data:DAYS.slice(start,end).map(x=>otherIdx.reduce((s,i)=>s+(x[key][i]||0),0)),
-      backgroundColor:OTHER, borderWidth:0, borderRadius:0, barPercentage:.98, categoryPercentage:.96 });
+  const datasets=[];
+  if(group==="agent"){
+    const key=aKey();
+    DATA.agents.forEach((a,i)=>{
+      datasets.push(chartDataset(a.agent, a.color, DAYS.slice(start,end).map(x=>x[key][i]||0)));
+    });
+  } else {
+    const key=mKey();
+    const otherIdx=[];
+    DATA.models.forEach((m,i)=>{
+      if(m.color===OTHER){ otherIdx.push(i); return; }
+      datasets.push(chartDataset(m.short||m.model, m.color, DAYS.slice(start,end).map(x=>x[key][i]||0)));
+    });
+    if(otherIdx.length){
+      datasets.push(chartDataset("other", OTHER, DAYS.slice(start,end).map(x=>otherIdx.reduce((s,i)=>s+(x[key][i]||0),0))));
+    }
   }
   const unit = metric==="cost";
   if(chart) chart.destroy();
@@ -252,8 +263,14 @@ function setWindow(p){
     box.appendChild(b);
   });
 })();
-document.getElementById("mCost").onclick=()=>{metric="cost";document.getElementById("mCost").classList.add("on");document.getElementById("mTok").classList.remove("on");render();};
-document.getElementById("mTok").onclick=()=>{metric="tokens";document.getElementById("mTok").classList.add("on");document.getElementById("mCost").classList.remove("on");render();};
+function setToggle(onId, offId){
+  document.getElementById(onId).classList.add("on");
+  document.getElementById(offId).classList.remove("on");
+}
+document.getElementById("gAgent").onclick=()=>{group="agent";setToggle("gAgent","gModel");render();};
+document.getElementById("gModel").onclick=()=>{group="model";setToggle("gModel","gAgent");render();};
+document.getElementById("mCost").onclick=()=>{metric="cost";setToggle("mCost","mTok");render();};
+document.getElementById("mTok").onclick=()=>{metric="tokens";setToggle("mTok","mCost");render();};
 
 render(); renderSubs();
 </script>

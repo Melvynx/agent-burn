@@ -303,10 +303,78 @@ fn stacked_bar(shared: &SharedArgs, per: &[f64], total: f64, max_total: f64) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ModelBreakdown;
+
+    fn day_row(
+        period: &str,
+        agents: &[(&'static str, f64, u64)],
+        models: &[(&str, f64, u64)],
+    ) -> AllRow {
+        AllRow {
+            period: period.to_string(),
+            agent: "all",
+            models_used: models
+                .iter()
+                .map(|(name, _, _)| (*name).to_string())
+                .collect(),
+            input_tokens: models.iter().map(|(_, _, tokens)| *tokens).sum(),
+            output_tokens: 0,
+            cache_creation_tokens: 0,
+            cache_read_tokens: 0,
+            total_tokens: agents.iter().map(|(_, _, tokens)| *tokens).sum(),
+            total_cost: agents.iter().map(|(_, cost, _)| *cost).sum(),
+            metadata: None,
+            metadata_agents: Some(agents.iter().map(|(agent, _, _)| *agent).collect()),
+            agent_breakdowns: Some(
+                agents
+                    .iter()
+                    .map(|(agent, cost, tokens)| AllRow {
+                        period: period.to_string(),
+                        agent,
+                        models_used: Vec::new(),
+                        input_tokens: *tokens,
+                        output_tokens: 0,
+                        cache_creation_tokens: 0,
+                        cache_read_tokens: 0,
+                        total_tokens: *tokens,
+                        total_cost: *cost,
+                        metadata: None,
+                        metadata_agents: Some(vec![*agent]),
+                        agent_breakdowns: None,
+                        model_breakdowns: Vec::new(),
+                    })
+                    .collect(),
+            ),
+            model_breakdowns: models
+                .iter()
+                .map(|(name, cost, tokens)| ModelBreakdown {
+                    model_name: (*name).to_string(),
+                    input_tokens: *tokens,
+                    cost: *cost,
+                    ..ModelBreakdown::default()
+                })
+                .collect(),
+        }
+    }
 
     #[test]
     fn cursor_uses_dedicated_html_color() {
         assert_eq!(agent_hex("cursor"), "#f97316");
         assert_ne!(agent_hex("cursor"), "#94a3b8");
+    }
+
+    #[test]
+    fn dashboard_data_includes_cursor_agent_series() {
+        let data = dashboard_data(&[day_row(
+            "2026-08-22",
+            &[("cursor", 12.0, 100), ("codex", 8.0, 50)],
+            &[("claude-opus-5", 12.0, 100), ("gpt-5.6-sol", 8.0, 50)],
+        )]);
+        let agents = data["agents"].as_array().expect("agents");
+        assert_eq!(agents[0]["agent"], "Cursor");
+        assert_eq!(agents[0]["color"], "#f97316");
+        assert_eq!(agents[0]["cost"], 12.0);
+        assert_eq!(data["history"]["days"][0]["ac"][0], 12.0);
+        assert_eq!(agents[1]["agent"], "Codex");
     }
 }
