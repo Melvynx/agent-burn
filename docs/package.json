@@ -2,18 +2,40 @@
 	"name": "@agent-burn/docs",
 	"version": "20.0.19",
 	"private": true,
-	"description": "Documentation for Agent Burn subscription value reporting",
+	"description": "Agent Burn website and documentation",
 	"type": "module",
 	"scripts": {
-		"build": "cp ../apps/agent-burn/config-schema.json public/config-schema.json && vitepress build",
-		"dev": "cp ../apps/agent-burn/config-schema.json public/config-schema.json && vitepress dev"
+		"predev": "cp ../apps/agent-burn/config-schema.json public/config-schema.json",
+		"prebuild": "cp ../apps/agent-burn/config-schema.json public/config-schema.json",
+		"dev": "vite dev",
+		"build": "vite build",
+		"start": "node .output/server/index.mjs",
+		"preview": "vite preview",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@tanstack/react-router": "catalog:docs",
+		"@tanstack/react-start": "catalog:docs",
+		"cnfast": "catalog:docs",
+		"fumadocs-core": "catalog:docs",
+		"fumadocs-mdx": "catalog:docs",
+		"fumadocs-ui": "catalog:docs",
+		"lucide-react": "catalog:docs",
+		"react": "catalog:docs",
+		"react-dom": "catalog:docs",
+		"tslib": "catalog:docs"
 	},
 	"devDependencies": {
+		"@tailwindcss/vite": "catalog:docs",
+		"@types/mdx": "catalog:docs",
 		"@types/node": "catalog:types",
 		"@types/react": "catalog:types",
-		"vitepress": "catalog:docs",
-		"vitepress-plugin-group-icons": "catalog:docs",
-		"vitepress-plugin-llms": "catalog:docs"
+		"@types/react-dom": "catalog:docs",
+		"@vitejs/plugin-react": "catalog:docs",
+		"nitro": "catalog:docs",
+		"tailwindcss": "catalog:docs",
+		"typescript": "catalog:docs",
+		"vite": "catalog:docs"
 	},
 	"engines": {
 		"node": ">=22.11.0"

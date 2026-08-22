@@ -1,0 +1,11 @@
+target
+result
+result-*
+.direnv
+docs/.output
+docs/.tanstack
+docs/.source
+docs/.vercel
+docs/.nitro
+*.tgz
+coverage

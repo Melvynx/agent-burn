@@ -1,14 +1,13 @@
-# Documentation Site
+# Agent Burn website
 
-This directory contains the VitePress documentation website for Agent Burn.
+TanStack Start site for the landing page and documentation.
 
-## Structure
+- Landing lives at `/`.
+- Docs live at `/docs`.
+- MDX content lives in `content/docs/`.
+- Static assets live in `public/`.
 
-- `guide/` - user guides for the `summary` and `harness` commands.
-- `public/` - static assets and generated config schema.
-- `.vitepress/` - VitePress configuration.
-
-The docs build copies `apps/agent-burn/config-schema.json` to `docs/public/config-schema.json` before running VitePress.
+The build copies `apps/agent-burn/config-schema.json` to `public/config-schema.json`.
 
 ## Commands
 
@@ -18,3 +17,5 @@ just docs::build
 just docs::preview
 just docs::typecheck
 ```
+
+The public site is `https://agent-burn.melvynx.dev`.

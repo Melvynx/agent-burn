@@ -1,6 +1,6 @@
 ---
 name: docs
-description: Routes agent-burn documentation impact work. Use when code or behavior changes affect README files, docs guides, VitePress navigation, screenshots, schema docs, or user-facing commands/options.
+description: Routes agent-burn documentation impact work. Use when code or behavior changes affect README files, docs guides, site navigation, screenshots, schema docs, or user-facing commands/options.
 ---
 
 # agent-burn Docs
@@ -15,9 +15,9 @@ configuration shape, JSON field, screenshot-visible output, or example, audit:
 
 - root `README.md`
 - `apps/agent-burn/README.md`
-- relevant `docs/guide/` pages
+- relevant `docs/content/docs/` pages
 - related cross-links
-- VitePress navigation
+- docs navigation
 
 The root `AGENTS.md` owns the cross-cutting flow. This skill exists to route the
 documentation audit and point to the right local docs guidance.

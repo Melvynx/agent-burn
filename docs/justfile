@@ -1,11 +1,11 @@
-# Recipes for the VitePress documentation site. Run from the repo root as
+# Recipes for the TanStack Start website. Run from the repo root as
 # `just docs::<recipe>`, or from this directory as `just <recipe>`.
 
 [private]
 default:
     @just --list
 
-# Build the site (the pnpm script copies the schema into public/ before VitePress)
+# Build the site (the pnpm script copies the schema into public/ first)
 build:
     pnpm run build
 
@@ -13,10 +13,10 @@ build:
 dev:
     pnpm run dev
 
-# Type-check the site through the root oxlint type-aware checker.
+# Type-check the website package
 typecheck:
-    just --justfile ../justfile typecheck
+    pnpm run typecheck
 
 # Preview the production build locally
 preview:
-    pnpm exec vitepress preview
+    pnpm run preview
