@@ -1,0 +1,20 @@
+{
+	"title": "Documentation",
+	"pages": [
+		"---Introduction---",
+		"index",
+		"getting-started",
+		"installation",
+		"---Commands---",
+		"cli-options",
+		"json-output",
+		"---Data sources---",
+		"claude",
+		"codex",
+		"cursor",
+		"---Configuration---",
+		"configuration",
+		"environment-variables",
+		"config-files"
+	]
+}

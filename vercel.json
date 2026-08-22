@@ -1,0 +1,38 @@
+{
+	"$schema": "https://openapi.vercel.sh/vercel.json",
+	"framework": null,
+	"installCommand": "pnpm install --frozen-lockfile",
+	"buildCommand": "pnpm --filter @agent-burn/docs build && rm -rf .vercel/output && cp -a docs/.vercel/output .vercel/output",
+	"rewrites": [
+		{
+			"source": "/stats/script.js",
+			"destination": "https://analytics.melvynx.dev/script.js"
+		},
+		{
+			"source": "/stats/api/send",
+			"destination": "https://analytics.melvynx.dev/api/send"
+		}
+	],
+	"redirects": [
+		{ "source": "/gh", "destination": "https://github.com/Melvynx/agent-burn", "permanent": false },
+		{ "source": "/npm", "destination": "https://www.npmjs.com/package/agent-burn", "permanent": false },
+		{ "source": "/guide/custom-paths", "destination": "/docs/claude", "permanent": true },
+		{ "source": "/guide/directory-detection", "destination": "/docs/claude", "permanent": true },
+		{ "source": "/guide", "destination": "/docs", "permanent": true },
+		{ "source": "/guide/:path*", "destination": "/docs/:path*", "permanent": true }
+	],
+	"headers": [
+		{
+			"source": "/(.*)",
+			"headers": [
+				{ "key": "X-Content-Type-Options", "value": "nosniff" },
+				{ "key": "X-Frame-Options", "value": "DENY" },
+				{ "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+				{
+					"key": "Permissions-Policy",
+					"value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+				}
+			]
+		}
+	]
+}

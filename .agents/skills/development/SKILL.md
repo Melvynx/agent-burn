@@ -10,7 +10,7 @@ description: Guides agent-burn monorepo development. Use when editing packages, 
 This is a monorepo. Check the nearest package-specific `AGENTS.md` before editing a package:
 
 - `apps/agent-burn/AGENTS.md` - published Agent Burn CLI package
-- `docs/AGENTS.md` - VitePress documentation site
+- `docs/AGENTS.md` - TanStack Start website and documentation
 
 The production CLI implementation is Rust-first under `rust/crates/agent-burn`.
 The `apps/agent-burn` package now mainly provides npm metadata, a TypeScript bin

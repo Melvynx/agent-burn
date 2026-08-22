@@ -7,7 +7,12 @@
 		"coverage",
 		".git",
 		".claude/settings.local.json",
-		"nix/models-dev-gen.ts"
+		"nix/models-dev-gen.ts",
+		"docs/src/routeTree.gen.ts",
+		"docs/.output",
+		"docs/.tanstack",
+		"docs/.source",
+		"docs/.vercel"
 	],
 	"options": {
 		"typeAware": true,

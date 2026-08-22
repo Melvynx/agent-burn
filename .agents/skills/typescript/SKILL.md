@@ -16,7 +16,7 @@ Use this skill for the remaining TypeScript and JavaScript package surface:
 - `apps/agent-burn/src/cli.ts` native binary launcher.
 - `apps/agent-burn/scripts/**` package, schema, benchmark, and native staging scripts.
 - Node test coverage for TypeScript package/tooling behavior.
-- VitePress and root TypeScript configuration or scripts when the change is not docs-content-only.
+- Website, Vite, and root TypeScript configuration or scripts when the change is not docs-content-only.
 
 Runtime CLI behavior belongs in Rust under `rust/crates/agent-burn`. Do not add new
 TypeScript adapter logic unless the user explicitly scopes work to the package

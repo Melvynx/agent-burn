@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+html {
+	scrollbar-gutter: stable;
+	color-scheme: dark;
+}
+
+html > body[data-scroll-locked] {
+	margin-right: 0 !important;
+	--removed-body-scroll-bar-size: 0px !important;
+}
+
+.skip-link {
+	position: fixed;
+	inset-block-start: 12px;
+	inset-inline-start: 12px;
+	z-index: 200;
+	padding: 10px 14px;
+	border-radius: 9px;
+	background: white;
+	color: #111;
+	font-size: 13px;
+	font-weight: 600;
+	transform: translateY(-180%);
+}
+
+.skip-link:focus {
+	transform: none;
+}

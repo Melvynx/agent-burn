@@ -12,7 +12,7 @@ Use these skills before working in this repository:
 - `testing` - Rust cargo tests, Node tests, CLI snapshots, Claude model names, LiteLLM pricing tests, and filesystem fixtures.
 - `typescript` - TypeScript package/tooling work, package launchers, schema tooling, and typed fixtures.
 - `agent-sources` - agent adapter log locations, token mappings, cost rules, and CLI behavior.
-- `docs` - cross-repository documentation impact checks for README files, docs guides, VitePress navigation, screenshots, schema docs, and user-facing commands/options.
+- `docs` - cross-repository documentation impact checks for README files, docs guides, site navigation, screenshots, schema docs, and user-facing commands/options.
 - `skill-creator` - repo-local skill creation, SKILL.md frontmatter, description trigger quality, and reference layout.
 - `nushell` - Nushell scripts, Nix shebangs, GitHub Actions script calls, `nu-check`, and `nufmt` formatting.
 - `ast-grep` - structural code searches in Rust or TypeScript and AST-based migration verification with the dev-shell `ast-grep` CLI.
@@ -28,7 +28,7 @@ Use these skills before working in this repository:
 Check the nearest package-specific `AGENTS.md` before editing package code:
 
 - `apps/agent-burn/AGENTS.md` - published Agent Burn CLI package
-- `docs/AGENTS.md` - VitePress documentation site
+- `docs/AGENTS.md` - TanStack Start website and documentation
 
 ## Always-On Reminders
 
@@ -53,8 +53,8 @@ configuration, JSON output, screenshots, or examples:
 
 1. Implement the runtime/package/docs change in the owning location.
 2. Use the `docs` skill to audit documentation impact.
-3. Update the root `README.md`, `apps/agent-burn/README.md`, relevant `docs/guide/`
-   pages, related cross-links, and VitePress navigation when the user-facing
+3. Update the root `README.md`, `apps/agent-burn/README.md`, relevant `docs/content/docs/`
+   pages, related cross-links, and docs navigation when the user-facing
    surface changed.
 4. Skip documentation edits for internal-only refactors, test-only changes, or
    skill maintenance unless they change user-facing behavior.

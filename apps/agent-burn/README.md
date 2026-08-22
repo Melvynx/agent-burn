@@ -9,6 +9,8 @@ The public surface is intentionally small and centered on subscription-value rep
 
 The npm package also installs `burn` as a short alias.
 
+Site: [agent-burn.melvynx.dev](https://agent-burn.melvynx.dev)
+
 ## Install
 
 ```bash

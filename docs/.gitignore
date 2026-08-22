@@ -1,20 +1,11 @@
-# VitePress build output
-.vitepress/dist/
-.vitepress/cache/
-
-# Generated documentation
-api/
-
-# Dependencies
 node_modules/
 
-# Temporary files
-.temp/
-.cache/
-
-# OS files
 .DS_Store
-Thumbs.db
+.cache
+.vercel
+.output
+.nitro
+.tanstack
+.source
 
-public/_redirects
 public/config-schema.json
