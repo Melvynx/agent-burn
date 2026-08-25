@@ -46,7 +46,7 @@ function RootLayout() {
 				</a>
 				<RootProvider
 					theme={{ defaultTheme: 'dark', enabled: false }}
-					search={{ options: { type: 'static' } }}
+					search={{ enabled: false }}
 				>
 					<Outlet />
 				</RootProvider>

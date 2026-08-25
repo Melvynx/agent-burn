@@ -1,4 +1,4 @@
-import { DocsArticle, loadDocsPage } from '@/lib/docs-page.tsx';
+import { DocsArticle, docsPageHead, loadDocsPage } from '@/lib/docs-page.tsx';
 import { createFileRoute } from '@tanstack/react-router';
 import { docs } from '@/lib/source.ts';
 
@@ -9,6 +9,7 @@ export const Route = createFileRoute('/docs/')({
 		await docs.getPage(data.path)?.preload();
 		return data;
 	},
+	head: ({ loaderData }) => (loaderData ? docsPageHead(loaderData) : {}),
 });
 
 function Page() {
