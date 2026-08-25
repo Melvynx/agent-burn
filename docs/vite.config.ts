@@ -13,6 +13,9 @@ export default defineConfig({
 		port: Number(process.env.PORT) || 3000,
 		watch: { ignored: ['**/.output/**'] },
 	},
+	preview: {
+		port: Number(process.env.PORT) || 4173,
+	},
 	plugins: [
 		fumadocsMdx(),
 		tailwindcss(),
@@ -26,7 +29,7 @@ export default defineConfig({
 		}),
 		react(),
 		nitro({
-			preset: 'vercel',
+			preset: process.env.VERCEL ? 'vercel' : 'node-server',
 		}),
 	],
 	resolve: {
