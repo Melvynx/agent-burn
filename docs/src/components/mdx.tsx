@@ -1,9 +1,19 @@
+import {
+	DocCard,
+	DocCardGrid,
+	DocCardWrapper,
+	DocSection,
+} from '@/components/docs-cards.tsx';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 
 export function getMDXComponents(components?: MDXComponents) {
 	return {
 		...defaultMdxComponents,
+		DocCard,
+		DocCardGrid,
+		DocCardWrapper,
+		DocSection,
 		...components,
 	} satisfies MDXComponents;
 }

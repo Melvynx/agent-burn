@@ -6,7 +6,7 @@ workflow rules for changes under `docs/`.
 ## Package Notes
 
 - Landing lives in `src/routes/index.tsx` with scoped CSS in `src/styles/landing.css`.
-- Docs chrome is Fumadocs on TanStack Start. MDX lives in `content/docs/`.
+- Docs chrome is a Lumail-style Linear shell on TanStack Start. MDX still lives in `content/docs/` and is compiled by Fumadocs.
 - Static assets live in `public/`. The build copies `apps/agent-burn/config-schema.json` to `public/config-schema.json`.
 - The public site is `https://agent-burn.melvynx.dev` on Vercel.
 

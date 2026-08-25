@@ -1,0 +1,173 @@
+.docs-shell {
+	--docs-bg: #08090a;
+	--docs-ink: #f7f8f8;
+	--docs-muted: #8a8f98;
+	color-scheme: dark;
+	font-family:
+		-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+.docs-shell a {
+	text-decoration: none;
+}
+
+.docs-prose {
+	color: #c5c8ce;
+	font-size: 15px;
+	line-height: 1.75;
+}
+
+.docs-prose :is(h2, h3, h4):not(:where(.not-prose, .not-prose *)) {
+	color: var(--docs-ink);
+	font-weight: 550;
+	letter-spacing: -0.02em;
+	scroll-margin-top: 6rem;
+	border-bottom: 0 !important;
+	padding-bottom: 0;
+	box-shadow: none;
+}
+
+.docs-prose h2:not(:where(.not-prose, .not-prose *)) {
+	margin: 2.25rem 0 0.85rem;
+	font-size: 1.375rem;
+	line-height: 1.25;
+}
+
+.docs-prose h3:not(:where(.not-prose, .not-prose *)) {
+	margin: 1.75rem 0 0.65rem;
+	font-size: 1.05rem;
+}
+
+.docs-prose :is(p, ul, ol):not(:where(.not-prose, .not-prose *)) {
+	margin: 0 0 1rem;
+}
+
+.docs-prose :is(ul, ol):not(:where(.not-prose, .not-prose *)) {
+	padding-inline-start: 1.2rem;
+}
+
+.docs-prose li + li {
+	margin-top: 0.35rem;
+}
+
+.docs-prose a:not(:where(.not-prose, .not-prose *)) {
+	color: var(--docs-ink);
+	text-decoration: underline;
+	text-decoration-color: rgb(255 255 255 / 30%);
+	text-underline-offset: 2px;
+}
+
+.docs-prose a:not(:where(.not-prose, .not-prose *)):hover {
+	text-decoration-color: #fff;
+}
+
+.docs-prose :is(h2, h3, h4) a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.docs-prose button[aria-label='Copy Anchor Link'] {
+	display: none;
+}
+
+.docs-prose strong {
+	color: var(--docs-ink);
+	font-weight: 600;
+}
+
+.docs-prose code {
+	font-family: 'SF Mono', 'SFMono-Regular', ui-monospace, 'JetBrains Mono', Menlo, monospace;
+	font-size: 0.86em;
+}
+
+.docs-prose :not(pre) > code {
+	padding: 0.12em 0.35em;
+	border-radius: 5px;
+	background: rgb(255 255 255 / 0.06);
+	color: var(--docs-ink);
+}
+
+.docs-prose pre {
+	margin: 0 0 1.25rem;
+	padding: 0.95rem 1rem;
+	overflow-x: auto;
+	border: 1px solid rgb(255 255 255 / 0.08);
+	border-radius: 12px;
+	background: #0d0e10;
+}
+
+.docs-prose pre code {
+	background: transparent;
+	padding: 0;
+	color: #e8eaed;
+	font-size: 13px;
+	line-height: 1.65;
+}
+
+.docs-prose table {
+	width: 100%;
+	margin: 0 0 1.5rem;
+	border-collapse: collapse;
+}
+
+.docs-prose th {
+	border: 0;
+	border-bottom: 1px solid rgb(255 255 255 / 12%);
+	padding: 0.625rem 1rem;
+	font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+	font-size: 0.6875rem;
+	font-weight: 500;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: rgb(255 255 255 / 45%);
+	text-align: left;
+}
+
+.docs-prose td {
+	border: 0;
+	border-top: 1px solid rgb(255 255 255 / 6%);
+	padding: 0.75rem 1rem;
+	color: #c5c8ce;
+}
+
+.docs-prose tbody tr:first-child td {
+	border-top: 0;
+}
+
+.docs-prose th:first-child,
+.docs-prose td:first-child {
+	padding-left: 0;
+}
+
+.docs-prose th:last-child,
+.docs-prose td:last-child {
+	padding-right: 0;
+}
+
+.docs-prose blockquote {
+	margin: 0 0 1.25rem;
+	padding-left: 1rem;
+	border-left: 2px solid rgb(255 255 255 / 20%);
+	color: #c5c8ce;
+}
+
+.docs-prose hr {
+	margin: 2rem 0;
+	border: 0;
+	border-top: 1px solid rgb(255 255 255 / 8%);
+}
+
+.docs-shell #nd-sidebar,
+.docs-shell [data-theme-toggle],
+.docs-shell [data-search-full],
+body [data-theme-toggle] {
+	display: none !important;
+}
+
+.no-scrollbar {
+	scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+	display: none;
+}

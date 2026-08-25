@@ -1,34 +1,91 @@
 ---
-title: Introduction
+title: Documentation
 description: Local subscription-value reports for Claude Code, Codex, and Cursor.
 icon: BookOpen
 ---
 
-Agent Burn is a focused CLI for subscription-value analysis.
+Agent Burn is a focused CLI for subscription-value analysis. It reads local logs and stays on this machine.
 
-The public CLI has two commands:
+<DocCardWrapper>
 
-```bash
-agent-burn summary
-agent-burn harness claude
-agent-burn harness codex
-```
+<DocSection title="Getting Started">
+  <DocCardGrid>
+    <DocCard
+      href="/docs/getting-started"
+      icon="Play"
+      title="Getting Started"
+      description="Run the local usage overview and add subscription value."
+    />
+    <DocCard
+      href="/docs/installation"
+      icon="Download"
+      title="Installation"
+      description="Run Agent Burn with npx, pnpm, bun, or Nix."
+    />
+  </DocCardGrid>
+</DocSection>
 
-`summary` gives you the all-up local usage view. `harness` narrows the analysis to the weekly subscription limit for Claude Code or Codex.
+<DocSection title="Commands">
+  <DocCardGrid>
+    <DocCard
+      href="/docs/cli-options"
+      icon="Terminal"
+      title="CLI Options"
+      description="Public flags for summary, harness, and shared output."
+    />
+    <DocCard
+      href="/docs/json-output"
+      icon="FileText"
+      title="JSON Output"
+      description="Machine-readable reports for dashboards and scripts."
+    />
+  </DocCardGrid>
+</DocSection>
 
-## Why it exists
+<DocSection title="Data sources">
+  <DocCardGrid>
+    <DocCard
+      href="/docs/claude"
+      icon="Bot"
+      title="Claude Code"
+      description="Weekly harness and local log locations for Claude Code."
+    />
+    <DocCard
+      href="/docs/codex"
+      icon="SquareTerminal"
+      title="Codex"
+      description="Weekly harness and local log locations for Codex."
+    />
+    <DocCard
+      href="/docs/cursor"
+      icon="MousePointer2"
+      title="Cursor"
+      description="Cursor usage in the summary view, including charts and HTML."
+    />
+  </DocCardGrid>
+</DocSection>
 
-Coding-agent subscriptions hide their real value behind rate limits and local usage spread across tools. Agent Burn turns local logs into a practical answer:
+<DocSection title="Configuration">
+  <DocCardGrid>
+    <DocCard
+      href="/docs/configuration"
+      icon="Settings"
+      title="Configuration"
+      description="JSON defaults that CLI flags can still override."
+    />
+    <DocCard
+      href="/docs/environment-variables"
+      icon="FileText"
+      title="Environment Variables"
+      description="Override local data-directory detection."
+    />
+    <DocCard
+      href="/docs/config-files"
+      icon="FileText"
+      title="Configuration Files"
+      description="Load a specific JSON file with --config."
+    />
+  </DocCardGrid>
+</DocSection>
 
-- How much API-equivalent value did I consume?
-- Am I using enough of my subscription to justify the plan?
-- How quickly am I burning through the weekly quota window?
-- Which models and days drive most of the cost?
-
-## Privacy
-
-Agent Burn reads local files and prints local reports. It does not upload prompts, outputs, or usage data.
-
-## Next
-
-Start with [Getting Started](/docs/getting-started), then review [CLI Options](/docs/cli-options).
+</DocCardWrapper>
