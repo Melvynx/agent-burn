@@ -42,7 +42,7 @@ function Download({ small = false }: { small?: boolean }) {
 	return (
 		<a className={`download${small ? ' small' : ''}`} href="/download">
 			<ArrowDown size={17} />
-			Download for Mac
+			Get the Mac app
 		</a>
 	);
 }
@@ -323,7 +323,7 @@ function LandingPage() {
 						</a>
 					</div>
 					<p className="compatibility">
-						Signed & notarized for macOS. Updates delivered with Sparkle.
+						Developer ID signed. Public download pending Apple notarization.
 					</p>
 				</section>
 				<section className="faq">

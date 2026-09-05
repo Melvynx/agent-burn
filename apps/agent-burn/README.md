@@ -13,8 +13,9 @@ Site: [agent-burn.melvynx.dev](https://agent-burn.melvynx.dev)
 
 ## Install
 
-**Mac app:** [Download Agent Burn](https://agent-burn.melvynx.dev/download), unzip it,
-and move it to Applications. macOS 14+, Apple Silicon and Intel. The app includes
+**Mac app:** [Get Agent Burn](https://agent-burn.melvynx.dev/download), unzip it,
+and move it to Applications when the public release is available. The first download
+is awaiting Apple notarization. macOS 14+, Apple Silicon and Intel. The app includes
 the CLI and supports signed Sparkle updates.
 
 **CLI:**
