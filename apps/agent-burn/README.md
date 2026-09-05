@@ -46,6 +46,8 @@ locally signed development app. Public downloads are signed and notarized. Setti
 different native CLI executable, cached pricing, and the refresh interval.
 The app follows the system appearance and uses native macOS toolbar tabs and tables.
 A flame and quota percentage appear in the system menu bar.
+**Settings → Startup → Launch at login** registers the app with macOS Login Items
+to start at sign-in. Disable the option to unregister it.
 **Settings → Appearance → Menu bar only** hides the Dock and Command-Tab entry
 until disabled, and is remembered across launches. Codex sources include
 `~/.codex` plus the launching profile; Settings can change the comma-separated

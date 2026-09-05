@@ -123,6 +123,7 @@ struct SettingsView: View {
   var body: some View {
     @Bindable var store = store
     Form {
+      LoginItemSettings()
       AppearanceSettings()
       UpdateSettings()
       Section("Permanent metrics history") {

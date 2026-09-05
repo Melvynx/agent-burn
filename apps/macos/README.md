@@ -7,6 +7,11 @@ macOS 14 or newer. Public releases contain Apple Silicon and Intel binaries.
 
 [Download Agent Burn](https://agent-burn.melvynx.dev/download), unzip it, move
 Agent Burn.app to Applications, and open it. No Node.js installation is needed.
+Enable **Settings → Startup → Launch at login** to start automatically when you
+sign in. Registration uses macOS Login Items; any required approval is shown in
+Settings. Disable the option to remove the login item. Menu-bar-only mode is
+respected at startup.
+
 Use Settings to configure sources, inspect the metrics backup, and manage update
 checks. Enable **Settings → Appearance → Menu bar only** to hide the app from
 the Dock and Command-Tab. The preference survives restarts; the dashboard and
