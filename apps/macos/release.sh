@@ -12,7 +12,8 @@ if [[ "$(git ls-remote origin "refs/heads/$branch" | cut -f1)" != "$commit" ]]; 
   echo "Push the release commit before publishing." >&2; exit 1
 fi
 if ! git diff --quiet HEAD -- apps/macos rust; then echo "Commit app and CLI changes first." >&2; exit 1; fi
-if gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then echo "$tag already exists" >&2; exit 1; fi
+existing_draft="$(gh release view "$tag" --repo "$repo" --json isDraft --jq .isDraft 2>/dev/null || true)"
+if [[ "$existing_draft" == false ]]; then echo "$tag is already published" >&2; exit 1; fi
 key="${AGENT_BURN_SPARKLE_KEY_FILE:?Set AGENT_BURN_SPARKLE_KEY_FILE to your private Ed25519 seed file}"
 : "${AGENT_BURN_SIGN_IDENTITY:?Set a Developer ID Application identity}"
 work="$(mktemp -d "${TMPDIR:-/tmp}/agent-burn-release.XXXXXX")"
@@ -38,7 +39,13 @@ cp "$archive" dist/feed/
 "$generator" --ed-key-file "$key" --download-url-prefix "https://github.com/$repo/releases/download/$tag/" --link 'https://agent-burn.melvynx.dev' dist/feed
 cp dist/feed/appcast.xml dist/appcast.xml
 (cd dist && shasum -a 256 Agent-Burn-macOS.zip > SHA256SUMS)
-gh release create "$tag" dist/Agent-Burn-macOS.zip dist/appcast.xml dist/SHA256SUMS --repo "$repo" --target "$commit" --title "Agent Burn for macOS $version" --notes "Universal macOS 14+ app. Developer ID signed and notarized. Includes the native CLI and signed Sparkle updates. Source is attached to this release tag." --latest=false
+notes="Universal macOS 14+ app. Developer ID signed and notarized. Includes the native CLI and signed Sparkle updates. Source is attached to this release tag."
+if [[ "$existing_draft" == true ]]; then
+  gh release upload "$tag" dist/Agent-Burn-macOS.zip dist/appcast.xml dist/SHA256SUMS --repo "$repo" --clobber
+  gh release edit "$tag" --repo "$repo" --target "$commit" --notes "$notes" --draft=false --latest=false
+else
+  gh release create "$tag" dist/Agent-Burn-macOS.zip dist/appcast.xml dist/SHA256SUMS --repo "$repo" --target "$commit" --title "Agent Burn for macOS $version" --notes "$notes" --latest=false
+fi
 # The stable channel is separate from CLI releases. Appcast enclosures point to
 # immutable versioned archives, even while this discovery channel advances.
 if ! gh release view macos --repo "$repo" >/dev/null 2>&1; then
