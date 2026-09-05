@@ -1,5 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+mod detail;
+
 use serde_json::{Value, json};
 
 use crate::{
@@ -86,7 +88,10 @@ pub(super) fn run(args: SummaryArgs) -> Result<()> {
     };
 
     if wants_json(&shared) {
-        let mut output = summary.to_json();
+        let mut output = detail::to_json(&summary, &result.rows);
+        if value && let Some(account) = cursor::load_account(shared.offline) {
+            output["cursorAccount"] = account;
+        }
         if let (Some(object), Some(subscription)) = (output.as_object_mut(), subscription.as_ref())
         {
             object.insert("subscription".to_string(), subscription.to_json());
@@ -1215,6 +1220,26 @@ mod tests {
             agent_breakdowns: Some(agents),
             model_breakdowns: models,
         }
+    }
+
+    #[test]
+    fn detailed_json_keeps_same_model_usage_separate_by_harness() {
+        let mut cursor = breakdown_row("cursor", 9.0, 90);
+        cursor.model_breakdowns = vec![model_breakdown("shared-model", 9.0, 90)];
+        let mut claude = breakdown_row("claude", 2.0, 20);
+        claude.model_breakdowns = vec![model_breakdown("shared-model", 2.0, 20)];
+        let rows = vec![day_row(
+            11.0,
+            110,
+            vec![cursor, claude],
+            vec![model_breakdown("shared-model", 11.0, 110)],
+        )];
+        let output = detail::to_json(&Summary::from_rows(&rows), &rows);
+        assert_eq!(output["agents"][0]["models"][0]["totalCost"], 9.0);
+        assert_eq!(output["agents"][1]["models"][0]["totalCost"], 2.0);
+        assert_eq!(output["daily"][0]["cost"], 11.0);
+        assert_eq!(output["agents"][0]["daily"][0]["cost"], 9.0);
+        assert_eq!(output["agents"][0]["daily"][0]["date"], "2026-01-01");
     }
 
     #[test]

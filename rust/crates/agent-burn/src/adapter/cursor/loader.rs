@@ -152,14 +152,19 @@ fn json_millis(value: &Value) -> Option<i64> {
     }
 }
 
-fn http_agent() -> ureq::Agent {
+pub(super) fn http_agent() -> ureq::Agent {
     ureq::Agent::config_builder()
         .timeout_global(Some(Duration::from_secs(FETCH_TIMEOUT_SECONDS)))
         .build()
         .new_agent()
 }
 
-fn fetch_json(agent: &ureq::Agent, url: &str, token: &str, body: Value) -> Option<Value> {
+pub(super) fn fetch_json(
+    agent: &ureq::Agent,
+    url: &str,
+    token: &str,
+    body: Value,
+) -> Option<Value> {
     let payload = serde_json::to_vec(&body).ok()?;
     let mut response = agent
         .post(url)

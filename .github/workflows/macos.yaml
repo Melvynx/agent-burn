@@ -1,0 +1,23 @@
+name: macOS app
+on:
+  pull_request:
+    paths: ["apps/macos/**", ".github/workflows/macos.yaml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Test native app
+        working-directory: apps/macos
+        run: swift test --disable-keychain --disable-xctest
+      - name: Validate Swift formatting
+        working-directory: apps/macos
+        run: xcrun swift-format lint --strict --recursive Sources Tests Package.swift
+      - name: Check release scripts
+        run: bash -n apps/macos/build.sh apps/macos/release.sh

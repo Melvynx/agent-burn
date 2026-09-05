@@ -1,8 +1,10 @@
+mod account;
 mod loader;
 mod parser;
 mod paths;
 mod report;
 
+pub(crate) use account::load_account;
 pub(crate) use loader::load_entries;
 pub(crate) use paths::detected_plan as detected_membership;
 pub(crate) use report::summarize_entries;

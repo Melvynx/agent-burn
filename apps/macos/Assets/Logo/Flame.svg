@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs><linearGradient id="fire" x1="0.3" y1="0" x2="0.7" y2="1"><stop stop-color="#FFD582"/><stop offset=".48" stop-color="#FF953D"/><stop offset="1" stop-color="#F34D27"/></linearGradient></defs>
+<path fill="url(#fire)" d="M552 146C577 253 689 302 718 402C753 364 765 328 760 291C847 395 870 489 841 600C809 735 679 836 517 836C341 836 212 722 207 574C203 462 268 378 363 301C353 390 379 430 415 447C442 362 413 261 552 146Z"/>
+</svg>
