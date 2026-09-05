@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Run Agent Burn with npx, pnpm, bun, or Nix.
+description: Download the Mac app or run the CLI with npx, pnpm, bun, or Nix.
 icon: Download
 ---
 
@@ -31,3 +31,45 @@ The flake exposes the renamed package and app:
 nix run github:Melvynx/agent-burn -- summary --value
 nix build github:Melvynx/agent-burn#agent-burn
 ```
+
+## macOS app
+
+[Download Agent Burn for Mac](/download), unzip it, and move **Agent Burn.app**
+to **Applications**. The signed, notarized download supports Apple Silicon and
+Intel on macOS 14 or later. It bundles the CLI, so Node.js is not required.
+
+The app automatically checks for signed updates with Sparkle. Change this in
+Settings or choose **Agent Burn → Check for Updates…**. Release archives,
+checksums and source are public on [GitHub](https://github.com/Melvynx/agent-burn/releases).
+
+To build from source with Xcode and the Rust development environment, run:
+
+```bash
+just macos::run
+```
+
+This builds `apps/macos/dist/Agent Burn.app` with a bundled native CLI. The app is
+locally signed for development. The public download is separately signed and notarized.
+
+Use the flame in the menu bar to switch between General, Codex, Claude, and Cursor.
+Choose **Open dashboard** for full harness details and a General tab with WTD, MTD, YTD, and rolling
+week/month and All time filters. Cursor shows dashboard spend, models, tokens, included allowance, promotional
+credits, expiration dates and billing-cycle dates when its account API supplies them.
+Settings control the native CLI path, Codex source folders, cached pricing, and
+refresh interval. The app includes the standard `~/.codex` folder alongside the
+launching profile and stores aggregate report snapshots locally for reopening.
+Daily spend and token totals are retained without expiration in
+`~/Library/Application Support/Agent Burn/metrics-history.json`, with a previous-version
+`.bak` recovery copy. Date filters and charts use this archive after source logs
+disappear. Repeated refreshes retain the highest observed total per day instead of
+adding duplicate snapshots. Partial deletion within a day can hide new usage until
+it exceeds the previous total. Copy this file off the Mac for disaster recovery.
+Cursor begins at its current billing cycle; model and token-category detail still
+reflects available source data.
+Its native toolbar, tables, and menu-bar indicator follow the system appearance.
+Forecasts estimate average consumption during the current quota cycle. Recorded
+history builds as the app refreshes and stays on this Mac. Unavailable limits are
+shown explicitly.
+
+The app uses the existing [JSON reports](/docs/json-output) and your local CLI
+configuration. No additional sign-in is required by the app.

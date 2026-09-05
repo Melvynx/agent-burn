@@ -1,305 +1,373 @@
 import { CopyLine } from '@/components/copy-line.tsx';
-import { GithubMark, LogoLockup } from '@/components/logo.tsx';
-import { ReportWindow } from '@/components/report-window.tsx';
-import { useReveal } from '@/components/use-reveal.ts';
+import { GithubMark } from '@/components/logo.tsx';
 import { githubUrl, installCommand, npmUrl } from '@/lib/shared.ts';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ArrowUpRight, BookOpen } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { ArrowDown, ArrowUpRight, Check, Terminal } from 'lucide-react';
 
-export const Route = createFileRoute('/')({
-	component: LandingPage,
-});
-
-const facts = [
-	['Local first', 'Reads Claude, Codex, and Cursor logs on this machine. Nothing is uploaded.'],
-	['Two commands', 'summary for the all-up view. harness for one weekly subscription window.'],
-	['API-equivalent $', '--value compares local token spend to the monthly plan you actually pay.'],
-	['JSON when you need it', '--json and --jq for scripts. The terminal table stays the default.'],
+export const Route = createFileRoute('/')({ component: LandingPage });
+const providers = [
+	['codex', 'Codex'],
+	['claude', 'Claude'],
+	['cursor', 'Cursor'],
+	['opencode', 'OpenCode'],
+	['gemini', 'Gemini'],
+	['pi', 'Pi'],
+	['droid', 'Droid'],
+	['openclaw', 'OpenClaw'],
+	['kimi', 'Kimi'],
+] as const satisfies readonly (readonly [string, string])[];
+const commands = [
+	[
+		'The whole picture',
+		'See detected agents, token usage and API-equivalent value together.',
+		'npx agent-burn@latest summary --value',
+	],
+	[
+		'Your subscription window',
+		'Inspect Codex limits, reset timing and subscription value.',
+		'npx agent-burn@latest harness codex --value',
+	],
+	[
+		'Claude, in focus',
+		'Check Claude usage and the available subscription limits.',
+		'npx agent-burn@latest harness claude --value',
+	],
+	[
+		'Ready for your scripts',
+		'Get structured data to build your own reports and workflows.',
+		'npx agent-burn@latest summary --value --json',
+	],
 ] as const;
-
-const capabilities = [
-	{
-		title: 'Summary',
-		body: 'Aggregate detected local usage, daily cost, token volume, and optional subscription value in one table.',
-		detail: 'agent-burn summary --value',
-	},
-	{
-		title: 'Harness',
-		body: 'Focus Claude Code or Codex on the current weekly limit, reset timing, and a trailing-30-day spend mix.',
-		detail: 'agent-burn harness claude --value',
-	},
-	{
-		title: 'Plan overrides',
-		body: 'Auto-detect when the local snapshot has a plan. Override with a named tier or a raw monthly price.',
-		detail: '--claude-plan max-20x',
-	},
-	{
-		title: 'Offline pricing',
-		body: 'Embedded LiteLLM prices cover a fully local run. Skip live dashboard calls when you want a sealed report.',
-		detail: '--offline',
-	},
-	{
-		title: 'Charts and HTML',
-		body: 'Stack daily spend by model in the terminal, or write an interactive HTML report and open it.',
-		detail: 'summary --chart --html',
-	},
-	{
-		title: 'Config files',
-		body: 'Keep timezone, cost mode, and offline defaults in JSON. CLI flags still win.',
-		detail: '--config ./agent-burn.json',
-	},
-] as const;
-
+function Download({ small = false }: { small?: boolean }) {
+	return (
+		<a className={`download${small ? ' small' : ''}`} href="/download">
+			<ArrowDown size={17} />
+			Download for Mac
+		</a>
+	);
+}
 function LandingPage() {
-	useReveal();
-
 	return (
 		<div className="landing">
-			<SiteHeader />
+			<header className="site-header">
+				<a href="/" className="brand">
+					<img src="/product/icon.png" alt="" width="34" height="34" />
+					Agent Burn
+				</a>
+				<nav aria-label="Main navigation">
+					<a href="#app">The app</a>
+					<a href="#cli">The CLI</a>
+					<Link to="/docs/$" params={{ _splat: '' }}>
+						Docs
+					</Link>
+					<a href={githubUrl} aria-label="Agent Burn on GitHub">
+						<GithubMark size={20} />
+					</a>
+				</nav>
+				<Download small />
+			</header>
 			<main id="main-content">
 				<section className="hero">
-					<div className="hero-copy">
-						<Link to="/docs/$" params={{ _splat: 'installation' }} className="tag">
-							npx · pnpm dlx · bunx · nix
-							<ArrowUpRight size={12} />
-						</Link>
-						<h1>You already burned the tokens.</h1>
-						<p className="lede">
-							Agent Burn reads local Claude Code, Codex, and Cursor usage and answers one question:
-							is the subscription paying for itself?
+					<a
+						className="release-note"
+						href={`${githubUrl}/releases/tag/macos-v0.1.0`}
+					>
+						<span />
+						Meet Agent Burn for macOS <ArrowUpRight size={14} />
+					</a>
+					<h1>
+						Keep an eye on
+						<br />
+						your <span>agent burn.</span>
+					</h1>
+					<p className="hero-description">
+						Your agents are working hard. See what they spend,
+						<br className="desktop-break" /> how much is left, and when to slow
+						down.
+					</p>
+					<div className="hero-actions">
+						<Download />
+						<a className="secondary-link" href="#cli">
+							<Terminal size={17} />
+							Prefer the terminal?
+						</a>
+					</div>
+					<p className="compatibility">
+						Free & open source · macOS 14+ · Apple Silicon & Intel
+					</p>
+					<div className="product-stage" id="app">
+						<div className="stage-note">
+							<span className="status-dot" />
+							Your entire agent stack. One native Mac app.
+						</div>
+						<div className="mac-window">
+							<div className="mac-title">
+								<span className="traffic">
+									<i />
+									<i />
+									<i />
+								</span>
+								<span>Agent Burn</span>
+								<span>General · Codex · Claude · Cursor</span>
+							</div>
+							<img
+								src="/product/dashboard.png"
+								alt="Agent Burn dashboard showing spend, tokens, daily usage and a breakdown across coding agents"
+								width="2120"
+								height="1560"
+								fetchPriority="high"
+							/>
+						</div>
+						<div className="stage-caption">
+							<span>Native SwiftUI. Powered by the Agent Burn CLI.</span>
+							<span>Product captures show example usage.</span>
+						</div>
+					</div>
+				</section>
+				<section className="providers" aria-label="Supported agents">
+					<p>Bring your favorite agents.</p>
+					<div>
+						{providers.map(([id, name]) => (
+							<span key={id}>
+								<img
+									src={`/brands/${id}.png`}
+									alt=""
+									width="25"
+									height="25"
+									loading="lazy"
+								/>
+								{name}
+							</span>
+						))}
+					</div>
+					<a href="/docs">
+						Explore data sources <ArrowUpRight size={14} />
+					</a>
+				</section>
+				<section className="feature-split" id="limits">
+					<div className="feature-copy">
+						<span className="section-number">01 / In your menu bar</span>
+						<h2>
+							A little glance.
+							<br />A lot of clarity.
+						</h2>
+						<p>
+							Check your remaining quota without leaving your work. Switch
+							between agents, follow your burn rate, and see when your limits
+							reset.
 						</p>
-						<div className="actions">
-							<Link to="/docs/$" params={{ _splat: 'getting-started' }} className="btn btn-primary">
-								<BookOpen size={16} />
-								Read the docs
-							</Link>
-							<a className="btn btn-ghost" href={githubUrl}>
-								Source
-							</a>
+						<ul>
+							<li>
+								<Check />
+								Remaining quota and reset times
+							</li>
+							<li>
+								<Check />
+								Actual usage and projected pace
+							</li>
+							<li>
+								<Check />
+								One click to the full dashboard
+							</li>
+						</ul>
+						<p className="fine-print">
+							Limits and forecasts depend on the data each provider exposes.
+						</p>
+					</div>
+					<figure className="popup-stage">
+						<div className="mini-menubar">
+							<span>Agent Burn</span>
+							<span>◉ &nbsp; 64% &nbsp; ◷</span>
+						</div>
+						<img
+							src="/product/menu-bar.png"
+							alt="Agent Burn menu-bar popover with Codex remaining quota and a burn-rate forecast chart"
+							width="880"
+							height="1560"
+							loading="lazy"
+						/>
+					</figure>
+				</section>
+				<section className="history-section">
+					<div className="history-heading">
+						<span className="section-number">02 / The bigger picture</span>
+						<h2>
+							Your logs may disappear.
+							<br />
+							Your history shouldn't.
+						</h2>
+						<p>
+							Agent Burn preserves daily spend and token totals on your Mac.
+							Look back across weeks, months and all recorded time, even after
+							old source logs are removed.
+						</p>
+					</div>
+					<div className="history-details">
+						<div>
+							<strong>Only the metrics</strong>
+							<p>
+								Daily totals, not your conversations or prompts. A small local
+								archive that you can back up yourself.
+							</p>
+						</div>
+						<div>
+							<strong>Every agent, together</strong>
+							<p>
+								Compare providers in General, or explore models, tokens and
+								available plan information in each agent's tab.
+							</p>
+						</div>
+						<div>
+							<strong>Your data stays yours</strong>
+							<p>
+								No Agent Burn account or analytics service. Live mode can
+								contact your providers and pricing sources to retrieve usage.
+							</p>
+						</div>
+					</div>
+				</section>
+				<section className="cursor-section">
+					<div>
+						<span className="section-number">03 / Beyond a single number</span>
+						<h2>
+							Follow the spend.
+							<br />
+							Understand the value.
+						</h2>
+						<p>
+							Compare API-equivalent usage with your subscription price. Explore
+							the models behind your totals and, where available, included
+							allowance and promotional credits.
+						</p>
+						<p className="fine-print">
+							API-equivalent spend estimates token value. It is not your
+							invoice. Available detail varies by provider and retained history.
+						</p>
+					</div>
+					<figure>
+						<img
+							src="/product/cursor.png"
+							alt="Cursor tab in Agent Burn with spend, tokens, a daily chart and per-model usage"
+							width="2120"
+							height="1560"
+							loading="lazy"
+						/>
+					</figure>
+				</section>
+				<section className="cli-section" id="cli">
+					<div className="cli-heading">
+						<span className="section-number">
+							04 / At home in your terminal
+						</span>
+						<h2>
+							Same engine.
+							<br />
+							Your kind of interface.
+						</h2>
+						<p>
+							The Rust CLI runs on macOS, Linux and Windows. Run it with npx, or
+							install it once with npm.
+						</p>
+					</div>
+					<div className="terminal-install">
+						<div className="terminal-top">
+							<Terminal size={17} />
+							<span>Start with a single command</span>
+							<span>Node.js 22+</span>
 						</div>
 						<CopyLine value={installCommand} />
+						<p>No configuration needed for supported local logs.</p>
 					</div>
-					<div className="hero-stage">
-						<ReportWindow />
+					<div className="command-list">
+						{commands.map(([title, body, command]) => (
+							<div key={title}>
+								<div>
+									<h3>{title}</h3>
+									<p>{body}</p>
+								</div>
+								<CopyLine value={command} />
+							</div>
+						))}
+					</div>
+					<div className="cli-links">
+						<Link to="/docs/$" params={{ _splat: 'installation' }}>
+							Installation guide <ArrowUpRight size={15} />
+						</Link>
+						<a href={npmUrl}>
+							View on npm <ArrowUpRight size={15} />
+						</a>
 					</div>
 				</section>
-
-				<ul className="facts">
-					{facts.map(([title, body], index) => (
-						<li key={title} data-reveal style={{ '--i': index } as never}>
-							<strong>{title}</strong>
-							<span>{body}</span>
-						</li>
+				<section className="open-section" id="open-source">
+					<img
+						src="/product/icon.png"
+						alt="Agent Burn flame and terminal icon"
+						width="88"
+						height="88"
+						loading="lazy"
+					/>
+					<h2>Small app. Open book.</h2>
+					<p>
+						Free to use. MIT licensed. Read the source, build it yourself,
+						<br className="desktop-break" /> or help make agent usage a little
+						easier to understand.
+					</p>
+					<div className="hero-actions">
+						<Download />
+						<a className="secondary-link" href={githubUrl}>
+							<GithubMark size={18} />
+							Explore the source
+						</a>
+					</div>
+					<p className="compatibility">
+						Signed & notarized for macOS. Updates delivered with Sparkle.
+					</p>
+				</section>
+				<section className="faq">
+					<h2>A few things to know.</h2>
+					{[
+						[
+							'How do I install the Mac app?',
+							'Download the ZIP, unzip it, and move Agent Burn to Applications. Open it to access the dashboard and menu-bar view. The app includes the CLI; Node.js is not required for the Mac app.',
+						],
+						[
+							'Does it update automatically?',
+							'The app checks for signed updates automatically. You can disable checks in Settings or choose Check for Updates from the Agent Burn menu. Sparkle guides you through installing an available update.',
+						],
+						[
+							'Is the spend shown my actual bill?',
+							'No. API-equivalent value estimates what your token usage would cost at model API prices. Your subscription charge, allowance and credits are shown separately when available.',
+						],
+						[
+							'Can I recover every old session?',
+							'Only data that still exists in logs or provider responses can be recovered. Once observed, daily totals are retained locally without expiration. Back up the metrics file to protect it if you lose your Mac.',
+						],
+					].map(([question, answer]) => (
+						<details key={question}>
+							<summary>
+								{question}
+								<span>+</span>
+							</summary>
+							<p>{answer}</p>
+						</details>
 					))}
-				</ul>
-
-				<Section
-					id="cost"
-					kicker="The bill"
-					title="The weekly limit is not the price."
-					lede="Dashboards tell you that you hit a cap. They do not tell you what those tokens would have cost at API rates, which day did the damage, or whether Max is cheaper than the usage you already ran."
-				>
-					<div className="compare" data-reveal>
-						<article>
-							<p className="kicker">What you see</p>
-							<h3>Limit reached</h3>
-							<p>A reset countdown. A vague “you are using the plan.” No model mix, no daily cost.</p>
-						</article>
-						<article>
-							<p className="kicker">What local logs have</p>
-							<h3>$186 of $200</h3>
-							<p>
-								API-equivalent spend by day, by model, by agent. Enough to decide if the plan is
-								earning its keep.
-							</p>
-						</article>
-					</div>
-				</Section>
-
-				<Section
-					id="commands"
-					kicker="Commands"
-					title="summary for the pile. harness for the window."
-					lede="The public CLI is two commands. Running agent-burn with no arguments is summary."
-				>
-					<div className="command-grid">
-						<article data-reveal>
-							<p className="kicker">All-up</p>
-							<h3>summary</h3>
-							<p>
-								Detected local usage across Claude, Codex, and Cursor. Quick ranges, explicit
-								dates, optional value, chart, and HTML.
-							</p>
-							<code>agent-burn summary week --value</code>
-						</article>
-						<article data-reveal style={{ '--i': 1 } as never}>
-							<p className="kicker">One subscription</p>
-							<h3>harness</h3>
-							<p>
-								Claude or Codex only. Weekly limit burn, reset timing, and a 30-day split of input,
-								output, and cache tokens.
-							</p>
-							<code>agent-burn harness codex --value</code>
-						</article>
-					</div>
-				</Section>
-
-				<Section
-					id="sources"
-					kicker="Sources"
-					title="The files are already on disk."
-					lede="Claude Code and Codex are the harness targets because they expose a useful weekly limit. Cursor still lands in summary, including charts and HTML."
-				>
-					<ul className="source-list">
-						<li data-reveal>
-							<strong>Claude Code</strong>
-							<span>~/.claude and ~/.config/claude/projects</span>
-						</li>
-						<li data-reveal style={{ '--i': 1 } as never}>
-							<strong>Codex</strong>
-							<span>${'{CODEX_HOME:-~/.codex}'}</span>
-						</li>
-						<li data-reveal style={{ '--i': 2 } as never}>
-							<strong>Cursor</strong>
-							<span>local state.vscdb, then the signed-in dashboard usage API</span>
-						</li>
-					</ul>
-				</Section>
-
-				<Section
-					id="capabilities"
-					kicker="Capabilities"
-					title="What the CLI actually does."
-					lede="No account, no upload, no wrapper bins. The report is local aggregation plus optional live limit data."
-				>
-					<ul className="specs">
-						{capabilities.map((item, index) => (
-							<li key={item.title} data-reveal style={{ '--i': index } as never}>
-								<h3>{item.title}</h3>
-								<p>{item.body}</p>
-								<code>{item.detail}</code>
-							</li>
-						))}
-					</ul>
-				</Section>
-
-				<section className="section install" id="install" data-reveal>
-					<div className="section-head">
-						<div>
-							<p className="kicker">Install</p>
-							<h2>One line, then the report.</h2>
-							<p className="lede">
-								The npm package also installs <code>burn</code> as a short alias. Nix and package
-								runners are documented in the install guide.
-							</p>
-						</div>
-						<div className="actions">
-							<Link to="/docs/$" params={{ _splat: 'installation' }} className="btn btn-primary">
-								Installation
-							</Link>
-							<a className="btn btn-ghost" href={npmUrl}>
-								npm
-							</a>
-						</div>
-					</div>
-					<pre className="install-shell">
-						<span style={{ '--i': 0 } as never}>$ {installCommand}</span>
-						<span className="t-dim" style={{ '--i': 1 } as never}>
-							{'\n'}
-							{'\n'}✓ local logs read
-						</span>
-						<span className="t-dim" style={{ '--i': 2 } as never}>
-							{'\n'}✓ prices resolved
-						</span>
-						<span className="t-live" style={{ '--i': 3 } as never}>
-							{'\n'}✓ subscription value printed
-						</span>
-					</pre>
 				</section>
 			</main>
-			<SiteFooter />
+			<footer className="site-footer">
+				<a className="brand" href="/">
+					<img src="/product/icon.png" alt="" width="28" height="28" />
+					Agent Burn
+				</a>
+				<span>
+					Made by <a href="https://melvynx.dev">Melvyn</a>
+				</span>
+				<nav aria-label="Footer">
+					<a href={githubUrl}>GitHub</a>
+					<a href="/docs">Documentation</a>
+					<a href={`${githubUrl}/releases/tag/macos-v0.1.0`}>Releases</a>
+					<a href={`${githubUrl}/blob/main/LICENSE`}>MIT license</a>
+				</nav>
+			</footer>
 		</div>
 	);
 }
-
-function SiteHeader() {
-	return (
-		<header className="site-header">
-			<div className="header-inner">
-				<Link to="/" className="brand">
-					<LogoLockup />
-				</Link>
-				<nav aria-label="Main">
-					<a href="#cost">Why</a>
-					<a href="#commands">Commands</a>
-					<a href="#sources">Sources</a>
-					<Link to="/docs/$" params={{ _splat: '' }}>
-						Docs
-					</Link>
-				</nav>
-				<div className="header-actions">
-					<a className="header-source" href={githubUrl} aria-label="Source on GitHub">
-						<GithubMark />
-					</a>
-					<Link to="/docs/$" params={{ _splat: 'getting-started' }} className="btn btn-small">
-						Get started
-					</Link>
-				</div>
-			</div>
-		</header>
-	);
-}
-
-function Section({
-	id,
-	kicker,
-	title,
-	lede,
-	children,
-}: {
-	id: string;
-	kicker: string;
-	title: string;
-	lede: string;
-	children: ReactNode;
-}) {
-	return (
-		<section className="section" id={id}>
-			<div className="section-head" data-reveal>
-				<div>
-					<p className="kicker">{kicker}</p>
-					<h2>{title}</h2>
-					<p className="lede">{lede}</p>
-				</div>
-			</div>
-			{children}
-		</section>
-	);
-}
-
-function SiteFooter() {
-	return (
-		<footer className="site-footer">
-			<div className="footer-inner">
-				<Link to="/" className="brand">
-					<LogoLockup size={20} />
-				</Link>
-				<p>Local subscription value reports.</p>
-				<nav aria-label="Footer">
-					<Link to="/docs/$" params={{ _splat: '' }}>
-						Docs
-					</Link>
-					<a href={githubUrl}>Source</a>
-					<a href={npmUrl}>npm</a>
-					<a href={`${githubUrl}/releases`}>Releases</a>
-					<a href={`${githubUrl}/blob/main/LICENSE`}>MIT</a>
-				</nav>
-				<p className="footer-credit">
-					Built by <a href="https://melvynx.dev">Melvynx</a>
-				</p>
-			</div>
-		</footer>
-	);
-}
-

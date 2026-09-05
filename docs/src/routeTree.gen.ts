@@ -13,6 +13,8 @@ import { Route as NpmRouteImport } from './routes/npm'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as LlmsFullDottxtRouteImport } from './routes/llms-full[.]txt'
 import { Route as GhRouteImport } from './routes/gh'
+import { Route as DownloadRouteImport } from './routes/download'
+import { Route as AppcastDotxmlRouteImport } from './routes/appcast[.]xml'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GuideIndexRouteImport } from './routes/guide/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
@@ -39,6 +41,16 @@ const LlmsFullDottxtRoute = LlmsFullDottxtRouteImport.update({
 const GhRoute = GhRouteImport.update({
   id: '/gh',
   path: '/gh',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppcastDotxmlRoute = AppcastDotxmlRouteImport.update({
+  id: '/appcast.xml',
+  path: '/appcast.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -79,6 +91,8 @@ const ApiSearchRoute = ApiSearchRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/appcast.xml': typeof AppcastDotxmlRoute
+  '/download': typeof DownloadRoute
   '/gh': typeof GhRoute
   '/llms-full.txt': typeof LlmsFullDottxtRoute
   '/llms.txt': typeof LlmsDottxtRoute
@@ -92,6 +106,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/appcast.xml': typeof AppcastDotxmlRoute
+  '/download': typeof DownloadRoute
   '/gh': typeof GhRoute
   '/llms-full.txt': typeof LlmsFullDottxtRoute
   '/llms.txt': typeof LlmsDottxtRoute
@@ -106,6 +122,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/appcast.xml': typeof AppcastDotxmlRoute
+  '/download': typeof DownloadRoute
   '/gh': typeof GhRoute
   '/llms-full.txt': typeof LlmsFullDottxtRoute
   '/llms.txt': typeof LlmsDottxtRoute
@@ -121,6 +139,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/appcast.xml'
+    | '/download'
     | '/gh'
     | '/llms-full.txt'
     | '/llms.txt'
@@ -134,6 +154,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/appcast.xml'
+    | '/download'
     | '/gh'
     | '/llms-full.txt'
     | '/llms.txt'
@@ -147,6 +169,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/appcast.xml'
+    | '/download'
     | '/gh'
     | '/llms-full.txt'
     | '/llms.txt'
@@ -161,6 +185,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppcastDotxmlRoute: typeof AppcastDotxmlRoute
+  DownloadRoute: typeof DownloadRoute
   GhRoute: typeof GhRoute
   LlmsFullDottxtRoute: typeof LlmsFullDottxtRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
@@ -201,6 +227,20 @@ declare module '@tanstack/react-router' {
       path: '/gh'
       fullPath: '/gh'
       preLoaderRoute: typeof GhRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/appcast.xml': {
+      id: '/appcast.xml'
+      path: '/appcast.xml'
+      fullPath: '/appcast.xml'
+      preLoaderRoute: typeof AppcastDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -257,6 +297,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppcastDotxmlRoute: AppcastDotxmlRoute,
+  DownloadRoute: DownloadRoute,
   GhRoute: GhRoute,
   LlmsFullDottxtRoute: LlmsFullDottxtRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,

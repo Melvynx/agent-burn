@@ -8,9 +8,9 @@ import { DocsMobileSearchButton } from './docs-search.tsx';
 import { DocsSidebarNav } from './docs-sidebar.tsx';
 
 const navLinks = [
-	{ label: 'Why', href: '/#cost' },
-	{ label: 'Commands', href: '/#commands' },
-	{ label: 'Sources', href: '/#sources' },
+	{ label: 'The app', href: '/#app' },
+	{ label: 'The CLI', href: '/#cli' },
+	{ label: 'Open source', href: '/#open-source' },
 	{ label: 'Docs', href: '/docs' },
 ] as const satisfies readonly { label: string; href: string }[];
 
@@ -21,7 +21,9 @@ export function DocsChrome({
 	menuOpen: boolean;
 	onMenuOpenChange: (open: boolean) => void;
 }) {
-	const pathname = useRouterState({ select: (state) => state.location.pathname });
+	const pathname = useRouterState({
+		select: (state) => state.location.pathname,
+	});
 	const [isScrolled, setIsScrolled] = useState(false);
 
 	useEffect(() => {
@@ -58,7 +60,8 @@ export function DocsChrome({
 				<div className="hidden items-center gap-1 md:flex">
 					{navLinks.map((link) => {
 						const isDocs = link.href === '/docs';
-						const isActive = isDocs && (pathname === '/docs' || pathname.startsWith('/docs/'));
+						const isActive =
+							isDocs && (pathname === '/docs' || pathname.startsWith('/docs/'));
 
 						if (isDocs) {
 							return (
@@ -68,7 +71,9 @@ export function DocsChrome({
 									params={{ _splat: '' }}
 									className={cn(
 										'rounded-md px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none',
-										isActive ? 'text-[#f7f8f8]' : 'text-[#8a8f98] hover:text-[#f7f8f8]',
+										isActive
+											? 'text-[#f7f8f8]'
+											: 'text-[#8a8f98] hover:text-[#f7f8f8]',
 									)}
 								>
 									{link.label}

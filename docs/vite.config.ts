@@ -22,6 +22,7 @@ export default defineConfig({
 		tanstackStart({
 			prerender: {
 				enabled: true,
+				filter: (page) => !['/download', '/appcast.xml'].includes(page.path),
 				crawlLinks: true,
 				autoSubfolderIndex: true,
 			},

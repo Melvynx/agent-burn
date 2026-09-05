@@ -8,10 +8,14 @@ export function CopyLine({ value }: { value: string }) {
 		<button
 			type="button"
 			className={`copy-line${copied ? ' is-copied' : ''}`}
-			onClick={() => {
-				void navigator.clipboard?.writeText(value);
-				setCopied(true);
-				window.setTimeout(() => setCopied(false), 1600);
+			onClick={async () => {
+				try {
+					await navigator.clipboard.writeText(value);
+					setCopied(true);
+					window.setTimeout(() => setCopied(false), 1600);
+				} catch {
+					setCopied(false);
+				}
 			}}
 		>
 			<code>
@@ -22,7 +26,9 @@ export function CopyLine({ value }: { value: string }) {
 				<Copy className="copy-icon-copy" size={14} />
 				<Check className="copy-icon-check" size={14} />
 			</span>
-			<span className="sr-only">{copied ? 'Command copied' : 'Copy install command'}</span>
+			<span className="sr-only">
+				{copied ? 'Command copied' : 'Copy install command'}
+			</span>
 		</button>
 	);
 }

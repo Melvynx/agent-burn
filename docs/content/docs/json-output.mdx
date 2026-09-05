@@ -25,3 +25,21 @@ agent-burn harness codex --json --jq '.spendMix'
 Harness JSON includes `spendMix`, a trailing-30-day breakdown of input, output, cache write, and cached input token classes with token percentages and API-equivalent cost percentages.
 
 The JSON shape is intended for dashboards and scripts. Prefer command names `summary` and `harness`.
+
+Summary JSON also includes `daily` rows (`date`, `cost`, `tokens`). Each entry in
+`agents` includes its own `models`, `daily`, and `tokenBreakdown` (`input`,
+`output`, `cacheWrite`, `cacheRead`). These details respect the selected date
+range and keep models attributed to the correct harness, including Cursor.
+Existing totals and model fields are unchanged.
+
+The [macOS app](/docs/installation#macos-app) uses these details for its General and
+harness tabs. Add `--value` to include subscription plan information.
+
+### Cursor account balances
+
+Live `agent-burn summary --value --json` can include `cursorAccount` with
+`billingCycleStartMs`, `billingCycleEndMs`, `includedLimitUSD`,
+`includedRemainingUSD`, `includedPercentUsed`, `onDemandSpentUSD`,
+`onDemandLimitUSD`, and `grants` (kind, total/remaining USD, expiration timestamp).
+Absent amounts are null, not zero. These current account balances are distinct
+from historical API-equivalent spend and are omitted in offline mode.

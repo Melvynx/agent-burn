@@ -1,6 +1,6 @@
 # Agent Burn
 
-Agent Burn is a local CLI for answering one question: is your coding-agent subscription paying for itself?
+Agent Burn is a native macOS app and local CLI for understanding coding-agent usage, limits, and subscription value.
 
 The public surface is intentionally small and centered on subscription-value reporting. The CLI keeps fast local log readers and cost aggregation logic, then exposes only two commands:
 
@@ -13,6 +13,12 @@ Site: [agent-burn.melvynx.dev](https://agent-burn.melvynx.dev)
 
 ## Install
 
+**Mac app:** [Download Agent Burn](https://agent-burn.melvynx.dev/download), unzip it,
+and move it to Applications. macOS 14+, Apple Silicon and Intel. The app includes
+the CLI and supports signed Sparkle updates.
+
+**CLI:**
+
 ```bash
 npx agent-burn@latest summary --value
 pnpm dlx agent-burn@latest harness claude --value
@@ -20,6 +26,50 @@ bunx agent-burn@latest harness codex --value
 ```
 
 ## Commands
+
+### macOS app
+
+The native macOS app provides a menu-bar popover with General, Codex, Claude, and Cursor
+tabs, plus a full tabbed dashboard for usage across every detected harness. General
+supports daily, WTD, MTD, YTD, rolling week/month ranges, and All time. Harness tabs include
+available spend, models, daily charts, token breakdowns, and subscription details. It requires
+macOS 14 or later. Build from the repository root with Xcode command-line tools,
+the repository's Rust toolchain, and `just` available:
+
+```bash
+just macos::run
+```
+
+The build bundles the Rust CLI in `apps/macos/dist/Agent Burn.app`. This is a
+locally signed development app. Public downloads are signed and notarized. Settings can select a
+different native CLI executable, cached pricing, and the refresh interval.
+The app follows the system appearance and uses native macOS toolbar tabs and tables.
+A flame and quota percentage appear in the system menu bar. Codex sources include
+`~/.codex` plus the launching profile; Settings can change the comma-separated
+source folders. Complete aggregate reports are cached locally in
+`~/Library/Application Support/Agent Burn/report-cache.json`.
+Daily spend and token totals are retained without expiration in
+`~/Library/Application Support/Agent Burn/metrics-history.json`, with an atomic
+write and a previous-version `.bak` recovery file. The dashboard uses this archive
+for date filters and charts, even after source logs disappear. Each day retains
+the highest observed totals; partial deletions within a day can conceal subsequent
+usage until it exceeds that total. This is a local archive, not an off-device backup.
+Model and token-category tables describe available source data, not archived detail.
+Cursor defaults to its current billing cycle. Explicit `--since` / `--until`
+summary queries can retrieve older daily metrics where Cursor still supplies them.
+With live `--value --json` reports, `cursorAccount` separates included allowance,
+promotional credits, expiration dates, billing cycle and reported on-demand amounts.
+Missing amounts remain unknown.
+Quota readings are saved locally under
+`~/Library/Application Support/Agent Burn/quota-history.json`. The forecast uses
+average consumption during the current cycle; historical lines build as the app
+refreshes. Missing provider limits remain unavailable. Summary amounts represent
+API-equivalent usage, not subscription charges.
+
+The [macOS source and release guide](https://github.com/Melvynx/agent-burn/tree/macos-v0.1.0/apps/macos)
+documents builds, signing, notarization, and the open release process.
+
+### CLI
 
 ```bash
 # Default overview. Running without a command is the same as summary.
