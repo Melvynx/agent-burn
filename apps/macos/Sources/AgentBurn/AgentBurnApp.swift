@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct AgentBurnApp: App {
+  @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
   @State private var store: UsageStore
   private static let menuIcon: NSImage = {
     let resources =

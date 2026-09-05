@@ -45,7 +45,9 @@ The build bundles the Rust CLI in `apps/macos/dist/Agent Burn.app`. This is a
 locally signed development app. Public downloads are signed and notarized. Settings can select a
 different native CLI executable, cached pricing, and the refresh interval.
 The app follows the system appearance and uses native macOS toolbar tabs and tables.
-A flame and quota percentage appear in the system menu bar. Codex sources include
+A flame and quota percentage appear in the system menu bar.
+**Settings → Appearance → Menu bar only** hides the Dock and Command-Tab entry
+until disabled, and is remembered across launches. Codex sources include
 `~/.codex` plus the launching profile; Settings can change the comma-separated
 source folders. Complete aggregate reports are cached locally in
 `~/Library/Application Support/Agent Burn/report-cache.json`.

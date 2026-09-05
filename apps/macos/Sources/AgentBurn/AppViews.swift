@@ -123,6 +123,7 @@ struct SettingsView: View {
   var body: some View {
     @Bindable var store = store
     Form {
+      AppearanceSettings()
       UpdateSettings()
       Section("Permanent metrics history") {
         LabeledContent("Days preserved", value: store.archivedDayCount.formatted())

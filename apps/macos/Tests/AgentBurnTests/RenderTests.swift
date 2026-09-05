@@ -27,6 +27,9 @@ import Testing
   store.updated["claude"] = .now
   store.updated["codex"] = .now
   store.updated["summary"] = .now
+  try render(
+    SettingsView().environment(store), size: NSSize(width: 560, height: 520),
+    to: output.appendingPathComponent("settings.png"))
   store.selection = "summary"
   try render(
     DashboardView().environment(store).frame(width: 1060, height: 780),

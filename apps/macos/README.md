@@ -8,7 +8,10 @@ macOS 14 or newer. Public releases contain Apple Silicon and Intel binaries.
 [Download Agent Burn](https://agent-burn.melvynx.dev/download), unzip it, move
 Agent Burn.app to Applications, and open it. No Node.js installation is needed.
 Use Settings to configure sources, inspect the metrics backup, and manage update
-checks. The app menu also provides **Check for Updates…**.
+checks. Enable **Settings → Appearance → Menu bar only** to hide the app from
+the Dock and Command-Tab. The preference survives restarts; the dashboard and
+Settings remain accessible from the menu-bar icon. Disable it to restore Dock
+visibility. The app menu also provides **Check for Updates…**.
 
 ## Build and test
 
