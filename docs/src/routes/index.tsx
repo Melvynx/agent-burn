@@ -314,7 +314,10 @@ function LandingPage() {
 					</p>
 					<div className="hero-actions">
 						<Download />
-						<a className="secondary-link" href={githubUrl}>
+						<a
+							className="secondary-link"
+							href={`${githubUrl}/tree/codex/macos-product-release`}
+						>
 							<GithubMark size={18} />
 							Explore the source
 						</a>
