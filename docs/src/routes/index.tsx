@@ -68,10 +68,7 @@ function LandingPage() {
 			</header>
 			<main id="main-content">
 				<section className="hero">
-					<a
-						className="release-note"
-						href={`${githubUrl}/releases/tag/macos-v0.1.0`}
-					>
+					<a className="release-note" href={`${githubUrl}/releases`}>
 						<span />
 						Meet Agent Burn for macOS <ArrowUpRight size={14} />
 					</a>
@@ -367,7 +364,7 @@ function LandingPage() {
 				<nav aria-label="Footer">
 					<a href={githubUrl}>GitHub</a>
 					<a href="/docs">Documentation</a>
-					<a href={`${githubUrl}/releases/tag/macos-v0.1.0`}>Releases</a>
+					<a href={`${githubUrl}/releases`}>Releases</a>
 					<a href={`${githubUrl}/blob/main/LICENSE`}>MIT license</a>
 				</nav>
 			</footer>

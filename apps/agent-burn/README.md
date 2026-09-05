@@ -67,7 +67,7 @@ average consumption during the current cycle; historical lines build as the app
 refreshes. Missing provider limits remain unavailable. Summary amounts represent
 API-equivalent usage, not subscription charges.
 
-The [macOS source and release guide](https://github.com/Melvynx/agent-burn/tree/macos-v0.1.0/apps/macos)
+The [macOS source and release guide](https://github.com/Melvynx/agent-burn/tree/codex/macos-product-release/apps/macos)
 documents builds, signing, notarization, and the open release process.
 
 ### CLI
