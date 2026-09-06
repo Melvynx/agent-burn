@@ -62,7 +62,9 @@ pub(super) fn run(args: SummaryArgs) -> Result<()> {
     let subscription = if value {
         let agent_costs = summary.agent_costs();
         let has = |agent: &str| agent_costs.iter().any(|(name, _)| *name == agent);
-        let codex_in = has("codex").then(|| codex_input(&result.rows)).flatten();
+        let codex_in = has("codex")
+            .then(|| codex_input(&result.rows, shared.offline))
+            .flatten();
         let claude_in = has("claude")
             .then(|| claude_input(&result.rows, shared.offline))
             .flatten();
@@ -200,7 +202,7 @@ fn run_harness_weekly(
     let rows = &result.rows;
 
     let (plan_name, price, window, live_limits) = if agent == "codex" {
-        match codex_input(rows) {
+        match codex_input(rows, shared.offline) {
             Some(input) => {
                 let (name, price) = subscription::resolve_codex(&input.plan_type, codex_spec);
                 (Some(name), price, input.window, true)
@@ -556,9 +558,9 @@ fn agent_daily_in_window(
 
 /// Detect the Codex plan and measure spend over its live weekly limit window,
 /// reusing the already-loaded daily rows (no extra log scan).
-fn codex_input(rows: &[AllRow]) -> Option<CodexInput> {
-    let snapshot = codex::latest_plan_snapshot()?;
-    let window = snapshot.secondary.or(snapshot.primary).and_then(|basis| {
+fn codex_input(rows: &[AllRow], offline: bool) -> Option<CodexInput> {
+    let snapshot = codex::resolve_plan_snapshot(offline)?;
+    let window = snapshot.weekly_window().and_then(|basis| {
         let window_start =
             TimestampMs::from_unix_seconds(basis.resets_at? - (basis.window_minutes as i64) * 60)?;
         window_cost(
@@ -569,12 +571,11 @@ fn codex_input(rows: &[AllRow]) -> Option<CodexInput> {
             "codex",
         )
     });
+    let short_window = snapshot.short_window();
     Some(CodexInput {
         plan_type: snapshot.plan_type,
         window,
-        short_window: snapshot
-            .primary
-            .map(|primary| (primary.window_minutes, primary.used_percent)),
+        short_window,
     })
 }
 
@@ -612,7 +613,7 @@ fn window_cost(
     rows: &[AllRow],
     agent: &str,
 ) -> Option<WindowCost> {
-    if used_percent <= 0.0 {
+    if !used_percent.is_finite() || used_percent < 0.0 {
         return None;
     }
     let now = utc_now();
