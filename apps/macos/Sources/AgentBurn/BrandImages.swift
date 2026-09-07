@@ -1,6 +1,6 @@
 import AppKit
 
-enum AppLogo {
+@MainActor enum AppLogo {
   static let menuBar: NSImage = {
     let resources =
       Bundle.main.url(forResource: "AgentBurn_AgentBurn", withExtension: "bundle")
