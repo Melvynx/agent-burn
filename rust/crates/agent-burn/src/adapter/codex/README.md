@@ -10,6 +10,11 @@ ${CODEX_HOME:-~/.codex}/archived_sessions/
 When both directories contain the same relative JSONL path for one Codex home,
 the active `sessions/` copy wins.
 
+Weekly quota uses the live ChatGPT `wham/usage` account meter when a Codex
+OAuth token is available and `--offline` is not set. Session `rate_limits`
+envelopes are the fallback. Model-specific Spark meters (`codex_bengalfox`)
+are not the account weekly quota.
+
 Relevant JSONL event:
 
 - `type === "event_msg"`

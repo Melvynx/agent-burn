@@ -1,12 +1,17 @@
-import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router';
+import {
+	HeadContent,
+	Outlet,
+	Scripts,
+	createRootRoute,
+} from '@tanstack/react-router';
 import { RootProvider } from 'fumadocs-ui/provider/tanstack';
 import appCss from '../styles/app.css?url';
 import landingCss from '../styles/landing.css?url';
 import { siteUrl } from '../lib/shared.ts';
 
-const title = 'Agent Burn: is the subscription paying for itself?';
+const title = 'Agent Burn — Your AI usage, in view.';
 const description =
-	'A local CLI that reads Claude Code, Codex, and Cursor usage and compares API-equivalent spend to your plan price.';
+	'A native macOS app and open-source CLI for Codex, Claude, Cursor and more. Track spend, subscription limits and daily usage history.';
 
 export const Route = createRootRoute({
 	head: () => ({
@@ -21,8 +26,8 @@ export const Route = createRootRoute({
 			{ property: 'og:title', content: title },
 			{ property: 'og:description', content: description },
 			{ property: 'og:url', content: siteUrl },
-			{ property: 'og:image', content: `${siteUrl}/logo.png` },
-			{ name: 'twitter:card', content: 'summary' },
+			{ property: 'og:image', content: `${siteUrl}/product/dashboard.png` },
+			{ name: 'twitter:card', content: 'summary_large_image' },
 		],
 		links: [
 			{ rel: 'stylesheet', href: appCss },

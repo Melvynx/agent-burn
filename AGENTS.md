@@ -58,3 +58,8 @@ configuration, JSON output, screenshots, or examples:
    surface changed.
 4. Skip documentation edits for internal-only refactors, test-only changes, or
    skill maintenance unless they change user-facing behavior.
+
+## Development servers
+
+- Use Portly (`portly ...`) for persistent development servers. Start with `portly status` and reuse healthy in-scope servers.
+- For bounded previews, use `portly temp '<command>' --path <folder> --port <port> --timeout 30m`, then `portly wait <id>` for the result. Do not launch unmanaged background servers.

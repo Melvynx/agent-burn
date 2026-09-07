@@ -1,0 +1,27 @@
+[private]
+default:
+    @just --list
+
+# Build a self-contained macOS app with the current native CLI
+build:
+    ./build.sh
+
+# Open the built app
+run: build
+    open 'dist/Agent Burn.app'
+
+# Run native model, forecast, and CLI integration tests
+test:
+    swift test --disable-keychain --disable-xctest
+
+# Format native app sources
+fmt:
+    xcrun swift-format format --in-place --recursive Sources Tests Package.swift
+
+# Validate Swift source formatting
+lint:
+    xcrun swift-format lint --strict --recursive Sources Tests Package.swift
+
+# Publish a pushed version from a Mac with release credentials
+release:
+    ./release.sh
