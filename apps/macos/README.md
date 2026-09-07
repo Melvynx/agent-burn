@@ -13,7 +13,8 @@ Settings. Disable the option to remove the login item. Menu-bar-only mode is
 respected at startup.
 
 Use Settings to configure sources, inspect the metrics backup, and manage update
-checks. Enable **Settings → Appearance → Menu bar only** to hide the app from
+checks. The menu-bar percentage can show Codex, Claude, or Cursor remaining
+quota; change it from the percentage menu or **Settings → Menu bar quota**. Enable **Settings → Appearance → Menu bar only** to hide the app from
 the Dock and Command-Tab. The preference survives restarts; the dashboard and
 Settings remain accessible from the menu-bar icon. Disable it to restore Dock
 visibility. The app menu also provides **Check for Updates…**.

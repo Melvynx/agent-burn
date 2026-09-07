@@ -1,5 +1,28 @@
 import AppKit
 
+enum AppLogo {
+  static let menuBar: NSImage = {
+    let resources =
+      Bundle.main.url(forResource: "AgentBurn_AgentBurn", withExtension: "bundle")
+      .flatMap { Bundle(url: $0) } ?? Bundle.module
+    let image = NSImage(
+      contentsOf: resources.url(forResource: "MenuBarIcon", withExtension: "pdf")!)!
+    image.size = NSSize(width: 18, height: 18)
+    image.isTemplate = true
+    return image
+  }()
+
+  static let window: NSImage = {
+    if let icns = Bundle.main.url(forResource: "AppIcon", withExtension: "icns").flatMap({
+      NSImage(contentsOf: $0)
+    }) {
+      icns.isTemplate = false
+      return icns
+    }
+    return menuBar
+  }()
+}
+
 @MainActor enum BrandImages {
   // Cursor, Claude and ChatGPT: icons exported from their installed macOS apps.
   // Other icons: first-party favicons from opencode.ai, openclaw.ai, factory.ai,

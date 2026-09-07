@@ -4,16 +4,6 @@ import SwiftUI
 struct AgentBurnApp: App {
   @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
   @State private var store: UsageStore
-  private static let menuIcon: NSImage = {
-    let resources =
-      Bundle.main.url(forResource: "AgentBurn_AgentBurn", withExtension: "bundle")
-      .flatMap { Bundle(url: $0) } ?? Bundle.module
-    let image = NSImage(
-      contentsOf: resources.url(forResource: "MenuBarIcon", withExtension: "pdf")!)!
-    image.size = NSSize(width: 18, height: 18)
-    image.isTemplate = true
-    return image
-  }()
 
   init() {
     let store = UsageStore()
@@ -31,13 +21,24 @@ struct AgentBurnApp: App {
     MenuBarExtra {
       MenuPopover().environment(store)
     } label: {
-      HStack(spacing: 4) {
-        Image(nsImage: Self.menuIcon)
-        Text(store.forecast(for: "codex").map { "\(Int($0.remaining))%" } ?? "Burn")
-          .monospacedDigit()
-      }.accessibilityLabel("Agent Burn usage")
+      MenuBarLabel(remaining: store.remainingPercent)
+        .id(store.remainingPercent ?? -1)
     }
     .menuBarExtraStyle(.window)
     Settings { SettingsView().environment(store) }
+  }
+}
+
+struct MenuBarLabel: View {
+  let remaining: Double?
+  var body: some View {
+    HStack(spacing: 4) {
+      Image(nsImage: AppLogo.menuBar)
+        .resizable()
+        .renderingMode(.template)
+        .frame(width: 18, height: 18)
+      Text(menuBarQuotaText(remaining)).monospacedDigit()
+    }
+    .accessibilityLabel("Agent Burn \(menuBarQuotaText(remaining))")
   }
 }

@@ -50,6 +50,54 @@ import Testing
   #expect(current.map(\.remaining) == [74, 70])
 }
 
+@Test func cursorRemainingUsesIncludedAllowance() throws {
+  let account = try JSONDecoder().decode(
+    CursorAccount.self,
+    from: Data(#"{"includedPercentUsed":85,"grants":[]}"#.utf8))
+  #expect(remainingQuota(for: .cursor, forecast: nil, cursorAccount: account) == 15)
+}
+
+@Test func menuBarShowsIntegerRemainingPercent() {
+  #expect(menuBarQuotaText(15.9) == "15%")
+  #expect(menuBarQuotaText(nil) == "Burn")
+}
+
+@Test @MainActor func remainingPercentFollowsLiveCodexWindow() throws {
+  let suite = "AgentBurn.quota.\(UUID().uuidString)"
+  let defaults = try #require(UserDefaults(suiteName: suite))
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
+  defer {
+    defaults.removePersistentDomain(forName: suite)
+    try? FileManager.default.removeItem(at: directory)
+  }
+  let store = UsageStore(defaults: defaults, period: .all, storageDirectory: directory)
+  store.reports["codex"] = try JSONDecoder().decode(
+    HarnessReport.self,
+    from: Data(
+      """
+      {"agent":"codex","plan":"Pro","liveLimits":true,
+       "window":{"windowMinutes":10080,"usedPercent":90,"elapsedPercent":50,"apiEquivalentSpent":1},
+       "apiEquivalentPerMonth":0,"daily":[],"topModels":[]}
+      """.utf8))
+  store.updated["codex"] = Date()
+  #expect(store.remainingPercent == 10)
+}
+
+@Test @MainActor func quotaSourcePersistsAcrossRelaunch() throws {
+  let suite = "AgentBurn.quota.\(UUID().uuidString)"
+  let defaults = try #require(UserDefaults(suiteName: suite))
+  defer { defaults.removePersistentDomain(forName: suite) }
+  let store = UsageStore(defaults: defaults, period: .all)
+  #expect(store.quotaSource == .codex)
+  store.quotaSource = .claude
+  #expect(UsageStore(defaults: defaults, period: .all).quotaSource == .claude)
+}
+
+@Test func menuBarLogoIsAvailableImmediately() {
+  #expect(AppLogo.menuBar.size.width > 0)
+  #expect(AppLogo.menuBar.size.height > 0)
+}
+
 @Test func decodesCompleteHarnessEconomicsAndTrends() throws {
   let report = try JSONDecoder().decode(
     HarnessReport.self,

@@ -37,6 +37,9 @@ final class UsageStore {
   var codexHomes: String { didSet { defaults.set(codexHomes, forKey: "codexHomes") } }
   var offline: Bool { didSet { defaults.set(offline, forKey: "offline") } }
   var refreshMinutes: Int { didSet { defaults.set(refreshMinutes, forKey: "refreshMinutes") } }
+  var quotaSource: QuotaSource {
+    didSet { defaults.set(quotaSource.rawValue, forKey: "quotaSource") }
+  }
   private var history: [String: [QuotaSample]] = [:]
   private let defaults: UserDefaults
   private let historyURL: URL
@@ -75,6 +78,7 @@ final class UsageStore {
         inherited: ProcessInfo.processInfo.environment["CODEX_HOME"])
     offline = defaults.bool(forKey: "offline")
     refreshMinutes = max(5, defaults.integer(forKey: "refreshMinutes"))
+    quotaSource = QuotaSource(rawValue: defaults.string(forKey: "quotaSource") ?? "") ?? .codex
     historyURL =
       (storageDirectory
       ?? FileManager.default.homeDirectoryForCurrentUser
@@ -218,6 +222,12 @@ final class UsageStore {
       if let cache { try JSONEncoder().encode(cache).write(to: cacheURL, options: .atomic) }
       errors["cache"] = nil
     } catch { errors["cache"] = "Unable to save report history on this Mac." }
+  }
+
+  var remainingPercent: Double? {
+    remainingQuota(
+      for: quotaSource, forecast: forecast(for: quotaSource.rawValue),
+      cursorAccount: summary?.cursorAccount)
   }
 
   func forecast(for agent: String) -> Forecast? {

@@ -11,6 +11,7 @@ struct MenuPopover: View {
         Label("Agent Burn", systemImage: "flame.fill").font(.system(size: 13, weight: .semibold))
           .foregroundStyle(BurnTheme.accent)
         Spacer()
+        QuotaSourceMenu()
         SettingsLink { Image(systemName: "gearshape") }
           .buttonStyle(.plain).foregroundStyle(BurnTheme.muted).help("Settings")
       }.padding(.horizontal, 22).padding(.top, 19).padding(.bottom, 17)
@@ -75,6 +76,9 @@ struct DashboardView: View {
     .frame(minWidth: 900, minHeight: 650)
     .background(BurnTheme.background)
     .toolbar {
+      ToolbarItem(placement: .navigation) {
+        QuotaSourceMenu()
+      }
       ToolbarItem(placement: .principal) {
         HarnessTabs(selection: $store.selection)
           .padding(.horizontal, 6)
@@ -118,6 +122,60 @@ struct HarnessTabs: View {
 
 }
 
+struct QuotaSourceMenu: View {
+  @Environment(UsageStore.self) private var store
+  var body: some View {
+    @Bindable var store = store
+    Menu {
+      ForEach(QuotaSource.allCases) { source in
+        Button {
+          store.quotaSource = source
+        } label: {
+          HStack {
+            Text(source.label)
+            Spacer()
+            if let remaining = remainingQuota(
+              for: source, forecast: store.forecast(for: source.rawValue),
+              cursorAccount: store.summary?.cursorAccount)
+            {
+              Text(menuBarQuotaText(remaining))
+            }
+          }
+        }
+      }
+    } label: {
+      Text(menuBarQuotaText(store.remainingPercent))
+        .monospacedDigit()
+        .fontWeight(.medium)
+        .fixedSize()
+    }
+    .menuIndicator(.visible)
+    .fixedSize()
+    .id(store.remainingPercent ?? -1)
+    .help("Quota shown in the menu bar")
+    .accessibilityLabel(
+      "\(store.quotaSource.label) \(menuBarQuotaText(store.remainingPercent))")
+  }
+}
+
+struct QuotaSourceSettings: View {
+  @Environment(UsageStore.self) private var store
+  var body: some View {
+    @Bindable var store = store
+    Section("Menu bar quota") {
+      Picker("Show remaining", selection: $store.quotaSource) {
+        ForEach(QuotaSource.allCases) { source in
+          Text(source.label).tag(source)
+        }
+      }
+      Text(
+        "The flame in the menu bar and the window toolbar show this remaining percentage. Codex uses the live weekly account meter, Claude uses its weekly limit, and Cursor uses the included allowance."
+      )
+      .font(.caption).foregroundStyle(.secondary)
+    }
+  }
+}
+
 struct SettingsView: View {
   @Environment(UsageStore.self) private var store
   var body: some View {
@@ -125,6 +183,7 @@ struct SettingsView: View {
     Form {
       LoginItemSettings()
       AppearanceSettings()
+      QuotaSourceSettings()
       UpdateSettings()
       Section("Permanent metrics history") {
         LabeledContent("Days preserved", value: store.archivedDayCount.formatted())

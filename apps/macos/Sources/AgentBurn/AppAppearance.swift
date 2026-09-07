@@ -30,12 +30,23 @@ import SwiftUI
 
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
   func applicationDidFinishLaunching(_ notification: Notification) {
+    NSApp.applicationIconImage = AppLogo.window
+    applyWindowLogo()
     AppAppearance.shared.apply()
     if AppAppearance.shared.menuBarOnly {
       // SwiftUI has finished creating its initial dashboard at this point.
       for window in NSApplication.shared.windows where window.title == "Agent Burn" {
         window.orderOut(nil)
       }
+    }
+  }
+
+  func applicationDidBecomeActive(_ notification: Notification) { applyWindowLogo() }
+
+  private func applyWindowLogo() {
+    for window in NSApplication.shared.windows where window.title == "Agent Burn" {
+      window.representedURL = Bundle.main.bundleURL
+      window.standardWindowButton(.documentIconButton)?.image = AppLogo.window
     }
   }
 

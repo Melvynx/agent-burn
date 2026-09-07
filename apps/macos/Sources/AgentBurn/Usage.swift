@@ -174,6 +174,32 @@ func cycleSamples(_ samples: [QuotaSample], since start: Date) -> [QuotaSample] 
   return result
 }
 
+enum QuotaSource: String, CaseIterable, Identifiable {
+  case codex, claude, cursor
+  var id: String { rawValue }
+  var label: String {
+    switch self {
+    case .codex: "Codex"
+    case .claude: "Claude"
+    case .cursor: "Cursor"
+    }
+  }
+}
+
+func remainingQuota(for source: QuotaSource, forecast: Forecast?, cursorAccount: CursorAccount?)
+  -> Double?
+{
+  switch source {
+  case .codex, .claude: forecast?.remaining
+  case .cursor:
+    cursorAccount?.includedPercentUsed.map { max(0, min(100, 100 - $0)) }
+  }
+}
+
+func menuBarQuotaText(_ remaining: Double?) -> String {
+  remaining.map { "\(Int($0))%" } ?? "Burn"
+}
+
 func harnessName(_ key: String) -> String {
   switch key {
   case "codex": "Codex"
