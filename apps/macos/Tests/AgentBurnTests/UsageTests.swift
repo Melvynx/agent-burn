@@ -93,7 +93,7 @@ import Testing
   #expect(UsageStore(defaults: defaults, period: .all).quotaSource == .claude)
 }
 
-@Test func menuBarLogoIsAvailableImmediately() {
+@Test @MainActor func menuBarLogoIsAvailableImmediately() {
   #expect(AppLogo.menuBar.size.width > 0)
   #expect(AppLogo.menuBar.size.height > 0)
 }
