@@ -36,7 +36,7 @@ fi
 ditto "$bin/AgentBurn_AgentBurn.bundle" "$app/Contents/Resources/AgentBurn_AgentBurn.bundle"
 ditto "$bin/Sparkle.framework" "$app/Contents/Frameworks/Sparkle.framework"
 install_name_tool -add_rpath '@executable_path/../Frameworks' "$app/Contents/MacOS/AgentBurn"
-cp Assets/Logo/AgentBurn.icns "$app/Contents/Resources/AgentBurn.icns"
+cp Assets/Logo/AppIcon.icns "$app/Contents/Resources/AppIcon.icns"
 cp ../../LICENSE "$app/Contents/Resources/LICENSE.txt"
 cp .build/checkouts/Sparkle/LICENSE "$app/Contents/Resources/Sparkle-LICENSE.txt"
 cat > "$app/Contents/Info.plist" <<PLIST
@@ -47,7 +47,7 @@ cat > "$app/Contents/Info.plist" <<PLIST
 <key>CFBundleName</key><string>Agent Burn</string>
 <key>CFBundleDisplayName</key><string>Agent Burn</string>
 <key>CFBundleExecutable</key><string>AgentBurn</string>
-<key>CFBundleIconFile</key><string>AgentBurn</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>$version</string>
 <key>CFBundleVersion</key><string>$version</string>
