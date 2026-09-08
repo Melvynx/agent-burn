@@ -28,6 +28,7 @@ OPTIONS:
   --debug-samples <debug-samples>      Number of sample discrepancies to show in debug output (default: 5)
   -h, --help                           Display this help message
   -v, --version                        Display this version
+  --agents <agents>                    Load only these harnesses (comma-separated, e.g. codex,claude); default: all
   --range <range>                      Quick time range (also accepted as a bare word, e.g. `summary mtd`) (choices: today | yesterday | wtd | mtd | ytd | week | month)
   --value                              Show subscription value: API-equivalent usage vs monthly plan price (default: false)
   --html                               Generate and open an interactive HTML report (Vercel-styled, with a daily-by-model chart) (default: false)

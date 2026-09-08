@@ -1,6 +1,20 @@
 import SwiftUI
 
 @main
+enum AgentBurnMain {
+  @MainActor static func main() async {
+    if CommandLine.arguments.contains("--collect-quotas") {
+      do { try await QuotaCollector.collect() } catch {
+        FileHandle.standardError.write(
+          Data("Quota collection failed: \(error.localizedDescription)\n".utf8))
+        exit(1)
+      }
+    } else {
+      AgentBurnApp.main()
+    }
+  }
+}
+
 struct AgentBurnApp: App {
   @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
   @State private var store: UsageStore
@@ -21,8 +35,9 @@ struct AgentBurnApp: App {
     MenuBarExtra {
       MenuPopover().environment(store)
     } label: {
-      MenuBarLabel(remaining: store.remainingPercent)
-        .id(store.remainingPercent ?? -1)
+      // TimelineView in a MenuBarExtra label can continuously invalidate the status item.
+      MenuBarLabel(
+        remaining: store.remainingPercent, stale: store.quotaIsStale(at: store.quotaCheckDate))
     }
     .menuBarExtraStyle(.window)
     Settings { SettingsView().environment(store) }
@@ -31,14 +46,15 @@ struct AgentBurnApp: App {
 
 struct MenuBarLabel: View {
   let remaining: Double?
+  var stale = false
   var body: some View {
     HStack(spacing: 4) {
       Image(nsImage: AppLogo.menuBar)
         .resizable()
-        .renderingMode(.template)
+        .renderingMode(.original)
         .frame(width: 18, height: 18)
-      Text(menuBarQuotaText(remaining)).monospacedDigit()
+      Text(menuBarQuotaText(remaining, stale: stale)).monospacedDigit()
     }
-    .accessibilityLabel("Agent Burn \(menuBarQuotaText(remaining))")
+    .accessibilityLabel("Agent Burn \(menuBarQuotaText(remaining, stale: stale))")
   }
 }

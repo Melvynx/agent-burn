@@ -18,8 +18,10 @@ struct MetricsArchive: Codable {
     }
   }
 
-  func report(period: UsagePeriod, live: SummaryReport?, now: Date = .now) -> SummaryReport {
-    let bounds = period.dateBounds(now: now)
+  func report(
+    period: UsagePeriod, live: SummaryReport?, now: Date = .now, resetStart: Date? = nil
+  ) -> SummaryReport {
+    let bounds = period.dateBounds(now: now, resetStart: resetStart)
     let usages = agents.keys.sorted().compactMap { name -> AgentUsage? in
       let days = (agents[name] ?? [:]).values.filter {
         (bounds.0 == nil || $0.date >= bounds.0!) && $0.date <= bounds.1
@@ -48,7 +50,7 @@ struct MetricsArchive: Codable {
 }
 
 extension UsagePeriod {
-  func dateBounds(now: Date) -> (String?, String) {
+  func dateBounds(now: Date, resetStart: Date? = nil) -> (String?, String) {
     var calendar = Calendar(identifier: .gregorian)
     calendar.firstWeekday = 2
     calendar.minimumDaysInFirstWeek = 4
@@ -57,6 +59,7 @@ extension UsagePeriod {
     let start: Date?
     switch self {
     case .all: start = nil
+    case .rtd: start = resetStart.map { calendar.startOfDay(for: $0) } ?? today
     case .today, .yesterday: start = end
     case .wtd: start = calendar.dateInterval(of: .weekOfYear, for: now)?.start
     case .mtd: start = calendar.dateInterval(of: .month, for: now)?.start

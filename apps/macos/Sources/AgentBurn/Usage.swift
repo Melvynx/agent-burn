@@ -133,6 +133,16 @@ struct HarnessModel: Codable, Identifiable, Sendable {
 struct Forecast {
   let window: QuotaWindow
   let observedAt: Date
+  var isLive = false
+  func isFresh(at date: Date) -> Bool {
+    let age = date.timeIntervalSince(observedAt)
+    return isLive && window.isValid && age >= 0 && age <= 90 && date < reset
+  }
+  func freshnessLabel(at date: Date, failed: Bool = false) -> String {
+    if failed { return "Update failed · retrying" }
+    if !isLive { return "Saved reading" }
+    return isFresh(at: date) ? "Live · every minute" : "Stale · waiting for update"
+  }
   var remaining: Double { max(0, min(100, 100 - window.usedPercent)) }
   var duration: TimeInterval { max(1, window.windowMinutes * 60) }
   var elapsed: Double { max(0, min(1, window.elapsedPercent / 100)) }
@@ -161,6 +171,20 @@ struct QuotaSample: Codable, Sendable {
   let remaining: Double
 }
 
+func quotaSampleSegments(_ samples: [QuotaSample]) -> [[QuotaSample]] {
+  var segments: [[QuotaSample]] = []
+  for sample in samples.sorted(by: { $0.date < $1.date }) {
+    if let previous = segments.last?.last,
+      sample.date.timeIntervalSince(previous.date) <= 90
+    {
+      segments[segments.count - 1].append(sample)
+    } else {
+      segments.append([sample])
+    }
+  }
+  return segments
+}
+
 func cycleSamples(_ samples: [QuotaSample], since start: Date) -> [QuotaSample] {
   let sorted = samples.filter { $0.date >= start }.sorted { $0.date < $1.date }
   var result: [QuotaSample] = []
@@ -172,6 +196,13 @@ func cycleSamples(_ samples: [QuotaSample], since start: Date) -> [QuotaSample] 
     result.append(sample)
   }
   return result
+}
+
+func resetSummary(_ resets: [QuotaReset]) -> String {
+  let scheduled = resets.filter(\.scheduled).count
+  guard !resets.isEmpty else { return "No quota resets recorded" }
+  return
+    "\(resets.count) recorded · \(scheduled) scheduled, \(resets.count - scheduled) possible"
 }
 
 enum QuotaSource: String, CaseIterable, Identifiable {
@@ -196,8 +227,8 @@ func remainingQuota(for source: QuotaSource, forecast: Forecast?, cursorAccount:
   }
 }
 
-func menuBarQuotaText(_ remaining: Double?) -> String {
-  remaining.map { "\(Int($0))%" } ?? "Burn"
+func menuBarQuotaText(_ remaining: Double?, stale: Bool = false) -> String {
+  remaining.map { "\(Int($0))%" + (stale ? " · stale" : "") } ?? "Burn"
 }
 
 func harnessName(_ key: String) -> String {

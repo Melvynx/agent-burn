@@ -30,8 +30,17 @@ bunx agent-burn@latest harness codex --value
 
 ### macOS app
 
+Codex and Claude quotas are collected every minute by a macOS background agent,
+even after the app quits. Enable or disable this in **Settings → Background quota
+history**; allow background activity in macOS Settings if requested. The agent
+reads live provider counters independently of full spend reports and cached mode.
+Collection resumes after sleep or login. During outages, the last valid reading
+and its timestamp remain visible; missed measurements are not fabricated.
+
 The native macOS app provides a menu-bar popover with General, Codex, Claude, and Cursor
-tabs, plus a full tabbed dashboard for usage across every detected harness. General
+tabs, plus a full tabbed dashboard for usage across every detected harness. The Codex
+and Claude popover tabs put remaining quota, reset time, and the forecast first;
+expand **Usage details** for spend and models. General
 supports daily, WTD, MTD, YTD, rolling week/month ranges, and All time. Harness tabs include
 available spend, models, daily charts, token breakdowns, and subscription details. It requires
 macOS 14 or later. Build from the repository root with Xcode command-line tools,
@@ -54,10 +63,17 @@ until disabled, and is remembered across launches. Codex sources include
 `~/.codex` plus the launching profile; Settings can change the comma-separated
 source folders. Complete aggregate reports are cached locally in
 `~/Library/Application Support/Agent Burn/report-cache.json`.
+Changed reports are also kept in `usage-journal.json` so daily graphs and model
+totals can be rebuilt if both `report-cache.json` and its `.bak` are unreadable.
+Quota screens count scheduled and possible resets; **Reset to date** filters spend
+from the current cycle start.
 Daily spend and token totals are retained without expiration in
 `~/Library/Application Support/Agent Burn/metrics-history.json`, with an atomic
 write and a previous-version `.bak` recovery file. The dashboard uses this archive
-for date filters and charts, even after source logs disappear. Each day retains
+for date filters and charts, even after source logs disappear. Period changes display
+saved data immediately while missing detail refreshes in the background. A harness
+tab reads only that source; General reads all sources. The selector remains usable
+during refreshes. History and recovery files are maintained automatically. Each day retains
 the highest observed totals; partial deletions within a day can conceal subsequent
 usage until it exceeds that total. This is a local archive, not an off-device backup.
 Model and token-category tables describe available source data, not archived detail.
@@ -103,6 +119,7 @@ agent-burn harness claude --json --offline
 
 ```bash
 agent-burn summary --value
+agent-burn summary week --agents codex,claude --json
 agent-burn summary --value --claude-plan max-20x --codex-plan pro
 agent-burn harness claude --value --claude-plan 200
 agent-burn harness codex --value --codex-plan plus

@@ -114,6 +114,10 @@
 	],
 	"summary_value_options": [
 		{
+			"flags": "--agents <agents>",
+			"description": "Load only these harnesses (comma-separated, e.g. codex,claude); default: all"
+		},
+		{
 			"flags": "--range <range>",
 			"description": "Quick time range (also accepted as a bare word, e.g. `summary mtd`)",
 			"choices": ["today", "yesterday", "wtd", "mtd", "ytd", "week", "month"]

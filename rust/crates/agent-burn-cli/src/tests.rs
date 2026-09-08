@@ -26,6 +26,34 @@ fn parse_error(args: &[&str]) -> String {
     }
 }
 
+#[test]
+fn summary_accepts_specific_agents_without_becoming_a_harness_report() {
+    let cli = parse(&[
+        "agent-burn",
+        "summary",
+        "week",
+        "--agents",
+        "codex,claude",
+        "--json",
+    ]);
+    let Some(Command::Summary(args)) = cli.command else {
+        panic!("expected summary")
+    };
+    assert!(args.agent.is_none());
+    assert!(args.shared.json);
+    assert_eq!(args.shared.agents, ["codex", "claude"]);
+}
+
+#[test]
+fn summary_rejects_unknown_or_empty_agents() {
+    for agents in ["", "codex,", "typo"] {
+        assert!(
+            parse_error(&["agent-burn", "summary", "--agents", agents])
+                .contains("Unsupported summary agent")
+        );
+    }
+}
+
 #[derive(Default)]
 struct TestConfig {
     shared_json: Option<bool>,

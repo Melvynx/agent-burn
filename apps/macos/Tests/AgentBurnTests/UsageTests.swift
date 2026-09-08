@@ -50,6 +50,15 @@ import Testing
   #expect(current.map(\.remaining) == [74, 70])
 }
 
+@Test func resetSummaryCountsScheduledAndPossibleResets() {
+  #expect(resetSummary([]) == "No quota resets recorded")
+  #expect(
+    resetSummary([
+      QuotaReset(date: Date(timeIntervalSince1970: 1), scheduled: true),
+      QuotaReset(date: Date(timeIntervalSince1970: 2), scheduled: false),
+    ]) == "2 recorded · 1 scheduled, 1 possible")
+}
+
 @Test func cursorRemainingUsesIncludedAllowance() throws {
   let account = try JSONDecoder().decode(
     CursorAccount.self,

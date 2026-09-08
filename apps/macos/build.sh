@@ -23,9 +23,11 @@ else
 fi
 # Assemble in a new directory so obsolete frameworks cannot survive a rebuild.
 staging="$(mktemp -d "$PWD/dist-staging.XXXXXX")"
-trap 'rm -rf "$staging"' EXIT
+trap 'trash "$staging"' EXIT
 app="$staging/Agent Burn.app"
 mkdir -p "$app/Contents/"{MacOS,Resources,Frameworks} dist
+mkdir -p "$app/Contents/Library/LaunchAgents"
+cp Config/dev.melvynx.agent-burn.quota.plist "$app/Contents/Library/LaunchAgents/"
 if [[ "$release" == 1 ]]; then
   lipo -create "$bin/AgentBurn" "$intel/AgentBurn" -output "$app/Contents/MacOS/AgentBurn"
   lipo -create ../../rust/target/{aarch64-apple-darwin,x86_64-apple-darwin}/release/agent-burn -output "$app/Contents/Resources/agent-burn"
@@ -36,7 +38,8 @@ fi
 ditto "$bin/AgentBurn_AgentBurn.bundle" "$app/Contents/Resources/AgentBurn_AgentBurn.bundle"
 ditto "$bin/Sparkle.framework" "$app/Contents/Frameworks/Sparkle.framework"
 install_name_tool -add_rpath '@executable_path/../Frameworks' "$app/Contents/MacOS/AgentBurn"
-cp Assets/Logo/AppIcon.icns "$app/Contents/Resources/AppIcon.icns"
+# Finder and the running app use the exact same packaged artwork.
+cp "$app/Contents/Resources/AgentBurn_AgentBurn.bundle/AppIcon.icns" "$app/Contents/Resources/AppIcon.icns"
 cp ../../LICENSE "$app/Contents/Resources/LICENSE.txt"
 cp .build/checkouts/Sparkle/LICENSE "$app/Contents/Resources/Sparkle-LICENSE.txt"
 cat > "$app/Contents/Info.plist" <<PLIST
@@ -78,6 +81,6 @@ find "$app/Contents/Frameworks" -depth \( -name '*.xpc' -o -name '*.app' -o -nam
 done
 codesign "${flags[@]}" "$app"
 codesign --verify --deep --strict "$app"
-rm -rf 'dist/Agent Burn.app'
+if [[ -e 'dist/Agent Burn.app' ]]; then trash 'dist/Agent Burn.app'; fi
 mv "$app" 'dist/Agent Burn.app'
 echo "Built $PWD/dist/Agent Burn.app ($version)"

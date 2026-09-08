@@ -33,19 +33,10 @@ struct NativeUsageView: View {
         Spacer()
         PeriodPicker()
       }
-      if let error = store.errors["summary"] { ReportNotice(message: error) }
-      if let error = store.errors["cache"] { ReportNotice(message: error) }
-      if let error = store.errors["archive"] { ReportNotice(message: error) }
+      if store.summary == nil, let error = store.errors["summary"] {
+        ReportNotice(message: error)
+      }
       if store.summary != nil {
-        HStack {
-          Label(
-            "Daily history · \(store.archivedDays(for: agent)) days preserved on this Mac",
-            systemImage: "externaldrive.badge.checkmark")
-          Spacer()
-          Button("Show backup") {
-            NSWorkspace.shared.activateFileViewerSelecting([store.archiveURL])
-          }
-        }.font(.caption).foregroundStyle(.secondary)
         if agent == "cursor" {
           CursorAccountView(
             account: store.summary?.cursorAccount,
@@ -63,7 +54,7 @@ struct NativeUsageView: View {
               title: "Days recorded", value: days.count.formatted(), detail: store.period.label)
             Divider()
             SpendMetric(
-              title: "Models", value: models.count.formatted(),
+              title: "Models", value: store.hasPeriodDetails ? models.count.formatted() : "—",
               detail: agent.map(harnessName) ?? "Across all harnesses")
           }.padding(12).frame(height: 85)
         }
@@ -111,7 +102,7 @@ struct NativeUsageView: View {
           )
           .font(.caption).foregroundStyle(.secondary)
         }
-        modelSection
+        if store.hasPeriodDetails { modelSection }
         if agent == "cursor", store.period == .all, let recovered = store.recoveredCursor,
           let models = recovered.models
         {
@@ -178,13 +169,14 @@ struct NativeUsageView: View {
           if let first = days.first?.date, let last = days.last?.date { Text("\(first) – \(last)") }
         }.font(.caption).foregroundStyle(.secondary)
       } else {
+        if let agent, ["codex", "claude"].contains(agent) { quotaSection(agent) }
         ContentUnavailableView {
           Label(
             store.isLoading ? "Loading usage history" : "No report available",
             systemImage: "chart.bar.xaxis")
         } description: {
           Text(
-            "Reading your full log folders. Saved reports will appear immediately on future launches."
+            "Your usage will appear here when it is ready."
           )
         }
         .frame(maxWidth: .infinity, minHeight: 380)
@@ -214,32 +206,44 @@ struct NativeUsageView: View {
 
   @ViewBuilder private func quotaSection(_ agent: String) -> some View {
     if let error = store.errors[agent] { ReportNotice(message: error) }
+    if let error = store.errors["quotaService"] { ReportNotice(message: error) }
     if let forecast = store.forecast(for: agent) {
       GroupBox {
         HStack(alignment: .top, spacing: 28) {
           VStack(alignment: .leading, spacing: 14) {
-            Text("Weekly quota").font(.headline)
+            HStack {
+              Text("Weekly quota").font(.headline)
+              if !forecast.isFresh(at: store.quotaCheckDate) || store.quotaError(for: agent) != nil
+              {
+                Image(systemName: "clock.badge.exclamationmark")
+                  .foregroundStyle(.orange)
+                  .help(
+                    store.quotaError(for: agent)
+                      ?? "Showing the last known reading. Update pending."
+                  )
+                  .accessibilityLabel("Last known quota; update pending")
+              }
+            }
             HStack(alignment: .firstTextBaseline, spacing: 5) {
               Text("\(Int(forecast.remaining))%").font(
                 .system(size: 42, weight: .semibold, design: .rounded)
               ).monospacedDigit()
               Text("remaining").foregroundStyle(.secondary)
             }
-            Label(
-              forecast.daysEarly > 0.1 ? "Ahead of pace" : "On track",
-              systemImage: forecast.daysEarly > 0.1
-                ? "exclamationmark.circle.fill" : "checkmark.circle.fill"
+            .help(
+              "Updated \(forecast.observedAt.formatted(.dateTime.month(.abbreviated).day().hour().minute().second()))"
             )
-            .foregroundStyle(forecast.daysEarly > 0.1 ? .orange : .green).font(
-              .subheadline.weight(.medium))
             Text(
               "Reset: \(forecast.reset.formatted(.dateTime.month(.abbreviated).day().hour().minute()))"
             )
+            Text(resetSummary(store.resets(for: agent)))
+              .help(
+                "Scheduled resets happen near the cycle end. A possible reset is a remaining jump mid-cycle, which can be a manual reset or a provider correction."
+              )
             Text(
-              "Suggested pace: \(forecast.dailyAllowance.formatted(.number.precision(.fractionLength(1))))% / day"
+              "Daily budget: \(forecast.dailyAllowance.formatted(.number.precision(.fractionLength(1))))%"
             )
-            Text("Estimate based on this cycle’s average usage.").font(.caption).foregroundStyle(
-              .secondary)
+            .help("Remaining quota divided by the time until reset.")
           }.font(.subheadline).frame(width: 255, alignment: .leading)
           QuotaChart(
             forecast: forecast, samples: store.samples(for: agent),

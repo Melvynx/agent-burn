@@ -10,7 +10,7 @@ enum CLIError: LocalizedError {
     case .failed(let code):
       "Agent Burn exited with status \(code). Check your CLI configuration and harness sign-in, then retry."
     case .timedOut:
-      "The CLI took longer than two minutes. Try cached pricing in Settings, then refresh."
+      "Usage could not be updated in time. Please try again shortly."
     case .invalidOutput:
       "The CLI returned an unsupported report. Rebuild the app with the current Agent Burn CLI."
     }
@@ -36,20 +36,22 @@ enum CLIClient {
 
   static func read<T: Decodable & Sendable>(
     _ type: T.Type, executable: URL, arguments: [String], offline: Bool,
-    environment: [String: String] = [:]
+    environment: [String: String] = [:], timeout: TimeInterval = 120
   ) async throws -> T {
     try await Task.detached(priority: .utility) {
       let data = try run(
         executable: executable,
         arguments: arguments + ["--json", "--no-color"] + (offline ? ["--offline"] : []),
-        environment: environment)
+        environment: environment, timeout: timeout)
       do { return try JSONDecoder().decode(type, from: data) } catch {
         throw CLIError.invalidOutput
       }
     }.value
   }
 
-  private static func run(executable: URL, arguments: [String], environment: [String: String])
+  private static func run(
+    executable: URL, arguments: [String], environment: [String: String], timeout: TimeInterval
+  )
     throws -> Data
   {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -72,7 +74,7 @@ enum CLIClient {
     process.standardError = FileHandle.nullDevice
     process.standardInput = FileHandle.nullDevice
     try process.run()
-    let deadline = Date().addingTimeInterval(120)
+    let deadline = Date().addingTimeInterval(timeout)
     while process.isRunning && Date() < deadline { Thread.sleep(forTimeInterval: 0.1) }
     if process.isRunning {
       process.terminate()

@@ -3,6 +3,10 @@
 Native SwiftUI dashboard and menu-bar app, backed by the Rust Agent Burn CLI.
 macOS 14 or newer. Public releases contain Apple Silicon and Intel binaries.
 
+The Codex and Claude menu-bar tabs focus on remaining quota, its reset time, and
+a compact usage forecast. Expand **Usage details** for spend, plan pricing, and
+top models. Saved readings and update failures remain visible beside the quota.
+
 ## Install
 
 [Download Agent Burn](https://agent-burn.melvynx.dev/download), unzip it, move
@@ -12,12 +16,14 @@ sign in. Registration uses macOS Login Items; any required approval is shown in
 Settings. Disable the option to remove the login item. Menu-bar-only mode is
 respected at startup.
 
-Use Settings to configure sources, inspect the metrics backup, and manage update
-checks. The menu-bar percentage can show Codex, Claude, or Cursor remaining
+Use Settings to configure sources and manage update checks. The menu-bar percentage can show Codex, Claude, or Cursor remaining
 quota; change it from the percentage menu or **Settings → Menu bar quota**. Enable **Settings → Appearance → Menu bar only** to hide the app from
 the Dock and Command-Tab. The preference survives restarts; the dashboard and
 Settings remain accessible from the menu-bar icon. Disable it to restore Dock
 visibility. The app menu also provides **Check for Updates…**.
+
+The official full-color logo is shared by Finder, the Dock, Command-Tab, window
+icons, and the menu bar, including when running through Swift Package Manager.
 
 ## Build and test
 
@@ -35,6 +41,28 @@ CLI tooling; Xcode provides Apple SDKs. `just macos::build` and
 Package.resolved. The default build is ad-hoc signed for local development.
 
 ## Data
+
+Period changes immediately filter saved daily totals. Missing model detail loads
+in the background without disabling the selector. Recent reports are reused, and
+rapid changes load the latest selected period. Harness tabs read only their own
+source; General reads all sources. Automatic refresh maintains history and recovery
+files without dashboard controls. If a refresh fails, saved data stays visible.
+
+Codex and Claude quotas are collected every minute by a macOS background agent,
+even after the app quits. Enable or disable this in **Settings → Background quota
+history**; allow background activity in macOS Settings if requested. The agent
+reads live provider counters independently of full spend reports and cached mode.
+Collection resumes after sleep or login. During outages, the last valid reading
+and its timestamp remain visible; missed measurements are not fabricated.
+
+`quota-archive.json` keeps collected quota readings without expiration, with a
+previous valid `.bak` copy. Existing `quota-history.json` is preserved as a saved
+reading fallback. `quota-collector.json` contains source paths, never credentials.
+
+`usage-journal.json` keeps changed report snapshots per source. If both
+`report-cache.json` and its `.bak` are unreadable, the journal rebuilds daily graphs
+and model totals. Quota screens count scheduled and possible resets from remaining
+jumps; **Reset to date** filters spend from the current cycle start.
 
 Metrics are stored under `~/Library/Application Support/Agent Burn/`.
 `metrics-history.json` preserves observed daily spend and token high-water marks

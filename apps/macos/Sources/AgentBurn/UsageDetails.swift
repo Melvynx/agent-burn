@@ -210,6 +210,6 @@ struct PeriodPicker: View {
     @Bindable var store = store
     Picker("Period", selection: $store.period) {
       ForEach(UsagePeriod.allCases) { period in Text(period.label).tag(period) }
-    }.labelsHidden().frame(width: 145).disabled(store.isLoading)
+    }.labelsHidden().frame(width: 160)
   }
 }

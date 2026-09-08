@@ -11,6 +11,8 @@ pub enum Command {
 
 #[derive(Clone, Debug, Default)]
 pub struct SharedArgs {
+    /// Empty loads all sources; otherwise only these summary harnesses are read.
+    pub agents: Vec<String>,
     pub since: Option<String>,
     pub until: Option<String>,
     pub json: bool,

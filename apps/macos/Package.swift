@@ -9,7 +9,7 @@ let package = Package(
   targets: [
     .executableTarget(
       name: "AgentBurn", dependencies: [.product(name: "Sparkle", package: "Sparkle")],
-      resources: [.copy("Resources/MenuBarIcon.pdf"), .copy("Resources/Brands")]),
+      resources: [.copy("Resources/AppIcon.icns"), .copy("Resources/Brands")]),
     .testTarget(name: "AgentBurnTests", dependencies: ["AgentBurn"]),
   ]
 )

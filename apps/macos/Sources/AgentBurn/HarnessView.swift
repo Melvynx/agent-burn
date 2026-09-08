@@ -8,6 +8,14 @@ struct HarnessView: View {
   private var color: Color { BurnTheme.color(for: agent) }
 
   var body: some View {
+    if compact {
+      CompactHarnessView(agent: agent)
+    } else {
+      expandedBody
+    }
+  }
+
+  private var expandedBody: some View {
     VStack(alignment: .leading, spacing: compact ? 20 : 28) {
       HStack(spacing: 10) {
         HarnessIcon(agent: agent)
@@ -23,6 +31,7 @@ struct HarnessView: View {
           color: store.errors[agent] != nil ? BurnTheme.accent : color)
       }
       if let error = store.errors[agent] { ReportNotice(message: error) }
+      if let error = store.errors["quotaService"] { ReportNotice(message: error) }
       if let report = store.reports[agent] {
         HStack {
           SpendMetric(
@@ -58,8 +67,10 @@ struct HarnessView: View {
             VStack(alignment: .leading, spacing: 14) {
               Text("Weekly limit").font(.system(size: 12)).foregroundStyle(BurnTheme.muted)
               quotaHeader(forecast)
-              Text("\(currency(forecast.window.apiEquivalentSpent)) used this cycle")
-                .font(.system(size: 12)).foregroundStyle(BurnTheme.muted)
+              if !forecast.isLive {
+                Text("\(currency(forecast.window.apiEquivalentSpent)) used this cycle")
+                  .font(.system(size: 12)).foregroundStyle(BurnTheme.muted)
+              }
             }.frame(width: 280, alignment: .leading)
             QuotaChart(forecast: forecast, samples: store.samples(for: agent), color: color)
           }.padding(.vertical, 10)
@@ -149,14 +160,19 @@ struct HarnessView: View {
         Text(forecast.reset.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
       }
       HStack {
+        Label("Recorded resets", systemImage: "arrow.counterclockwise").foregroundStyle(BurnTheme.muted)
+        Spacer()
+        Text(resetSummary(store.resets(for: agent)))
+      }
+      .help(
+        "Scheduled resets happen near the cycle end. A possible reset is a remaining jump mid-cycle, which can be a manual reset or a provider correction."
+      )
+      HStack {
         Label("Suggested pace", systemImage: "speedometer").foregroundStyle(BurnTheme.muted)
         Spacer()
         Text("\(forecast.dailyAllowance.formatted(.number.precision(.fractionLength(1))))% / day")
           .foregroundStyle(color)
       }
-      Text("Forecast uses average consumption this cycle; provider limits may change.")
-        .font(.system(size: 10)).foregroundStyle(BurnTheme.muted)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
     .font(.system(size: 12)).monospacedDigit()
     .padding(14).background(BurnTheme.surface, in: RoundedRectangle(cornerRadius: 10))

@@ -41,7 +41,7 @@ fn overlay_logs(mut live: CodexPlanSnapshot) -> CodexPlanSnapshot {
 /// Fetch the signed-in Codex account weekly limit from ChatGPT, mirroring the
 /// dashboard meter. Returns `None` when offline, when no token is available, or
 /// on any network error (never fatal).
-fn usage_limits(offline: bool) -> Option<CodexPlanSnapshot> {
+pub(crate) fn usage_limits(offline: bool) -> Option<CodexPlanSnapshot> {
     if offline {
         return None;
     }

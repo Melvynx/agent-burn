@@ -125,6 +125,35 @@ fn parse_summary_command(
             continue;
         }
         match parser.next_flag()?.as_str() {
+            "--agents" => {
+                let names = parser.value_for("--agents")?;
+                for name in names.split(',').map(str::trim) {
+                    if !matches!(
+                        name,
+                        "claude"
+                            | "codex"
+                            | "opencode"
+                            | "amp"
+                            | "droid"
+                            | "codebuff"
+                            | "hermes"
+                            | "pi"
+                            | "goose"
+                            | "openclaw"
+                            | "kilo"
+                            | "copilot"
+                            | "cursor"
+                            | "gemini"
+                            | "kimi"
+                            | "qwen"
+                    ) {
+                        return Err(format!("Unsupported summary agent '{name}'"));
+                    }
+                    if !shared.agents.iter().any(|agent| agent == name) {
+                        shared.agents.push(name.to_string());
+                    }
+                }
+            }
             "--value" => value = true,
             "--html" => html = true,
             "--chart" => chart = true,
@@ -298,6 +327,7 @@ fn option_takes_value(arg: &str) -> bool {
             | "--claude-plan"
             | "--codex-plan"
             | "--cursor-plan"
+            | "--agents"
             | "--range"
     )
 }

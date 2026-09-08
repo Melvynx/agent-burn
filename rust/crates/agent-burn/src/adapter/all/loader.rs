@@ -255,6 +255,7 @@ pub(super) fn load_rows(kind: AgentReportKind, shared: &SharedArgs) -> Result<Al
             },
         ],
         &mut progress,
+        &shared.agents,
     )?;
     let mut detected_agents = Vec::new();
     let mut rows = Vec::new();
@@ -286,9 +287,11 @@ pub(super) fn load_rows(kind: AgentReportKind, shared: &SharedArgs) -> Result<Al
 }
 
 pub(super) fn load_agent_rows_parallel(
-    specs: Vec<AgentLoadSpec<'_>>,
+    mut specs: Vec<AgentLoadSpec<'_>>,
     progress: &mut crate::progress::UsageLoadProgress,
+    agents: &[String],
 ) -> Result<Vec<LoadedAgentRows>> {
+    specs.retain(|spec| agents.is_empty() || agents.iter().any(|agent| agent == spec.agent));
     for spec in &specs {
         progress.start(spec.progress_agent);
     }

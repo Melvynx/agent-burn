@@ -67,11 +67,33 @@ fn loads_agent_rows_concurrently() {
     .collect();
     let mut progress = crate::progress::UsageLoadProgress::new(false);
 
-    let loaded = load_agent_rows_parallel(specs, &mut progress).unwrap();
+    let loaded = load_agent_rows_parallel(specs, &mut progress, &[]).unwrap();
 
     assert_eq!(loaded.len(), 2);
     assert_eq!(loaded[0].agent, "claude");
     assert_eq!(loaded[1].agent, "codex");
+}
+
+#[test]
+fn selected_agents_skip_unrelated_loaders_entirely() {
+    let specs: Vec<AgentLoadSpec<'_>> = vec![
+        AgentLoadSpec {
+            index: 0,
+            agent: "claude",
+            progress_agent: crate::progress::UsageLoadAgent::Claude,
+            load: Box::new(|| panic!("unselected source must never be read")),
+        },
+        AgentLoadSpec {
+            index: 1,
+            agent: "codex",
+            progress_agent: crate::progress::UsageLoadAgent::Codex,
+            load: Box::new(|| Ok(test_agent_rows("codex"))),
+        },
+    ];
+    let mut progress = crate::progress::UsageLoadProgress::new(false);
+    let loaded = load_agent_rows_parallel(specs, &mut progress, &["codex".to_string()]).unwrap();
+    assert_eq!(loaded.len(), 1);
+    assert_eq!(loaded[0].agent, "codex");
 }
 
 #[test]

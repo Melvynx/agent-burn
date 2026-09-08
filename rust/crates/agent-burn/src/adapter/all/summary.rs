@@ -91,7 +91,10 @@ pub(super) fn run(args: SummaryArgs) -> Result<()> {
 
     if wants_json(&shared) {
         let mut output = detail::to_json(&summary, &result.rows);
-        if value && let Some(account) = cursor::load_account(shared.offline) {
+        if value
+            && (shared.agents.is_empty() || shared.agents.iter().any(|agent| agent == "cursor"))
+            && let Some(account) = cursor::load_account(shared.offline)
+        {
             output["cursorAccount"] = account;
         }
         if let (Some(object), Some(subscription)) = (output.as_object_mut(), subscription.as_ref())
@@ -198,7 +201,17 @@ fn run_harness_weekly(
     codex_spec: Option<&str>,
     claude_spec: Option<&str>,
 ) -> Result<()> {
-    let result = loader::load_rows(AgentReportKind::Daily, shared)?;
+    if wants_json(shared) && std::env::var("AGENT_BURN_QUOTA_ONLY").as_deref() == Ok("1") {
+        let snapshot = super::quota::snapshot(agent, shared.offline).ok_or_else(|| {
+            crate::CliError("Live quota unavailable; previous readings should be retained".into())
+        })?;
+        return print_json_or_jq(snapshot, shared.jq.as_deref(), false);
+    }
+    let selected = SharedArgs {
+        agents: vec![agent.to_string()],
+        ..shared.clone()
+    };
+    let result = loader::load_rows(AgentReportKind::Daily, &selected)?;
     let rows = &result.rows;
 
     let (plan_name, price, window, live_limits) = if agent == "codex" {

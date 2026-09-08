@@ -59,6 +59,18 @@ private func snapshot(_ days: String) throws -> SummaryReport {
   #expect(restored.report(period: .all, live: nil, now: now).totals.totalCost == 30)
 }
 
+@Test func archiveFiltersResetToDateFromLastReset() throws {
+  var archive = MetricsArchive()
+  archive.ingest(
+    try snapshot(
+      """
+      {"date":"2026-08-31","cost":20,"tokens":200},{"date":"2026-09-01","cost":10,"tokens":100}
+      """))
+  let now = try Date("2026-09-05T12:00:00Z", strategy: .iso8601)
+  let reset = try Date("2026-09-01T00:00:00Z", strategy: .iso8601)
+  #expect(archive.report(period: .rtd, live: nil, now: now, resetStart: reset).totals.totalCost == 10)
+}
+
 @Test func archiveRecoversPreviousFileWhenPrimaryIsCorrupted() throws {
   let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
   defer { try? FileManager.default.removeItem(at: folder) }

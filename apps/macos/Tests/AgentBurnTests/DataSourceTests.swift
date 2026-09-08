@@ -19,6 +19,7 @@ import Testing
 @Test func allTimeDoesNotPassAnUnsupportedRangeToCLI() {
   #expect(UsagePeriod.all.arguments == ["summary", "--value"])
   #expect(UsagePeriod.mtd.arguments == ["summary", "mtd", "--value"])
+  #expect(UsagePeriod.rtd.arguments == ["summary", "--value"])
 }
 
 @Test func reportCachePreservesHistoricalDailyUsage() throws {

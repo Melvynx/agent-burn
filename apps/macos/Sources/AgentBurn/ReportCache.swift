@@ -1,5 +1,12 @@
 import Foundation
 
+struct SummaryQuery: Equatable {
+  let period: UsagePeriod
+  let agent: String?
+  var cacheKey: String { period.rawValue + (agent.map { ":" + $0 } ?? "") }
+  var arguments: [String] { period.arguments + (agent.map { ["--agents", $0] } ?? []) }
+}
+
 enum SourcePaths {
   static func codexHomes(home: String, inherited: String?) -> String {
     let candidates = [home + "/.codex"] + (inherited ?? "").split(separator: ",").map(String.init)

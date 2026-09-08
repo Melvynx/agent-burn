@@ -1,5 +1,6 @@
 mod chart;
 mod loader;
+mod quota;
 mod report;
 mod report_html;
 mod subscription;

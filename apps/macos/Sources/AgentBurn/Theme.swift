@@ -10,6 +10,26 @@ enum BurnTheme {
   static let green = Color.green
   static let line = Color(nsColor: .separatorColor).opacity(0.5)
 
+  // Compact quota text and chart strokes must stay legible on menu material in both appearances.
+  static let quotaMuted = adaptiveQuotaColor(
+    light: NSColor(white: 0.38, alpha: 1), dark: NSColor(white: 0.68, alpha: 1))
+  private static let quotaClaude = adaptiveQuotaColor(
+    light: NSColor(red: 0.55, green: 0.26, blue: 0.02, alpha: 1), dark: .systemOrange)
+
+  static func quotaColor(for agent: String) -> Color {
+    agent == "claude"
+      ? quotaClaude
+      : adaptiveQuotaColor(
+        light: NSColor(red: 0.04, green: 0.43, blue: 0.18, alpha: 1), dark: .systemGreen)
+  }
+
+  private static func adaptiveQuotaColor(light: NSColor, dark: NSColor) -> Color {
+    Color(
+      nsColor: NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
+      })
+  }
+
   static func color(for agent: String) -> Color {
     switch agent {
     case "codex": green
@@ -68,16 +88,19 @@ struct SectionLabel: View {
 struct RefreshFooter: View {
   @Environment(UsageStore.self) private var store
   let source: String
+  var compact = false
   var body: some View {
     HStack(spacing: 7) {
       Circle().fill(store.errors[source] == nil ? BurnTheme.green : BurnTheme.accent).frame(
         width: 5, height: 5)
-      if store.isLoading {
-        Text("Reading local usage…")
-      } else if let date = store.updated[source] {
+      if let date = store.updated[source] {
         Text(store.errors[source] == nil ? "Updated" : "Last successful update")
         Text(date, style: .relative)
         Text("ago")
+      } else if source == "summary", store.summary != nil {
+        Text("Saved usage")
+      } else if store.isLoading {
+        Text("Updating usage…")
       } else {
         Text("Waiting for usage")
       }
@@ -90,7 +113,7 @@ struct RefreshFooter: View {
       .buttonStyle(.plain).disabled(store.isLoading)
       .help("Refresh usage").accessibilityLabel("Refresh usage")
     }
-    .font(.system(size: 11)).foregroundStyle(BurnTheme.muted)
+    .font(.system(size: 11)).foregroundStyle(compact ? BurnTheme.quotaMuted : BurnTheme.muted)
   }
 }
 

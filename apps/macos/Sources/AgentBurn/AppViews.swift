@@ -3,19 +3,21 @@ import SwiftUI
 struct MenuPopover: View {
   @Environment(UsageStore.self) private var store
   @Environment(\.openWindow) private var openWindow
-  @State private var tab = "codex"
+  private var tab: String { store.selection }
 
   var body: some View {
+    @Bindable var store = store
     VStack(spacing: 0) {
       HStack {
         Label("Agent Burn", systemImage: "flame.fill").font(.system(size: 13, weight: .semibold))
-          .foregroundStyle(BurnTheme.accent)
+          .foregroundStyle(BurnTheme.ink)
         Spacer()
-        QuotaSourceMenu()
         SettingsLink { Image(systemName: "gearshape") }
           .buttonStyle(.plain).foregroundStyle(BurnTheme.muted).help("Settings")
+          .accessibilityLabel("Settings")
+          .frame(minWidth: 24, minHeight: 24)
       }.padding(.horizontal, 22).padding(.top, 19).padding(.bottom, 17)
-      HarnessTabs(selection: $tab, compact: true)
+      HarnessTabs(selection: $store.selection, compact: true)
         .padding(4)
         .padding(.horizontal, 18).padding(.bottom, 20)
       ScrollView {
@@ -28,10 +30,10 @@ struct MenuPopover: View {
             SourceUsageView(agent: tab, compact: true)
           }
         }.padding(.horizontal, 22).padding(.bottom, 20)
-      }.frame(height: 520)
+      }.frame(height: ["codex", "claude"].contains(tab) ? 440 : 520)
       Rectangle().fill(BurnTheme.line).frame(height: 1)
-      VStack(spacing: 16) {
-        RefreshFooter(source: ["codex", "claude"].contains(tab) ? tab : "summary")
+      VStack(spacing: 10) {
+        RefreshFooter(source: ["codex", "claude"].contains(tab) ? tab : "summary", compact: true)
         HStack {
           Button {
             store.selection = tab
@@ -86,11 +88,11 @@ struct DashboardView: View {
       }
       ToolbarItemGroup(placement: .primaryAction) {
         Button {
-          Task { await store.refresh() }
+          Task { await store.refreshAll() }
         } label: {
           Label("Refresh", systemImage: "arrow.clockwise")
         }
-        .disabled(store.isLoading).help("Refresh usage")
+        .help("Refresh usage and live quotas")
         SettingsLink { Label("Settings", systemImage: "gearshape") }.help("Settings")
       }
     }
@@ -144,10 +146,13 @@ struct QuotaSourceMenu: View {
         }
       }
     } label: {
-      Text(menuBarQuotaText(store.remainingPercent))
-        .monospacedDigit()
-        .fontWeight(.medium)
-        .fixedSize()
+      Text(
+        menuBarQuotaText(
+          store.remainingPercent, stale: store.quotaIsStale(at: store.quotaCheckDate))
+      )
+      .monospacedDigit()
+      .fontWeight(.medium)
+      .fixedSize()
     }
     .menuIndicator(.visible)
     .fixedSize()
@@ -185,16 +190,6 @@ struct SettingsView: View {
       AppearanceSettings()
       QuotaSourceSettings()
       UpdateSettings()
-      Section("Permanent metrics history") {
-        LabeledContent("Days preserved", value: store.archivedDayCount.formatted())
-        Text(
-          "Daily spend and token totals are kept without expiration. No conversations or prompts are stored. Keep a copy on another disk to protect against losing this Mac."
-        )
-        .font(.caption).foregroundStyle(.secondary)
-        Button("Show metrics backup in Finder") {
-          NSWorkspace.shared.activateFileViewerSelecting([store.archiveURL])
-        }
-      }
       Section("Data source") {
         TextField("CLI executable", text: $store.customPath, prompt: Text("Bundled agent-burn"))
           .help("Absolute path to the native agent-burn executable")
@@ -221,14 +216,16 @@ struct SettingsView: View {
       }
       Section("Refresh") {
         Picker("Automatically refresh", selection: $store.refreshMinutes) {
+          Text("Every minute").tag(1)
           Text("Every 5 minutes").tag(5)
           Text("Every 15 minutes").tag(15)
           Text("Every 30 minutes").tag(30)
         }
         Button(store.isLoading ? "Refreshing…" : "Apply and refresh") {
-          Task { await store.refresh() }
-        }.disabled(store.isLoading)
+          Task { await store.refreshAll() }
+        }
       }
+      QuotaCollectionSettings()
     }
     .formStyle(.grouped).padding(12).frame(width: 560, height: 520)
   }

@@ -34,6 +34,13 @@ nix build github:Melvynx/agent-burn#agent-burn
 
 ## macOS app
 
+Codex and Claude quotas are collected every minute by a macOS background agent,
+even after the app quits. Enable or disable this in **Settings → Background quota
+history**; allow background activity in macOS Settings if requested. The agent
+reads live provider counters independently of full spend reports and cached mode.
+Collection resumes after sleep or login. During outages, the last valid reading
+and its timestamp remain visible; missed measurements are not fabricated.
+
 The first public Mac download is awaiting Apple notarization.
 [Check download availability](/download). Once released, unzip it and move **Agent Burn.app**
 to **Applications**. The signed, notarized download supports Apple Silicon and
@@ -53,6 +60,9 @@ This builds `apps/macos/dist/Agent Burn.app` with a bundled native CLI. The app 
 locally signed for development. The public download is separately signed and notarized.
 
 Use the flame in the menu bar to switch between General, Codex, Claude, and Cursor.
+The Codex and Claude tabs focus on remaining quota, reset time, and the forecast.
+Expand **Usage details** for spend and models; saved readings and update failures
+stay visible beside the quota.
 Choose **Settings → Menu bar quota** (or the percentage next to the flame) to show
 Codex, Claude, or Cursor remaining usage in the menu bar and window toolbar.
 Enable **Settings → Startup → Launch at login** to start the app when you sign
@@ -63,15 +73,21 @@ Enable **Settings → Appearance → Menu bar only** to hide Agent Burn from the
 and Command-Tab. The choice is remembered between launches; disable it to show
 the app again. The dashboard and Settings remain available from the menu bar.
 Choose **Open dashboard** for full harness details and a General tab with WTD, MTD, YTD, and rolling
-week/month and All time filters. Cursor shows dashboard spend, models, tokens, included allowance, promotional
+week/month, Reset to date, and All time filters. Cursor shows dashboard spend, models, tokens, included allowance, promotional
 credits, expiration dates and billing-cycle dates when its account API supplies them.
 Settings control the native CLI path, Codex source folders, cached pricing, and
 refresh interval. The app includes the standard `~/.codex` folder alongside the
 launching profile and stores aggregate report snapshots locally for reopening.
+Changed reports are kept in `usage-journal.json` so daily graphs and model totals can
+be rebuilt if both `report-cache.json` and its `.bak` are unreadable. Quota screens
+count scheduled and possible resets.
 Daily spend and token totals are retained without expiration in
 `~/Library/Application Support/Agent Burn/metrics-history.json`, with a previous-version
 `.bak` recovery copy. Date filters and charts use this archive after source logs
-disappear. Repeated refreshes retain the highest observed total per day instead of
+disappear. Period changes show saved totals immediately while missing detail refreshes
+in the background. Recent reports are reused, the selector stays enabled, and
+harness tabs read only their selected source. History and recovery files are
+maintained automatically without dashboard controls. Repeated refreshes retain the highest observed total per day instead of
 adding duplicate snapshots. Partial deletion within a day can hide new usage until
 it exceeds the previous total. Copy this file off the Mac for disaster recovery.
 Cursor begins at its current billing cycle; model and token-category detail still

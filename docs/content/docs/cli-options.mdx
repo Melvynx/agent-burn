@@ -21,13 +21,19 @@ agent-burn summary --value
 agent-burn summary yesterday
 agent-burn summary week --value
 agent-burn summary --range month --json
+agent-burn summary week --agents codex,claude --json
 ```
+
+Use `--agents` to read only selected sources, skipping all other harness loaders
+and their provider calls. It accepts comma-separated names and may be repeated.
+Without it, `summary` reads all supported sources.
 
 Summary-specific options:
 
 | Option | Description |
 | --- | --- |
 | `--range <today\|yesterday\|wtd\|mtd\|ytd\|week\|month>` | Apply a quick date range |
+| `--agents <names>` | Load only comma-separated harnesses, such as `codex,claude` |
 | `--value` | Show subscription value |
 | `--html` | Write and open an interactive HTML report with daily model/agent charts |
 | `--chart` | Append a day-by-day stacked-by-model chart to the terminal |

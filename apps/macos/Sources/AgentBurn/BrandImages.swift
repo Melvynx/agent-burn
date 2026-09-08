@@ -2,24 +2,19 @@ import AppKit
 
 @MainActor enum AppLogo {
   static let menuBar: NSImage = {
-    let resources =
-      Bundle.main.url(forResource: "AgentBurn_AgentBurn", withExtension: "bundle")
-      .flatMap { Bundle(url: $0) } ?? Bundle.module
-    let image = NSImage(
-      contentsOf: resources.url(forResource: "MenuBarIcon", withExtension: "pdf")!)!
+    let image = window.copy() as! NSImage
     image.size = NSSize(width: 18, height: 18)
-    image.isTemplate = true
     return image
   }()
 
   static let window: NSImage = {
-    if let icns = Bundle.main.url(forResource: "AppIcon", withExtension: "icns").flatMap({
-      NSImage(contentsOf: $0)
-    }) {
-      icns.isTemplate = false
-      return icns
-    }
-    return menuBar
+    let resources =
+      Bundle.main.url(forResource: "AgentBurn_AgentBurn", withExtension: "bundle")
+      .flatMap { Bundle(url: $0) } ?? Bundle.module
+    let image = NSImage(
+      contentsOf: resources.url(forResource: "AppIcon", withExtension: "icns")!)!
+    image.isTemplate = false
+    return image
   }()
 }
 
