@@ -43,11 +43,11 @@ cp Config/dev.melvynx.agent-burn.quota.plist "$app/Contents/Library/LaunchAgents
 if [[ "$release" == 1 ]]; then
   lipo -create "$bin/AgentBurn" "$intel/AgentBurn" -output "$app/Contents/MacOS/AgentBurn"
   lipo -create ../../rust/target/{aarch64-apple-darwin,x86_64-apple-darwin}/release/agent-burn -output "$app/Contents/Resources/agent-burn"
-  cp "$collector" "$app/Contents/Resources/AgentBurnQuotaCollector"
+  cp "$collector" "$app/Contents/MacOS/AgentBurnQuotaCollector"
 else
   cp "$bin/AgentBurn" "$app/Contents/MacOS/AgentBurn"
   cp "$cli" "$app/Contents/Resources/agent-burn"
-  cp "$collector" "$app/Contents/Resources/AgentBurnQuotaCollector"
+  cp "$collector" "$app/Contents/MacOS/AgentBurnQuotaCollector"
 fi
 ditto "$bin/AgentBurn_AgentBurn.bundle" "$app/Contents/Resources/AgentBurn_AgentBurn.bundle"
 ditto "$bin/Sparkle.framework" "$app/Contents/Frameworks/Sparkle.framework"
@@ -86,7 +86,7 @@ if [[ "$release" == 1 ]]; then
   flags+=(--options runtime --timestamp)
 fi
 codesign "${flags[@]}" "$app/Contents/Resources/agent-burn"
-codesign "${flags[@]}" "$app/Contents/Resources/AgentBurnQuotaCollector"
+codesign "${flags[@]}" "$app/Contents/MacOS/AgentBurnQuotaCollector"
 # Sign Sparkle's nested helpers before the enclosing framework and application.
 find "$app/Contents/Frameworks" -type f -perm +111 -print0 | while IFS= read -r -d '' executable; do
   if file "$executable" | grep -q 'Mach-O'; then codesign "${flags[@]}" "$executable"; fi
