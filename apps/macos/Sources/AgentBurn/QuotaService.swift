@@ -5,10 +5,13 @@ enum QuotaService {
   static let plistName = "dev.melvynx.agent-burn.quota.plist"
   static var service: SMAppService { .agent(plistName: plistName) }
 
-  static func registerIfNeeded() throws {
-    if service.status == .notRegistered || service.status == .notFound {
-      try service.register()
+  /// Refresh the ServiceManagement registration so an app replacement never
+  /// leaves launchd pointing at the previous signed bundle.
+  static func registerForCurrentBundle() async throws {
+    if service.status == .enabled {
+      try await service.unregister()
     }
+    try service.register()
   }
 }
 

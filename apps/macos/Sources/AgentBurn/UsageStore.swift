@@ -165,7 +165,7 @@ final class UsageStore {
     started = true
     configureQuotaCollector()
     if defaults.object(forKey: "backgroundQuotas") as? Bool != false {
-      do { try QuotaService.registerIfNeeded() } catch {
+      do { try await QuotaService.registerForCurrentBundle() } catch {
         errors["quotaService"] =
           "Background collection could not start. Enable it in Settings → Background quota history."
       }
