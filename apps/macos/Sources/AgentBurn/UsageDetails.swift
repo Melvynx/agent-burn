@@ -213,3 +213,18 @@ struct PeriodPicker: View {
     }.labelsHidden().frame(width: 160)
   }
 }
+
+struct QuotaChartRangePicker: View {
+  @Environment(UsageStore.self) private var store
+  var body: some View {
+    @Bindable var store = store
+    Picker("Quota chart range", selection: $store.quotaChartRange) {
+      ForEach(QuotaChartRange.allCases) { range in Text(range.label).tag(range) }
+    }
+    .labelsHidden()
+    .pickerStyle(.menu)
+    .frame(width: 160)
+    .help("Changes only the weekly quota chart. Spend period stays independent.")
+    .accessibilityLabel("Quota chart range")
+  }
+}

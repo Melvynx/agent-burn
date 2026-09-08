@@ -245,9 +245,17 @@ struct NativeUsageView: View {
             )
             .help("Remaining quota divided by the time until reset.")
           }.font(.subheadline).frame(width: 255, alignment: .leading)
-          QuotaChart(
-            forecast: forecast, samples: store.samples(for: agent),
-            color: BurnTheme.color(for: agent), compact: true)
+          VStack(alignment: .trailing, spacing: 8) {
+            QuotaChartRangePicker()
+            QuotaChart(
+              forecast: forecast,
+              samples: store.samples(
+                for: agent, range: store.quotaChartRange, now: store.quotaCheckDate),
+              color: BurnTheme.color(for: agent), compact: true,
+              range: store.quotaChartRange, now: store.quotaCheckDate
+            )
+            .id(store.quotaChartRange)
+          }
         }.padding(12)
       }
     } else {

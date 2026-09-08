@@ -59,6 +59,9 @@ final class UsageStore {
   var quotaSource: QuotaSource {
     didSet { defaults.set(quotaSource.rawValue, forKey: "quotaSource") }
   }
+  var quotaChartRange: QuotaChartRange {
+    didSet { defaults.set(quotaChartRange.rawValue, forKey: "quotaChartRange") }
+  }
   private var history: [String: [QuotaSample]] = [:]
   private var quotaHistory = QuotaHistory()
   private var quotaSourceKey: String { customPath + "|" + codexHomes }
@@ -101,6 +104,8 @@ final class UsageStore {
     offline = defaults.bool(forKey: "offline")
     refreshMinutes = max(1, defaults.integer(forKey: "refreshMinutes"))
     quotaSource = QuotaSource(rawValue: defaults.string(forKey: "quotaSource") ?? "") ?? .codex
+    quotaChartRange =
+      QuotaChartRange(rawValue: defaults.string(forKey: "quotaChartRange") ?? "") ?? .rte
     historyURL =
       (storageDirectory
       ?? FileManager.default.homeDirectoryForCurrentUser
@@ -118,7 +123,8 @@ final class UsageStore {
     {
       cache = decoded
       summary = decoded.summaries[period.rawValue]?.report ?? decoded.summaries["all"]?.report
-      updated["summary"] = decoded.summaries[period.rawValue]?.date
+      updated["summary"] =
+        decoded.summaries[period.rawValue]?.date
         ?? decoded.summaries["all"]?.date
       for (agent, saved) in decoded.harnesses {
         reports[agent] = saved.report
@@ -410,12 +416,16 @@ final class UsageStore {
     return Forecast(window: window, observedAt: date)
   }
 
-  func samples(for agent: String) -> [QuotaSample] {
-    guard let forecast = forecast(for: agent) else { return [] }
-    let samples =
-      quotaHistory.latest(agent: agent, source: quotaSourceKey) == nil
+  func archivedSamples(for agent: String) -> [QuotaSample] {
+    quotaHistory.latest(agent: agent, source: quotaSourceKey) == nil
       ? history[agent] ?? [] : quotaHistory.samples(agent: agent, source: quotaSourceKey)
-    return cycleSamples(samples, since: forecast.start.addingTimeInterval(-60))
+  }
+
+  func samples(for agent: String, range: QuotaChartRange = .rte, now: Date = .now) -> [QuotaSample]
+  {
+    guard let forecast = forecast(for: agent) else { return [] }
+    return quotaChartSamples(
+      archivedSamples(for: agent), range: range, forecast: forecast, now: now)
   }
 
   func resets(for agent: String) -> [QuotaReset] {

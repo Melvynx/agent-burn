@@ -171,6 +171,56 @@ struct QuotaSample: Codable, Sendable {
   let remaining: Double
 }
 
+enum QuotaChartRange: String, CaseIterable, Identifiable {
+  case rte, rtd, today, week, month
+  var id: String { rawValue }
+  var label: String {
+    switch self {
+    case .rte: "Until reset"
+    case .rtd: "Reset to today"
+    case .today: "Today"
+    case .week: "Last 7 days"
+    case .month: "Last 30 days"
+    }
+  }
+}
+
+func quotaChartWindow(range: QuotaChartRange, forecast: Forecast, now: Date) -> ClosedRange<Date> {
+  let cursor = min(now, forecast.observedAt)
+  let start: Date
+  let end: Date
+  switch range {
+  case .rte:
+    start = forecast.start
+    end = max(now, forecast.reset)
+  case .rtd:
+    start = forecast.start
+    end = max(cursor, forecast.observedAt)
+  case .today:
+    start = Calendar.current.startOfDay(for: cursor)
+    end = max(cursor, forecast.observedAt)
+  case .week:
+    start = cursor.addingTimeInterval(-7 * 86_400)
+    end = max(cursor, forecast.observedAt)
+  case .month:
+    start = cursor.addingTimeInterval(-30 * 86_400)
+    end = max(cursor, forecast.observedAt)
+  }
+  return start...max(start.addingTimeInterval(1), end)
+}
+
+func quotaChartSamples(
+  _ samples: [QuotaSample], range: QuotaChartRange, forecast: Forecast, now: Date
+) -> [QuotaSample] {
+  let window = quotaChartWindow(range: range, forecast: forecast, now: now)
+  let inWindow = samples.filter { $0.date >= window.lowerBound && $0.date <= window.upperBound }
+    .sorted { $0.date < $1.date }
+  if range == .rte || range == .rtd {
+    return cycleSamples(inWindow, since: window.lowerBound.addingTimeInterval(-60))
+  }
+  return inWindow
+}
+
 func quotaSampleSegments(_ samples: [QuotaSample]) -> [[QuotaSample]] {
   var segments: [[QuotaSample]] = []
   for sample in samples.sorted(by: { $0.date < $1.date }) {

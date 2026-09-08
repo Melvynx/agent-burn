@@ -74,6 +74,10 @@ import Testing
   try render(
     DashboardView().environment(store).frame(width: 1060, height: 780),
     to: output.appendingPathComponent("harness.png"))
+  store.quotaChartRange = .month
+  try render(
+    DashboardView().environment(store).frame(width: 1060, height: 780),
+    to: output.appendingPathComponent("harness-month.png"))
 }
 
 @MainActor private func render(
