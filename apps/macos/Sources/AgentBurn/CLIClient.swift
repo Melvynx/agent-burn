@@ -20,10 +20,18 @@ enum CLIError: LocalizedError {
 enum CLIClient {
   static func executable(customPath: String) throws -> URL {
     let home = FileManager.default.homeDirectoryForCurrentUser.path
+    let executable = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()
+    let bundledCLI: String
+    if executable.deletingLastPathComponent().lastPathComponent == "Resources" {
+      bundledCLI = executable.deletingLastPathComponent().appendingPathComponent("agent-burn").path
+    } else {
+      bundledCLI = executable.deletingLastPathComponent().deletingLastPathComponent()
+        .appendingPathComponent("Resources/agent-burn").path
+    }
     let candidates =
       customPath.isEmpty
       ? [
-        Bundle.main.resourceURL?.appendingPathComponent("agent-burn").path ?? "",
+        bundledCLI, Bundle.main.resourceURL?.appendingPathComponent("agent-burn").path ?? "",
         "/opt/homebrew/bin/agent-burn", "/usr/local/bin/agent-burn",
         "\(home)/.local/bin/agent-burn", "\(home)/.cargo/bin/agent-burn",
       ] : [NSString(string: customPath).expandingTildeInPath]

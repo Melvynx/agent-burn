@@ -2,8 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>Label</key><string>dev.melvynx.agent-burn.quota</string>
-  <key>BundleProgram</key><string>Contents/MacOS/AgentBurn</string>
-  <key>ProgramArguments</key><array><string>Contents/MacOS/AgentBurn</string><string>--collect-quotas</string></array>
+  <key>BundleProgram</key><string>Contents/Resources/AgentBurnQuotaCollector</string>
+  <key>ProgramArguments</key><array><string>Contents/Resources/AgentBurnQuotaCollector</string></array>
   <key>RunAtLoad</key><true/>
   <key>StartInterval</key><integer>60</integer>
   <key>ProcessType</key><string>Background</string>

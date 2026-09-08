@@ -22,6 +22,17 @@ else
   swift build "${swift_args[@]}"
   bin="$(swift build "${swift_args[@]}" --show-bin-path)"
 fi
+collector="$PWD/.build/AgentBurnQuotaCollector"
+if [[ "$release" == 1 ]]; then
+  swiftc -O -target arm64-apple-macosx14.0 -o "$collector-arm64" \
+    Sources/AgentBurn/{CLIClient,QuotaCollector,QuotaHistory}.swift Tools/QuotaTypes.swift Tools/QuotaCollectorMain.swift
+  swiftc -O -target x86_64-apple-macosx14.0 -o "$collector-x86_64" \
+    Sources/AgentBurn/{CLIClient,QuotaCollector,QuotaHistory}.swift Tools/QuotaTypes.swift Tools/QuotaCollectorMain.swift
+  lipo -create "$collector-arm64" "$collector-x86_64" -output "$collector"
+else
+  swiftc -O -o "$collector" \
+    Sources/AgentBurn/{CLIClient,QuotaCollector,QuotaHistory,Usage}.swift Tools/QuotaCollectorMain.swift
+fi
 # Assemble in a new directory so obsolete frameworks cannot survive a rebuild.
 staging="$(mktemp -d "$PWD/dist-staging.XXXXXX")"
 trap 'trash "$staging"' EXIT
@@ -32,9 +43,11 @@ cp Config/dev.melvynx.agent-burn.quota.plist "$app/Contents/Library/LaunchAgents
 if [[ "$release" == 1 ]]; then
   lipo -create "$bin/AgentBurn" "$intel/AgentBurn" -output "$app/Contents/MacOS/AgentBurn"
   lipo -create ../../rust/target/{aarch64-apple-darwin,x86_64-apple-darwin}/release/agent-burn -output "$app/Contents/Resources/agent-burn"
+  cp "$collector" "$app/Contents/Resources/AgentBurnQuotaCollector"
 else
   cp "$bin/AgentBurn" "$app/Contents/MacOS/AgentBurn"
   cp "$cli" "$app/Contents/Resources/agent-burn"
+  cp "$collector" "$app/Contents/Resources/AgentBurnQuotaCollector"
 fi
 ditto "$bin/AgentBurn_AgentBurn.bundle" "$app/Contents/Resources/AgentBurn_AgentBurn.bundle"
 ditto "$bin/Sparkle.framework" "$app/Contents/Frameworks/Sparkle.framework"
@@ -73,6 +86,7 @@ if [[ "$release" == 1 ]]; then
   flags+=(--options runtime --timestamp)
 fi
 codesign "${flags[@]}" "$app/Contents/Resources/agent-burn"
+codesign "${flags[@]}" "$app/Contents/Resources/AgentBurnQuotaCollector"
 # Sign Sparkle's nested helpers before the enclosing framework and application.
 find "$app/Contents/Frameworks" -type f -perm +111 -print0 | while IFS= read -r -d '' executable; do
   if file "$executable" | grep -q 'Mach-O'; then codesign "${flags[@]}" "$executable"; fi
