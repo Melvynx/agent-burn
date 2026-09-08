@@ -5,6 +5,7 @@ release=0
 [[ "${1:-}" != "--release" ]] || release=1
 version="$(tr -d '\n' < Config/version)"
 if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "Invalid version" >&2; exit 1; fi
+build_number="$(git -C ../.. rev-list --count HEAD)"
 swift_args=(--disable-keychain -c release)
 if [[ "$release" == 1 ]]; then
   swift build "${swift_args[@]}" --triple arm64-apple-macosx14.0
@@ -53,7 +54,7 @@ cat > "$app/Contents/Info.plist" <<PLIST
 <key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>$version</string>
-<key>CFBundleVersion</key><string>$version</string>
+<key>CFBundleVersion</key><string>$build_number</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>LSApplicationCategoryType</key><string>public.app-category.developer-tools</string>
 <key>LSUIElement</key><false/>
