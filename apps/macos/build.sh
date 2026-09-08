@@ -31,7 +31,7 @@ if [[ "$release" == 1 ]]; then
   lipo -create "$collector-arm64" "$collector-x86_64" -output "$collector"
 else
   swiftc -O -o "$collector" \
-    Sources/AgentBurn/{CLIClient,QuotaCollector,QuotaHistory,Usage}.swift Tools/QuotaCollectorMain.swift
+    Sources/AgentBurn/{CLIClient,QuotaCollector,QuotaHistory}.swift Tools/QuotaTypes.swift Tools/QuotaCollectorMain.swift
 fi
 # Assemble in a new directory so obsolete frameworks cannot survive a rebuild.
 staging="$(mktemp -d "$PWD/dist-staging.XXXXXX")"
