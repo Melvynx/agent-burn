@@ -70,7 +70,7 @@ private func reading(
   try QuotaHistoryFile(directory: directory).save(history)
   let store = UsageStore(defaults: defaults, storageDirectory: directory)
   #expect(store.forecast(for: "codex")?.remaining == 86)
-  #expect(store.samples(for: "codex").count == 1)
+  #expect(store.samples(for: "codex").map(\.remaining) == [100, 86])
 }
 
 @Test func headlessCollectorPersistsSuccessWhileAnotherProviderFails() async throws {

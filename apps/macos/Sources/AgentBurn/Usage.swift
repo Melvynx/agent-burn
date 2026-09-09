@@ -166,7 +166,7 @@ struct Forecast {
   var projectedRemaining: Double { max(0, 100 - (projectedUse ?? 0)) }
 }
 
-struct QuotaSample: Codable, Sendable {
+struct QuotaSample: Codable, Equatable, Sendable {
   let date: Date
   let remaining: Double
 }
@@ -181,6 +181,12 @@ enum QuotaChartRange: String, CaseIterable, Identifiable {
     case .today: "Today"
     case .week: "Last 7 days"
     case .month: "Last 30 days"
+    }
+  }
+  var connectsRecordedGaps: Bool {
+    switch self {
+    case .rte, .rtd, .week: true
+    case .today, .month: false
     }
   }
 }
@@ -216,9 +222,56 @@ func quotaChartSamples(
   let inWindow = samples.filter { $0.date >= window.lowerBound && $0.date <= window.upperBound }
     .sorted { $0.date < $1.date }
   if range == .rte || range == .rtd {
-    return cycleSamples(inWindow, since: window.lowerBound.addingTimeInterval(-60))
+    return quotaChartSamplesFromLimit(
+      cycleSamples(inWindow, since: window.lowerBound.addingTimeInterval(-60)),
+      forecast: forecast)
   }
   return inWindow
+}
+
+func quotaChartSamplesFromLimit(_ samples: [QuotaSample], forecast: Forecast) -> [QuotaSample] {
+  let anchor = QuotaSample(date: forecast.start, remaining: 100)
+  guard let first = samples.first else { return [anchor] }
+  if first.date <= forecast.start.addingTimeInterval(90) { return samples }
+  return [anchor] + samples
+}
+
+func quotaChartAxisDates(range: QuotaChartRange, forecast: Forecast, now: Date) -> [Date] {
+  switch range {
+  case .rte:
+    return [forecast.start, forecast.reset]
+  case .rtd:
+    return [
+      forecast.start, quotaChartWindow(range: range, forecast: forecast, now: now).upperBound,
+    ]
+  case .today, .week, .month:
+    return []
+  }
+}
+
+func quotaDateText(_ date: Date) -> String {
+  date.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+}
+
+func quotaLimitSummary(_ forecast: Forecast) -> String {
+  let used = max(0, min(100, forecast.window.usedPercent))
+  return
+    "Limit: \(quotaDateText(forecast.start)) · \(used.formatted(.number.precision(.fractionLength(0))))% used"
+}
+
+func quotaTimeRemaining(_ forecast: Forecast, now: Date) -> String {
+  let seconds = max(0, forecast.reset.timeIntervalSince(min(now, forecast.reset)))
+  let days = Int(seconds / 86_400)
+  let hours = Int((seconds - Double(days) * 86_400) / 3_600)
+  if days > 0 { return "\(days)d \(hours)h left" }
+  if hours > 0 { return "\(hours)h left" }
+  return "Less than 1h left"
+}
+
+func quotaRecordedSegments(_ samples: [QuotaSample], connectGaps: Bool) -> [[QuotaSample]] {
+  let sorted = samples.sorted { $0.date < $1.date }
+  if connectGaps { return sorted.isEmpty ? [] : [sorted] }
+  return quotaSampleSegments(sorted)
 }
 
 func quotaSampleSegments(_ samples: [QuotaSample]) -> [[QuotaSample]] {
@@ -279,6 +332,16 @@ func remainingQuota(for source: QuotaSource, forecast: Forecast?, cursorAccount:
 
 func menuBarQuotaText(_ remaining: Double?, stale: Bool = false) -> String {
   remaining.map { "\(Int($0))%" + (stale ? " · stale" : "") } ?? "Burn"
+}
+
+func appVersionText(short: String, build: String = "") -> String {
+  build.isEmpty ? "v\(short)" : "v\(short) (\(build))"
+}
+
+func bundleVersionText(bundle: Bundle = .main) -> String {
+  let short = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+  let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+  return appVersionText(short: short ?? "0.0.0", build: build ?? "")
 }
 
 func harnessName(_ key: String) -> String {
