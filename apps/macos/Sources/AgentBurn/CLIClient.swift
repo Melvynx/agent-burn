@@ -25,7 +25,8 @@ enum CLIClient {
     if executable.deletingLastPathComponent().lastPathComponent == "Resources" {
       bundledCLI = executable.deletingLastPathComponent().appendingPathComponent("agent-burn").path
     } else {
-      bundledCLI = executable.deletingLastPathComponent().deletingLastPathComponent()
+      bundledCLI =
+        executable.deletingLastPathComponent().deletingLastPathComponent()
         .appendingPathComponent("Resources/agent-burn").path
     }
     let candidates =

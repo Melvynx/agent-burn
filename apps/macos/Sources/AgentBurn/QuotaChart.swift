@@ -47,14 +47,18 @@ struct QuotaChart: View {
             .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
           }
         }
-        ForEach(Array(quotaSampleSegments(samples).enumerated()), id: \.offset) { index, segment in
+        ForEach(
+          Array(
+            quotaRecordedSegments(samples, connectGaps: range.connectsRecordedGaps).enumerated()),
+          id: \.offset
+        ) { index, segment in
           ForEach(Array(segment.enumerated()), id: \.offset) { _, sample in
             LineMark(
               x: .value("Date", sample.date), y: .value("Remaining", sample.remaining),
               series: .value("Series", "Recorded \(index)")
             )
             .foregroundStyle(color).lineStyle(StrokeStyle(lineWidth: 2.5))
-            .interpolationMethod(.stepEnd)
+            .interpolationMethod(range.connectsRecordedGaps ? .linear : .stepEnd)
             if segment.count == 1 {
               PointMark(x: .value("Date", sample.date), y: .value("Remaining", sample.remaining))
                 .foregroundStyle(color).symbolSize(18)
@@ -89,6 +93,7 @@ struct QuotaChart: View {
         }
       }
       .chartXScale(domain: domain.lowerBound...domain.upperBound)
+      .chartPlotStyle { $0.padding(.horizontal, compact ? 10 : 14) }
       .chartYScale(domain: 0...105)
       .id(range.rawValue + domain.lowerBound.formatted() + domain.upperBound.formatted())
       .chartYAxis {
@@ -104,13 +109,20 @@ struct QuotaChart: View {
         }
       }
       .chartXAxis {
-        AxisMarks(
-          values: range == .today
-            ? .stride(by: .hour, count: 3) : .stride(by: .day, count: xStride)
-        ) { _ in
-          AxisValueLabel(
-            format: range == .today ? .dateTime.hour() : .dateTime.month(.abbreviated).day()
-          ).foregroundStyle(muted)
+        let axisDates = quotaChartAxisDates(range: range, forecast: forecast, now: now)
+        if axisDates.isEmpty {
+          AxisMarks(
+            values: range == .today
+              ? .stride(by: .hour, count: 3) : .stride(by: .day, count: xStride)
+          ) { _ in
+            AxisValueLabel(
+              format: range == .today ? .dateTime.hour() : .dateTime.month(.abbreviated).day()
+            ).foregroundStyle(muted)
+          }
+        } else {
+          AxisMarks(values: axisDates) { _ in
+            AxisValueLabel(format: .dateTime.month(.abbreviated).day()).foregroundStyle(muted)
+          }
         }
       }
       .frame(height: compact ? 150 : 230)
@@ -121,7 +133,7 @@ struct QuotaChart: View {
     }
     .id(range)
     .help(
-      "Ideal pace spreads the full quota evenly from the cycle start to the reset. Forecast projects your observed usage until the next reset. Gaps indicate missing measurements."
+      "The recorded line starts at the weekly limit (100% remaining) and stays connected through missing collector readings until now. Ideal pace spreads that limit evenly until reset. Forecast projects observed usage until the next reset."
     )
   }
 

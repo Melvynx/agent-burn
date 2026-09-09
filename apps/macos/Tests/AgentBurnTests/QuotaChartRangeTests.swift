@@ -58,7 +58,66 @@ private func sample(_ offset: TimeInterval, remaining: Double) -> QuotaSample {
   ]
   #expect(
     quotaChartSamples(samples, range: .rte, forecast: forecast, now: now).map(\.remaining)
-      == [72, 70, 60])
+      == [100, 72, 70, 60])
+}
+
+@Test func quotaChartUntilResetAnchorsRecordedLineAtLimit() {
+  let samples = [sample(-200, remaining: 72), sample(0, remaining: 60)]
+  let points = quotaChartSamples(samples, range: .rte, forecast: forecast, now: now)
+  #expect(points.first == QuotaSample(date: forecast.start, remaining: 100))
+  #expect(points.map(\.remaining) == [100, 72, 60])
+}
+
+@Test func quotaChartKeepsRealSampleWhenLimitAlreadyRecorded() {
+  let samples = [
+    QuotaSample(date: forecast.start.addingTimeInterval(30), remaining: 99),
+    sample(0, remaining: 60),
+  ]
+  #expect(
+    quotaChartSamples(samples, range: .rte, forecast: forecast, now: now).map(\.remaining)
+      == [99, 60])
+}
+
+@Test func quotaLimitSummaryLinksUsedPercentToCycleStart() {
+  let line = quotaLimitSummary(forecast)
+  #expect(line.hasPrefix("Limit: "))
+  #expect(line.hasSuffix(" · 40% used"))
+  #expect(line.contains(quotaDateText(forecast.start)))
+}
+
+@Test func quotaChartUntilResetAxisMarksLimitAndReset() {
+  #expect(
+    quotaChartAxisDates(range: .rte, forecast: forecast, now: now) == [
+      forecast.start, forecast.reset,
+    ])
+}
+
+@Test func quotaRecordedLineConnectsLimitAcrossCollectorGaps() {
+  let samples = [
+    QuotaSample(date: forecast.start, remaining: 100),
+    sample(-20 * 3_600, remaining: 99),
+    sample(0, remaining: 60),
+  ]
+  #expect(
+    quotaRecordedSegments(samples, connectGaps: true).map { $0.map(\.remaining) }
+      == [[100, 99, 60]])
+}
+
+@Test func quotaChartWeekConnectsAcrossCollectorGaps() {
+  #expect(QuotaChartRange.week.connectsRecordedGaps)
+  let samples = [
+    sample(-6 * 86_400, remaining: 40),
+    sample(-20 * 3_600, remaining: 30),
+    sample(0, remaining: 20),
+  ]
+  let points = quotaChartSamples(samples, range: .week, forecast: forecast, now: now)
+  #expect(points.map(\.remaining) == [40, 30, 20])
+  #expect(
+    quotaRecordedSegments(points, connectGaps: true).map { $0.map(\.remaining) } == [[40, 30, 20]])
+}
+
+@Test func quotaTimeRemainingSitsBetweenResetAndLimit() {
+  #expect(quotaTimeRemaining(forecast, now: now) == "3d 12h left")
 }
 
 @Test func quotaChartMonthKeepsResetsInsideTheWindow() {

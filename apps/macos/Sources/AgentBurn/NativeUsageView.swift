@@ -233,9 +233,13 @@ struct NativeUsageView: View {
             .help(
               "Updated \(forecast.observedAt.formatted(.dateTime.month(.abbreviated).day().hour().minute().second()))"
             )
-            Text(
-              "Reset: \(forecast.reset.formatted(.dateTime.month(.abbreviated).day().hour().minute()))"
-            )
+            Text("Reset: \(quotaDateText(forecast.reset))")
+            Text(quotaTimeRemaining(forecast, now: store.quotaCheckDate))
+              .help("Time left in this weekly limit window.")
+            Text(quotaLimitSummary(forecast))
+              .help(
+                "The current weekly limit started at this time. Used percent is measured against that full limit."
+              )
             Text(resetSummary(store.resets(for: agent)))
               .help(
                 "Scheduled resets happen near the cycle end. A possible reset is a remaining jump mid-cycle, which can be a manual reset or a provider correction."

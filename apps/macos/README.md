@@ -63,8 +63,10 @@ reading fallback. `quota-collector.json` contains source paths, never credential
 `report-cache.json` and its `.bak` are unreadable, the journal rebuilds daily graphs
 and model totals. Quota screens count scheduled and possible resets from remaining
 jumps; **Reset to date** filters spend from the current cycle start.
-The Codex and Claude dashboard quota chart can show the current cycle until
-reset, reset to today, today, the last 7 days, or the last 30 days. That
+The Codex and Claude dashboard quota card shows when the current weekly limit
+started and how much of it has been used, next to the reset time. The cycle
+chart starts the recorded line at that limit and can show the current cycle
+until reset, reset to today, today, the last 7 days, or the last 30 days. That
 picker does not change the spend period.
 
 Metrics are stored under `~/Library/Application Support/Agent Burn/`.

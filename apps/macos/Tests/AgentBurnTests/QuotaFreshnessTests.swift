@@ -11,6 +11,10 @@ import Testing
     QuotaSample(date: date.addingTimeInterval(3600), remaining: 75),
   ]
   #expect(quotaSampleSegments(samples).map { $0.map(\.remaining) } == [[86, 85], [75]])
+  #expect(
+    quotaRecordedSegments(samples, connectGaps: false).map { $0.map(\.remaining) } == [
+      [86, 85], [75],
+    ])
 }
 
 @Test func menuQuotaMarksStaleValuesWithoutChangingTheirAmount() {

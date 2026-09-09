@@ -71,6 +71,14 @@ import Testing
   #expect(menuBarQuotaText(nil) == "Burn")
 }
 
+@Test func appVersionTextIncludesShortVersionAndBuild() {
+  #expect(appVersionText(short: "0.1.1", build: "1451") == "v0.1.1 (1451)")
+}
+
+@Test func appVersionTextOmitsEmptyBuild() {
+  #expect(appVersionText(short: "0.1.1", build: "") == "v0.1.1")
+}
+
 @Test @MainActor func remainingPercentFollowsLiveCodexWindow() throws {
   let suite = "AgentBurn.quota.\(UUID().uuidString)"
   let defaults = try #require(UserDefaults(suiteName: suite))

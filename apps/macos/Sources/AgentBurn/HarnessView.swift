@@ -160,7 +160,8 @@ struct HarnessView: View {
         Text(forecast.reset.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
       }
       HStack {
-        Label("Recorded resets", systemImage: "arrow.counterclockwise").foregroundStyle(BurnTheme.muted)
+        Label("Recorded resets", systemImage: "arrow.counterclockwise").foregroundStyle(
+          BurnTheme.muted)
         Spacer()
         Text(resetSummary(store.resets(for: agent)))
       }

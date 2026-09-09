@@ -105,6 +105,9 @@ struct RefreshFooter: View {
         Text("Waiting for usage")
       }
       Spacer()
+      Text(bundleVersionText())
+        .monospacedDigit()
+        .accessibilityLabel("App version")
       Button {
         Task { await store.refresh() }
       } label: {
