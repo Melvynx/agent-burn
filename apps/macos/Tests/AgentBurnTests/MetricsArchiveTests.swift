@@ -68,7 +68,8 @@ private func snapshot(_ days: String) throws -> SummaryReport {
       """))
   let now = try Date("2026-09-05T12:00:00Z", strategy: .iso8601)
   let reset = try Date("2026-09-01T00:00:00Z", strategy: .iso8601)
-  #expect(archive.report(period: .rtd, live: nil, now: now, resetStart: reset).totals.totalCost == 10)
+  #expect(
+    archive.report(period: .rtd, live: nil, now: now, resetStart: reset).totals.totalCost == 10)
 }
 
 @Test func archiveRecoversPreviousFileWhenPrimaryIsCorrupted() throws {
