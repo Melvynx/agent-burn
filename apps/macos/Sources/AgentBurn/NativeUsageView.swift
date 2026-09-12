@@ -51,7 +51,10 @@ struct NativeUsageView: View {
               title: "Tokens", value: tokens(tokenCount), detail: "Input, output and cache")
             Divider()
             SpendMetric(
-              title: "Days recorded", value: days.count.formatted(), detail: store.period.label)
+              title: "Avg tokens / $",
+              value: quotaTokensPerUnitLabel(
+                quotaTokensPerDollar(tokens: tokenCount, cost: cost), unit: "$") ?? "—",
+              detail: store.period.label)
             Divider()
             SpendMetric(
               title: "Models", value: store.hasPeriodDetails ? models.count.formatted() : "—",
@@ -210,52 +213,26 @@ struct NativeUsageView: View {
     if let forecast = store.forecast(for: agent) {
       GroupBox {
         HStack(alignment: .top, spacing: 28) {
-          VStack(alignment: .leading, spacing: 14) {
-            HStack {
-              Text("Weekly quota").font(.headline)
-              if !forecast.isFresh(at: store.quotaCheckDate) || store.quotaError(for: agent) != nil
-              {
-                Image(systemName: "clock.badge.exclamationmark")
-                  .foregroundStyle(.orange)
-                  .help(
-                    store.quotaError(for: agent)
-                      ?? "Showing the last known reading. Update pending."
-                  )
-                  .accessibilityLabel("Last known quota; update pending")
-              }
-            }
-            HStack(alignment: .firstTextBaseline, spacing: 5) {
-              Text("\(Int(forecast.remaining))%").font(
-                .system(size: 42, weight: .semibold, design: .rounded)
-              ).monospacedDigit()
-              Text("remaining").foregroundStyle(.secondary)
-            }
-            .help(
-              "Updated \(forecast.observedAt.formatted(.dateTime.month(.abbreviated).day().hour().minute().second()))"
-            )
-            Text("Reset: \(quotaDateText(forecast.reset))")
-            Text(quotaTimeRemaining(forecast, now: store.quotaCheckDate))
-              .help("Time left in this weekly limit window.")
-            Text(quotaLimitSummary(forecast))
-              .help(
-                "The current weekly limit started at this time. Used percent is measured against that full limit."
-              )
-            Text(resetSummary(store.resets(for: agent)))
-              .help(
-                "Scheduled resets happen near the cycle end. A possible reset is a remaining jump mid-cycle, which can be a manual reset or a provider correction."
-              )
-            Text(
-              "Daily budget: \(forecast.dailyAllowance.formatted(.number.precision(.fractionLength(1))))%"
-            )
-            .help("Remaining quota divided by the time until reset.")
-          }.font(.subheadline).frame(width: 255, alignment: .leading)
+          QuotaSummary(
+            forecast: forecast,
+            samples: store.samples(
+              for: agent, range: store.quotaChartRange, now: store.quotaCheckDate),
+            now: store.quotaCheckDate,
+            stale: !forecast.isFresh(at: store.quotaCheckDate)
+              || store.quotaError(for: agent) != nil,
+            staleHelp: store.quotaError(for: agent)
+              ?? "Showing the last known reading. Update pending.",
+            availableResets: store.reports[agent]?.resetCreditsAvailable,
+            rates: store.blendRates(for: agent)
+          )
+          .frame(width: 236, alignment: .leading)
           VStack(alignment: .trailing, spacing: 8) {
             QuotaChartRangePicker()
             QuotaChart(
               forecast: forecast,
               samples: store.samples(
                 for: agent, range: store.quotaChartRange, now: store.quotaCheckDate),
-              color: BurnTheme.color(for: agent), compact: true,
+              color: BurnTheme.color(for: agent),
               range: store.quotaChartRange, now: store.quotaCheckDate
             )
             .id(store.quotaChartRange)

@@ -59,11 +59,120 @@ import Testing
     ]) == "2 recorded · 1 scheduled, 1 possible")
 }
 
+@Test func quotaResetCountsSplitScheduledAndPossible() {
+  let counts = quotaResetCounts([
+    QuotaReset(date: Date(timeIntervalSince1970: 1), scheduled: true),
+    QuotaReset(date: Date(timeIntervalSince1970: 2), scheduled: false),
+    QuotaReset(date: Date(timeIntervalSince1970: 3), scheduled: false),
+  ])
+  #expect(counts == QuotaResetCounts(recorded: 3, scheduled: 1))
+  #expect(counts.possible == 2)
+  #expect(quotaResetDetail(counts) == "1 scheduled · 2 possible")
+}
+
+@Test func quotaResetDetailHandlesEmptyHistory() {
+  #expect(quotaResetCounts([]) == QuotaResetCounts(recorded: 0, scheduled: 0))
+  #expect(quotaResetDetail(quotaResetCounts([])) == "None this cycle")
+}
+
+@Test func quotaResetDetailOmitsTheZeroSide() {
+  #expect(quotaResetDetail(QuotaResetCounts(recorded: 2, scheduled: 0)) == "2 possible")
+  #expect(quotaResetDetail(QuotaResetCounts(recorded: 2, scheduled: 2)) == "2 scheduled")
+}
+
+@Test func quotaDateCompactJoinsDayAndTimeWithoutAt() {
+  let date = Date(timeIntervalSince1970: 1_704_067_500)
+  #expect(quotaDateCompact(date) == "\(quotaDayLabel(date)) · \(quotaTimeLabel(date))")
+  #expect(!quotaDateCompact(date).contains(" at "))
+}
+
+@Test func quotaAvailableResetsLabelNamesTheCount() {
+  #expect(quotaAvailableResetsLabel(nil) == nil)
+  #expect(quotaAvailableResetsLabel(0) == "0 resets available")
+  #expect(quotaAvailableResetsLabel(1) == "1 reset available")
+  #expect(quotaAvailableResetsLabel(2) == "2 resets available")
+}
+
+@Test func quotaCompactStatsOmitsInferredHistory() {
+  let window = QuotaWindow(
+    windowMinutes: 10080, usedPercent: 13, elapsedPercent: 30, apiEquivalentSpent: 0)
+  let forecast = Forecast(window: window, observedAt: .now)
+  let daily =
+    "\(forecast.dailyAllowance.formatted(.number.precision(.fractionLength(1))))%\u{00A0}/ day"
+  #expect(quotaCompactStats(forecast) == "13.0% used · \(daily)")
+  #expect(
+    quotaCompactStats(forecast, availableResets: 1) == "13.0% used · \(daily) · 1 reset available")
+}
+
+@Test func quotaBlendRatesCrossSpendPercentAndTokens() {
+  let rates = quotaBlendRates(usedPercent: 15, spent: 30, tokens: 1_500_000)
+  #expect(rates.dollarsPerPercent == 2)
+  #expect(rates.tokensPerDollar == 50_000)
+  #expect(rates.tokensPerPercent == 100_000)
+}
+
+@Test func quotaBlendRatesNeedPositiveInputs() {
+  #expect(quotaBlendRates(usedPercent: 0, spent: 10, tokens: 100).dollarsPerPercent == nil)
+  #expect(quotaBlendRates(usedPercent: 10, spent: 0, tokens: 100).tokensPerDollar == nil)
+  #expect(quotaBlendRates(usedPercent: 10, spent: 5, tokens: 0).tokensPerPercent == nil)
+}
+
+@Test func quotaCycleSpendPrefersWindowThenDaily() {
+  let days = [
+    DailyUsage(date: "2026-09-08", cost: 4, tokens: 40_000),
+    DailyUsage(date: "2026-09-10", cost: 6, tokens: 60_000),
+  ]
+  #expect(quotaCycleSpend(windowSpent: 12, days: days, since: "2026-09-10") == 12)
+  #expect(quotaCycleSpend(windowSpent: 0, days: days, since: "2026-09-10") == 6)
+  #expect(quotaCycleTokens(days: days, since: "2026-09-10") == 60_000)
+}
+
+@Test func quotaBlendLabelsFormatUnitRates() {
+  #expect(quotaDollarsPerPercentLabel(2.137) == "\(currency(2.137)) / %")
+  #expect(quotaTokensPerUnitLabel(142_350, unit: "$") == "\(tokens(142_350)) / $")
+  #expect(quotaDollarsPerPercentLabel(nil) == nil)
+  #expect(quotaTokensPerUnitLabel(nil, unit: "$") == nil)
+}
+
+@Test func quotaBlendUsesWindowSpendAndModelTokens() throws {
+  let report = try JSONDecoder().decode(
+    HarnessReport.self,
+    from: Data(
+      """
+      {"agent":"codex","liveLimits":true,
+       "window":{"windowMinutes":10080,"usedPercent":10,"elapsedPercent":20,"apiEquivalentSpent":20},
+       "apiEquivalentPerMonth":100,"daily":[],
+       "topModels":[{"model":"gpt","cost":100,"tokens":5000000}]}
+      """.utf8))
+  let forecast = Forecast(
+    window: report.window!, observedAt: Date(timeIntervalSince1970: 1_700_000_000))
+  let rates = quotaBlendRates(forecast: forecast, report: report)
+  #expect(rates.dollarsPerPercent == 2)
+  #expect(rates.tokensPerDollar == 50_000)
+  #expect(rates.tokensPerPercent == nil)
+}
+
+@Test func quotaUsedPercentClampsWindowUse() {
+  let window = QuotaWindow(
+    windowMinutes: 10080, usedPercent: 140, elapsedPercent: 50, apiEquivalentSpent: 0)
+  #expect(quotaUsedPercent(Forecast(window: window, observedAt: .now)) == 100)
+}
+
 @Test func cursorRemainingUsesIncludedAllowance() throws {
   let account = try JSONDecoder().decode(
     CursorAccount.self,
     from: Data(#"{"includedPercentUsed":85,"grants":[]}"#.utf8))
   #expect(remainingQuota(for: .cursor, forecast: nil, cursorAccount: account) == 15)
+}
+
+@Test func cursorRemainingPrefersActiveCredits() throws {
+  let account = try JSONDecoder().decode(
+    CursorAccount.self,
+    from: Data(
+      #"""
+      {"includedPercentUsed":0,"activePercentUsed":25,"grants":[{"kind":"promo","totalUSD":10000,"remainingUSD":7500}]}
+      """#.utf8))
+  #expect(remainingQuota(for: .cursor, forecast: nil, cursorAccount: account) == 75)
 }
 
 @Test func menuBarShowsIntegerRemainingPercent() {
@@ -125,8 +234,10 @@ import Testing
       "economics":{"pricePerMonth":200,"apiEquivalentPerMonth":600,"subsidyPerMonth":400,"valueMultiple":3,"discountPercent":66.67},
       "weeklyTrend":[{"weekStart":"2026-08-31","cost":100}],
       "spendMix":[{"key":"input","label":"input","tokens":100,"tokenPercent":100,"costUSD":5,"costPercent":100}],
-      "imageGenerations":{"count":2,"pricePerImageEstimate":0.15,"estimatedCost":0.3}}
+      "imageGenerations":{"count":2,"pricePerImageEstimate":0.15,"estimatedCost":0.3},
+      "resetCreditsAvailable":2}
       """.utf8))
+  #expect(report.resetCreditsAvailable == 2)
   #expect(report.economics?.valueMultiple == 3)
   #expect(report.weeklyTrend?.first?.cost == 100)
   #expect(report.spendMix?.first?.costUSD == 5)

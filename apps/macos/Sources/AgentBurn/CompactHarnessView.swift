@@ -12,14 +12,29 @@ struct CompactHarnessView: View {
         Text(harnessName(agent)).font(.system(size: 13, weight: .semibold))
         Spacer()
         Text(store.reports[agent]?.plan ?? "Subscription")
-          .font(.system(size: 12)).foregroundStyle(BurnTheme.quotaMuted)
+          .font(.system(size: 12)).foregroundStyle(BurnTheme.quotaMuted).lineLimit(1)
       }
 
       if let forecast = store.forecast(for: agent) {
-        quota(forecast)
+        QuotaSummary(
+          forecast: forecast,
+          samples: store.samples(
+            for: agent, range: store.quotaChartRange, now: store.quotaCheckDate),
+          now: store.quotaCheckDate,
+          stale: !forecast.isFresh(at: store.quotaCheckDate)
+            || store.quotaError(for: agent) != nil,
+          staleHelp: store.quotaError(for: agent)
+            ?? "Showing the last known reading. Update pending.",
+          compact: true,
+          availableResets: store.reports[agent]?.resetCreditsAvailable,
+          rates: store.blendRates(for: agent)
+        )
         QuotaChart(
-          forecast: forecast, samples: store.samples(for: agent),
-          color: BurnTheme.quotaColor(for: agent), compact: true)
+          forecast: forecast,
+          samples: store.samples(
+            for: agent, range: store.quotaChartRange, now: store.quotaCheckDate),
+          color: BurnTheme.quotaColor(for: agent), compact: true,
+          range: store.quotaChartRange, now: store.quotaCheckDate)
 
         if let short = store.summary?.subscription?.agents.first(where: { $0.agent == agent })?
           .shortWindow
@@ -48,6 +63,7 @@ struct CompactHarnessView: View {
       if let error = store.errors["history"] { ReportNotice(message: error) }
 
       if let report = store.reports[agent] {
+        let rates = store.blendRates(for: agent)
         DisclosureGroup("Usage details", isExpanded: $showsDetails) {
           VStack(alignment: .leading, spacing: 12) {
             detail("API-equivalent · 30 days", currency(report.apiEquivalentPerMonth))
@@ -55,7 +71,14 @@ struct CompactHarnessView: View {
             if let forecast = store.forecast(for: agent) {
               detail(
                 "Suggested daily pace",
-                "\(forecast.dailyAllowance.formatted(.number.precision(.fractionLength(1))))%")
+                "\(forecast.dailyAllowance.formatted(.number.precision(.fractionLength(1))))%\u{00A0}/ day"
+              )
+            }
+            if let dollars = quotaDollarsPerPercentLabel(rates?.dollarsPerPercent) {
+              detail("Avg $ / %", dollars)
+            }
+            if let tokensPer = quotaTokensPerUnitLabel(rates?.tokensPerDollar, unit: "$") {
+              detail("Avg tokens / $", tokensPer)
             }
             ForEach(Array(report.topModels.prefix(2))) { model in
               detail(model.model, currency(model.cost))
@@ -67,37 +90,11 @@ struct CompactHarnessView: View {
     }
   }
 
-  private func quota(_ forecast: Forecast) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
-      Text("Weekly remaining").font(.system(size: 12)).foregroundStyle(BurnTheme.quotaMuted)
-      HStack(alignment: .firstTextBaseline) {
-        HStack(alignment: .firstTextBaseline, spacing: 2) {
-          Text(forecast.remaining.formatted(.number.precision(.fractionLength(0))))
-            .font(.system(size: 60, weight: .medium, design: .rounded))
-          Text("%").font(.system(size: 28, weight: .regular, design: .rounded))
-            .foregroundStyle(BurnTheme.quotaMuted)
-        }
-        .monospacedDigit()
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Weekly quota")
-        .accessibilityValue("\(Int(forecast.remaining)) percent remaining")
-        Spacer(minLength: 12)
-        VStack(alignment: .trailing, spacing: 4) {
-          Text("Resets").foregroundStyle(BurnTheme.quotaMuted)
-          Text(forecast.reset.formatted(.dateTime.weekday(.abbreviated).hour().minute()))
-            .help(forecast.reset.formatted(date: .complete, time: .shortened))
-        }.font(.system(size: 12)).fixedSize(horizontal: false, vertical: true)
-      }
-      Text(resetSummary(store.resets(for: agent)))
-        .font(.system(size: 12)).foregroundStyle(BurnTheme.quotaMuted)
-    }
-  }
-
   private func detail(_ title: String, _ value: String) -> some View {
     HStack(alignment: .firstTextBaseline) {
-      Text(title).foregroundStyle(BurnTheme.quotaMuted)
+      Text(title).foregroundStyle(BurnTheme.quotaMuted).lineLimit(1)
       Spacer(minLength: 12)
-      Text(value).monospacedDigit()
-    }.font(.system(size: 12)).fixedSize(horizontal: false, vertical: true)
+      Text(value).monospacedDigit().lineLimit(1)
+    }.font(.system(size: 12))
   }
 }

@@ -9,6 +9,10 @@ enum BurnTheme {
   static let accent = Color.accentColor
   static let green = Color.green
   static let line = Color(nsColor: .separatorColor).opacity(0.5)
+  static let grid = Color(nsColor: .separatorColor)
+  // Pace status: recorded remaining above the ideal line is ahead, below is behind.
+  static let ahead = Color.green
+  static let behind = Color.red
 
   // Compact quota text and chart strokes must stay legible on menu material in both appearances.
   static let quotaMuted = adaptiveQuotaColor(
@@ -65,7 +69,7 @@ struct StatusBadge: View {
   var body: some View {
     HStack(spacing: 5) {
       Circle().fill(color).frame(width: 5, height: 5)
-      Text(text).font(.system(size: 11, weight: .medium))
+      Text(text).font(.system(size: 11, weight: .medium)).lineLimit(1).fixedSize()
     }
     .foregroundStyle(color)
     .padding(.horizontal, 9).padding(.vertical, 5)

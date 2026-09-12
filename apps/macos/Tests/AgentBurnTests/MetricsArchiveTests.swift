@@ -31,19 +31,109 @@ private func snapshot(_ days: String) throws -> SummaryReport {
   #expect(report.daily?.count == 2)
 }
 
-@Test func archiveDoesNotLoseMetricsWhenSourceReturnsPartialDay() throws {
+@Test func allTimeSnapshotReplacesReportedDay() throws {
   var archive = MetricsArchive()
   archive.ingest(
     try snapshot(
       """
       {"date":"2026-09-01","cost":20,"tokens":200}
-      """))
+      """), policy: .replaceReportedDays)
   archive.ingest(
     try snapshot(
       """
       {"date":"2026-09-01","cost":5,"tokens":50}
-      """))
-  #expect(archive.report(period: .all, live: nil).totals.totalCost == 20)
+      """), policy: .replaceReportedDays)
+  #expect(archive.report(period: .all, live: nil).totals.totalCost == 5)
+  #expect(archive.report(period: .all, live: nil).totals.totalTokens == 50)
+}
+
+@Test func filteredSnapshotDoesNotInflateExistingDay() throws {
+  var archive = MetricsArchive()
+  archive.ingest(
+    try snapshot(
+      """
+      {"date":"2026-09-01","cost":10,"tokens":100}
+      """), policy: .replaceReportedDays)
+  archive.ingest(
+    try snapshot(
+      """
+      {"date":"2026-09-01","cost":20,"tokens":100}
+      """), policy: .fillMissingDays)
+  #expect(archive.report(period: .all, live: nil).totals.totalCost == 10)
+  #expect(archive.report(period: .all, live: nil).totals.totalTokens == 100)
+}
+
+@Test func filteredSnapshotFillsMissingDayOnly() throws {
+  var archive = MetricsArchive()
+  archive.ingest(
+    try snapshot(
+      """
+      {"date":"2026-09-01","cost":10,"tokens":100}
+      """), policy: .replaceReportedDays)
+  archive.ingest(
+    try snapshot(
+      """
+      {"date":"2026-08-31","cost":8,"tokens":80}
+      """), policy: .fillMissingDays)
+  #expect(archive.report(period: .all, live: nil).totals.totalCost == 18)
+}
+
+@Test func laterAllTimeSnapshotKeepsDaysItNoLongerReports() throws {
+  var archive = MetricsArchive()
+  archive.ingest(
+    try snapshot(
+      """
+      {"date":"2026-08-31","cost":20,"tokens":200},{"date":"2026-09-01","cost":10,"tokens":100}
+      """), policy: .replaceReportedDays)
+  archive.ingest(
+    try snapshot(
+      """
+      {"date":"2026-09-01","cost":9,"tokens":90}
+      """), policy: .replaceReportedDays)
+  let report = archive.report(period: .all, live: nil)
+  #expect(report.totals.totalCost == 29)
+  #expect(report.daily?.map(\.date) == ["2026-08-31", "2026-09-01"])
+}
+
+@Test func metricsIngestPolicyTreatsOnlyAllAsReplace() {
+  #expect(metricsIngestPolicy(for: "all") == .replaceReportedDays)
+  #expect(metricsIngestPolicy(for: "all:codex") == .replaceReportedDays)
+  #expect(metricsIngestPolicy(for: "today") == .fillMissingDays)
+  #expect(metricsIngestPolicy(for: "today:codex") == .fillMissingDays)
+  #expect(metricsIngestPolicy(for: "month") == .fillMissingDays)
+}
+
+@Test func metricsIngestOrderAppliesNewestAllLast() {
+  let items = [
+    ("all:cursor", Date(timeIntervalSince1970: 1)),
+    ("all", Date(timeIntervalSince1970: 3)),
+    ("today:codex", Date(timeIntervalSince1970: 4)),
+    ("all:codex", Date(timeIntervalSince1970: 2)),
+  ]
+  #expect(
+    items.sorted(by: metricsIngestOrder).map(\.0)
+      == ["all:cursor", "all:codex", "all", "today:codex"])
+}
+
+@Test func newestAllSnapshotWinsOverStaleAgentAll() throws {
+  var archive = MetricsArchive()
+  let stale = try snapshot(
+    """
+    {"date":"2026-09-09","cost":100,"tokens":100}
+    """)
+  let latest = try snapshot(
+    """
+    {"date":"2026-09-09","cost":531,"tokens":500}
+    """)
+  let items: [(String, Date, SummaryReport)] = [
+    ("all:cursor", Date(timeIntervalSince1970: 1), stale),
+    ("all", Date(timeIntervalSince1970: 3), latest),
+    ("today:codex", Date(timeIntervalSince1970: 4), stale),
+  ]
+  for (key, _, report) in items.sorted(by: { metricsIngestOrder(($0.0, $0.1), ($1.0, $1.1)) }) {
+    archive.ingest(report, policy: metricsIngestPolicy(for: key))
+  }
+  #expect(archive.report(period: .all, live: nil).totals.totalCost == 531)
 }
 
 @Test func archiveFiltersCalendarMonthAndSurvivesDiskRoundTrip() throws {

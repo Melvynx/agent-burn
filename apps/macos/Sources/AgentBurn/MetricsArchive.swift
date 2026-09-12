@@ -1,19 +1,43 @@
 import Foundation
 
-/// Daily high-water marks: snapshots are never added together or expired.
-/// This preserves observed usage when a provider drops days or partial logs.
+/// Daily snapshots are never added together or expired.
+/// All-time reports replace days they still include. Filtered periods only
+/// fill dates the archive does not already have, so a `today`/`month` row
+/// cannot ratchet a day to 2× the all-time cost.
+enum MetricsIngestPolicy: Equatable {
+  case replaceReportedDays
+  case fillMissingDays
+}
+
+func metricsIngestPolicy(for cacheKey: String) -> MetricsIngestPolicy {
+  let period =
+    cacheKey.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+    .first.map(String.init) ?? cacheKey
+  return period == "all" ? .replaceReportedDays : .fillMissingDays
+}
+
+func metricsIngestOrder(_ lhs: (String, Date), _ rhs: (String, Date)) -> Bool {
+  let left = metricsIngestPolicy(for: lhs.0)
+  let right = metricsIngestPolicy(for: rhs.0)
+  if left != right { return left == .replaceReportedDays }
+  if left == .replaceReportedDays { return lhs.1 < rhs.1 }
+  return lhs.0 < rhs.0
+}
+
 struct MetricsArchive: Codable {
   var version = 1
   var agents: [String: [String: DailyUsage]] = [:]
   var savedAt: Date?
 
-  mutating func ingest(_ report: SummaryReport) {
+  mutating func ingest(
+    _ report: SummaryReport, policy: MetricsIngestPolicy = .replaceReportedDays
+  ) {
     for agent in report.agents {
       for day in agent.daily ?? [] where day.cost.isFinite && day.cost >= 0 {
         let old = agents[agent.agent]?[day.date]
+        if old != nil && policy == .fillMissingDays { continue }
         agents[agent.agent, default: [:]][day.date] = DailyUsage(
-          date: day.date, cost: max(old?.cost ?? 0, day.cost),
-          tokens: max(old?.tokens ?? 0, day.tokens ?? 0))
+          date: day.date, cost: day.cost, tokens: day.tokens ?? old?.tokens)
       }
     }
   }
