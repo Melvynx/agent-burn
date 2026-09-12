@@ -254,6 +254,14 @@ pub(super) fn rows_to_entries(
         .collect()
 }
 
+pub(crate) fn is_cursor_model(name: &str) -> bool {
+    let name = name.to_ascii_lowercase();
+    name.contains("composer")
+        || name.contains("cursor")
+        || name == "auto"
+        || name.starts_with("auto-")
+}
+
 pub(super) fn model_candidates(model: &str) -> Vec<String> {
     let mut candidates = vec![model.to_string()];
     let stripped = model.strip_prefix("cursor-").unwrap_or(model).to_string();
@@ -540,6 +548,15 @@ mod tests {
         let entries = rows_to_entries(&[row], CostMode::Auto, &PricingMap::load_embedded(), None);
         assert_eq!(entries[0].cost, 9.99);
         assert_eq!(entries[0].missing_pricing_model, None);
+    }
+
+    #[test]
+    fn classifies_cursor_hosted_models() {
+        assert!(is_cursor_model("composer-2.5"));
+        assert!(is_cursor_model("cursor-grok-4.6-high-fast"));
+        assert!(is_cursor_model("auto"));
+        assert!(!is_cursor_model("claude-4.6-opus"));
+        assert!(!is_cursor_model("gpt-5.4"));
     }
 
     #[test]

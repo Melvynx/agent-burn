@@ -35,6 +35,8 @@ Usage rows come from `GetAggregatedUsageEvents` on `api2.cursor.sh`. Each row is
 
 Live `--value --json` account balances keep included allowance and promotional credits separate. The included pool can stay unused while credits burn first. `activePercentUsed` follows the burning balance so remaining quota keeps moving.
 
+The macOS Cursor tab follows that same split. While promotional credits remain, it shows a Codex-style remaining meter and history chart against the credit grant and its expiration. After those credits are gone, it shows the daily spend chart with All models and Cursor models filters.
+
 ## Plan overrides
 
 Detected from `cursorAuth/stripeMembershipType` when present:

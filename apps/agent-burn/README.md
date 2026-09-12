@@ -83,7 +83,10 @@ summary queries can retrieve older daily metrics where Cursor still supplies the
 With live `--value --json` reports, `cursorAccount` separates included allowance,
 promotional credits, expiration dates, billing cycle and reported on-demand amounts.
 `activePercentUsed` follows promotional credits while those are the burning
-balance, then the included allowance. Missing amounts remain unknown.
+balance, then the included allowance. Cursor agent `daily` rows include
+`cursorModelsCost` and `cursorModelsTokens` for Cursor-hosted models.
+`claudeAccount` reports Claude’s live
+session, weekly, scoped-model and extra-usage meters. Missing amounts remain unknown.
 Quota readings are saved locally under
 `~/Library/Application Support/Agent Burn/quota-history.json`. The forecast uses
 average consumption during the current cycle; historical lines build as the app

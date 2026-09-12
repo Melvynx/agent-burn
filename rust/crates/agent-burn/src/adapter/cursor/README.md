@@ -36,6 +36,8 @@ still have remaining balance, then fall back to the included allowance.
 Monetary fields are converted from cents to USD; absent amounts remain null.
 Grant IDs and internal source labels are not retained in the output.
 These balances are distinct from API-equivalent token costs.
+Cursor agent `daily` rows also include `cursorModelsCost` and
+`cursorModelsTokens` for Composer, Auto, and other Cursor-hosted models.
 
 The default usage window is the current billing cycle. Explicit `--since` and
 `--until` bounds query earlier days; historical rows without token/cost amounts
