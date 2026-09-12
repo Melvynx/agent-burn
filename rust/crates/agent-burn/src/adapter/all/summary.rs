@@ -45,19 +45,19 @@ pub(super) fn run(args: SummaryArgs) -> Result<()> {
         html,
         chart,
     } = args;
-    if wants_json(&shared) && std::env::var("AGENT_BURN_QUOTA_ONLY").as_deref() == Ok("1") {
-        return print_json_or_jq(
-            super::quota::cursor_snapshot(shared.offline),
-            shared.jq.as_deref(),
-            false,
-        );
-    }
     if let Some(agent) = agent {
         return run_harness_weekly(
             &agent,
             &shared,
             codex_plan.as_deref(),
             claude_plan.as_deref(),
+        );
+    }
+    if wants_json(&shared) && std::env::var("AGENT_BURN_QUOTA_ONLY").as_deref() == Ok("1") {
+        return print_json_or_jq(
+            super::quota::cursor_snapshot(shared.offline),
+            shared.jq.as_deref(),
+            false,
         );
     }
     if let Some(range) = range {
