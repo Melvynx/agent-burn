@@ -290,8 +290,9 @@ struct QuotaChart: View {
 
   private var forecastStroke: Color {
     quotaChartRecordedStroke(
-      ahead: forecast.remaining >= quotaChartIdealRemaining(
-        at: forecast.observedAt, forecast: forecast),
+      ahead: forecast.remaining
+        >= quotaChartIdealRemaining(
+          at: forecast.observedAt, forecast: forecast),
       color: color)
   }
 
