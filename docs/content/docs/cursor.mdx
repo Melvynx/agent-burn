@@ -33,6 +33,8 @@ Overrides:
 
 Usage rows come from `GetAggregatedUsageEvents` on `api2.cursor.sh`. Each row is a day × model aggregate (input, output, cache write, cache read, optional native cents). Without `--since`, Cursor uses the current billing cycle when the API reports it, otherwise the last 31 days.
 
+Live `--value --json` account balances keep included allowance and promotional credits separate. The included pool can stay unused while credits burn first. `activePercentUsed` follows the burning balance so remaining quota keeps moving.
+
 ## Plan overrides
 
 Detected from `cursorAuth/stripeMembershipType` when present:

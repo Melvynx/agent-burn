@@ -6,8 +6,14 @@ struct CursorAccount: Codable, Sendable {
   let includedLimitUSD: Double?
   let includedRemainingUSD: Double?
   let includedPercentUsed: Double?
+  let includedSpendUSD: Double?
+  let bonusSpendUSD: Double?
+  let planSpendUSD: Double?
   let onDemandSpentUSD: Double?
   let onDemandLimitUSD: Double?
+  let activeLimitUSD: Double?
+  let activeRemainingUSD: Double?
+  let activePercentUsed: Double?
   let grants: [CursorCreditGrant]
 }
 
@@ -49,6 +55,10 @@ struct CursorAccountView: View {
                 )
                 .font(.caption).foregroundStyle(.secondary)
               }
+              if unusedIncludedWhileCreditsRemain(account) {
+                Text("Unused while promotional credits remain.")
+                  .font(.caption).foregroundStyle(.secondary)
+              }
             }.frame(maxWidth: .infinity, alignment: .leading)
             Divider()
             VStack(alignment: .leading, spacing: 8) {
@@ -77,6 +87,13 @@ struct CursorAccountView: View {
                   .font(.title2.weight(.semibold)).monospacedDigit()
                 Text("remaining of " + (grant.totalUSD.map(currency) ?? "unknown"))
                   .font(.caption).foregroundStyle(.secondary)
+                if let used = grantUsedPercent(grant) {
+                  ProgressView(value: used, total: 100)
+                  Text(
+                    used.formatted(.number.precision(.fractionLength(1))) + "% used"
+                  )
+                  .font(.caption).foregroundStyle(.secondary)
+                }
               }
             }
           }
@@ -99,4 +116,16 @@ struct CursorAccountView: View {
     return Date(timeIntervalSince1970: milliseconds / 1000).formatted(
       date: .abbreviated, time: .omitted)
   }
+}
+
+private func unusedIncludedWhileCreditsRemain(_ account: CursorAccount) -> Bool {
+  (account.includedPercentUsed ?? 0) == 0
+    && account.grants.contains { ($0.remainingUSD ?? 0) > 0 }
+}
+
+private func grantUsedPercent(_ grant: CursorCreditGrant) -> Double? {
+  guard let remaining = grant.remainingUSD, let total = grant.totalUSD, total > 0 else {
+    return nil
+  }
+  return max(0, min(100, (total - remaining) / total * 100))
 }

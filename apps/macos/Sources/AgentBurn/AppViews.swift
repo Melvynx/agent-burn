@@ -174,7 +174,7 @@ struct QuotaSourceSettings: View {
         }
       }
       Text(
-        "The flame in the menu bar and the window toolbar show this remaining percentage. Codex uses the live weekly account meter, Claude uses its weekly limit, and Cursor uses the included allowance."
+        "The flame in the menu bar and the window toolbar show this remaining percentage. Codex uses the live weekly account meter, Claude uses its weekly limit, and Cursor uses promotional credits when those are the active balance, otherwise the included allowance."
       )
       .font(.caption).foregroundStyle(.secondary)
     }

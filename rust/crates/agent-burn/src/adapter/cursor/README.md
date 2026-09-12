@@ -28,10 +28,13 @@ agent-burn summary --chart --html
 ```
 
 Live `summary --value --json` also includes an optional `cursorAccount` object.
-`GetCurrentPeriodUsage` supplies included allowance and billing-cycle dates;
-`GetUsageLimitStatusAndActiveGrants` supplies promotional grants and any reported
-on-demand limit. Monetary fields are converted from cents to USD; absent amounts
-remain null. Grant IDs and internal source labels are not retained in the output.
+`GetCurrentPeriodUsage` supplies included allowance, optional plan spend fields,
+and billing-cycle dates. `GetUsageLimitStatusAndActiveGrants` supplies
+promotional grants and any reported on-demand limit. `activeRemainingUSD`,
+`activeLimitUSD`, and `activePercentUsed` follow promotional credits while those
+still have remaining balance, then fall back to the included allowance.
+Monetary fields are converted from cents to USD; absent amounts remain null.
+Grant IDs and internal source labels are not retained in the output.
 These balances are distinct from API-equivalent token costs.
 
 The default usage window is the current billing cycle. Explicit `--since` and
