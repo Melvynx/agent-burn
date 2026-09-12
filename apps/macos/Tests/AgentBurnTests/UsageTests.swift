@@ -175,6 +175,17 @@ import Testing
   #expect(remainingQuota(for: .cursor, forecast: nil, cursorAccount: account) == 75)
 }
 
+@Test func cursorRemainingPrefersLiveForecastWhenPresent() throws {
+  let account = try JSONDecoder().decode(
+    CursorAccount.self,
+    from: Data(#"{"activePercentUsed":25,"grants":[{"kind":"promo","remainingUSD":75}]}"#.utf8))
+  let forecast = Forecast(
+    window: QuotaWindow(
+      windowMinutes: 365 * 1_440, usedPercent: 40, elapsedPercent: 10, apiEquivalentSpent: 0),
+    observedAt: .now, isLive: true)
+  #expect(remainingQuota(for: .cursor, forecast: forecast, cursorAccount: account) == 60)
+}
+
 @Test func menuBarShowsIntegerRemainingPercent() {
   #expect(menuBarQuotaText(15.9) == "15%")
   #expect(menuBarQuotaText(nil) == "Burn")
@@ -242,4 +253,163 @@ import Testing
   #expect(report.weeklyTrend?.first?.cost == 100)
   #expect(report.spendMix?.first?.costUSD == 5)
   #expect(report.imageGenerations?.count == 2)
+}
+
+@Test func activityChartDomainUsesTheSelectedPeriodForEveryHarness() {
+  let now = usageDayDate("2026-09-12")!
+  let domain = activityChartDomain(
+    period: .month, knownDates: ["2026-06-22", "2026-09-10"], now: now)
+  #expect(domain?.lowerBound == usageDayDate("2026-08-14"))
+  #expect(domain?.upperBound == now)
+}
+
+@Test func activityChartDomainSharesAllTimeAcrossHarnesses() {
+  let now = usageDayDate("2026-09-12")!
+  let domain = activityChartDomain(
+    period: .all, knownDates: ["2026-06-22", "2025-09-01"], now: now)
+  #expect(domain?.lowerBound == usageDayDate("2025-09-01"))
+  #expect(domain?.upperBound == now)
+}
+
+@Test func activityChartDomainIsNilWithoutDatesOnAllTime() {
+  #expect(
+    activityChartDomain(period: .all, knownDates: [], now: usageDayDate("2026-09-12")!) == nil)
+}
+
+private func codexQuotaReading(at date: Date, used: Double, windowStart: Date) -> QuotaReading {
+  let minutes = 10080.0
+  let elapsed = date.timeIntervalSince(windowStart) / (minutes * 60) * 100
+  return QuotaReading(
+    agent: "codex", observedAt: date.timeIntervalSince1970 * 1000,
+    window: QuotaWindow(
+      windowMinutes: minutes, usedPercent: used, elapsedPercent: elapsed,
+      apiEquivalentSpent: 0))
+}
+
+@Test func quotaHistoryDropsStaleReplayOfASupersededCycle() {
+  let start1 = Date(timeIntervalSince1970: 1_780_000_000)
+  let tail = start1.addingTimeInterval(90_000)
+  let start2 = tail.addingTimeInterval(60)
+  var history = QuotaHistory()
+  let source = "cli|homes"
+  let points = [
+    codexQuotaReading(at: start1.addingTimeInterval(86_400), used: 60, windowStart: start1),
+    codexQuotaReading(at: tail, used: 69, windowStart: start1),
+    codexQuotaReading(at: start2, used: 0, windowStart: start2),
+    codexQuotaReading(at: start2.addingTimeInterval(3_600), used: 12, windowStart: start2),
+    // Provider hiccup replays the superseded cycle for a few minutes.
+    codexQuotaReading(
+      at: start2.addingTimeInterval(3_660), used: 71, windowStart: start1),
+    codexQuotaReading(
+      at: start2.addingTimeInterval(3_720), used: 71, windowStart: start1),
+    codexQuotaReading(at: start2.addingTimeInterval(3_780), used: 12, windowStart: start2),
+  ]
+  for point in points { history.record(point, source: source) }
+
+  #expect(
+    history.samples(agent: "codex", source: source).map(\.remaining) == [40, 31, 100, 88, 88])
+  #expect(history.latest(agent: "codex", source: source)?.observedAt == points.last?.observedAt)
+}
+
+@Test func quotaHistoryKeepsGenuineResetsAcrossCycles() {
+  let start1 = Date(timeIntervalSince1970: 1_780_000_000)
+  let start2 = start1.addingTimeInterval(604_800)
+  var history = QuotaHistory()
+  let source = "cli|homes"
+  for point in [
+    codexQuotaReading(at: start1.addingTimeInterval(500_000), used: 69, windowStart: start1),
+    codexQuotaReading(at: start2.addingTimeInterval(60), used: 0, windowStart: start2),
+    codexQuotaReading(at: start2.addingTimeInterval(3_600), used: 12, windowStart: start2),
+  ] { history.record(point, source: source) }
+
+  #expect(
+    history.samples(agent: "codex", source: source).map(\.remaining) == [31, 100, 88])
+  let resets = history.resets(agent: "codex", source: source)
+  #expect(resets.count == 1)
+  #expect(resets.first?.date == start2.addingTimeInterval(60))
+}
+
+@Test func quotaHistoryReplayRecoveryIsNotCountedAsAReset() {
+  let start1 = Date(timeIntervalSince1970: 1_780_000_000)
+  let tail = start1.addingTimeInterval(90_000)
+  let start2 = tail.addingTimeInterval(60)
+  var history = QuotaHistory()
+  let source = "cli|homes"
+  for point in [
+    codexQuotaReading(at: tail, used: 69, windowStart: start1),
+    codexQuotaReading(at: start2, used: 0, windowStart: start2),
+    codexQuotaReading(at: start2.addingTimeInterval(3_600), used: 12, windowStart: start2),
+    codexQuotaReading(
+      at: start2.addingTimeInterval(3_660), used: 71, windowStart: start1),
+    codexQuotaReading(at: start2.addingTimeInterval(3_720), used: 12, windowStart: start2),
+  ] { history.record(point, source: source) }
+
+  #expect(history.resets(agent: "codex", source: source).count == 1)
+}
+
+private func spendTestCalendar() -> Calendar {
+  var calendar = Calendar(identifier: .gregorian)
+  calendar.firstWeekday = 2
+  calendar.minimumDaysInFirstWeek = 4
+  calendar.locale = Locale(identifier: "en_US_POSIX")
+  return calendar
+}
+
+@Test func spendGranularityAutoKeepsShortRangesDaily() {
+  #expect(spendGranularityAuto(spanDays: 1) == .daily)
+  #expect(spendGranularityAuto(spanDays: 62) == .daily)
+  #expect(spendGranularityAuto(spanDays: 63) == .weekly)
+  #expect(spendGranularityAuto(spanDays: 182) == .weekly)
+  #expect(spendGranularityAuto(spanDays: 183) == .monthly)
+  #expect(spendGranularityAuto(spanDays: 400) == .monthly)
+}
+
+@Test func bucketDailyUsageKeepsDailyOrder() {
+  let calendar = spendTestCalendar()
+  let days = [
+    DailyUsage(date: "2026-09-10", cost: 6, tokens: 60_000),
+    DailyUsage(date: "2026-09-08", cost: 4, tokens: 40_000),
+  ]
+  let bucketed = bucketDailyUsage(days, granularity: .daily, calendar: calendar)
+  #expect(bucketed.map(\.date) == ["2026-09-08", "2026-09-10"])
+  #expect(bucketed.map(\.cost) == [4, 6])
+}
+
+@Test func bucketDailyUsageGroupsTheSameWeek() {
+  let calendar = spendTestCalendar()
+  // Mon Sep 7 through Sun Sep 13 2026 share one ISO week.
+  let days = [
+    DailyUsage(date: "2026-09-07", cost: 2, tokens: 10_000),
+    DailyUsage(date: "2026-09-09", cost: 3, tokens: 20_000),
+    DailyUsage(date: "2026-09-13", cost: 5, tokens: 30_000),
+    DailyUsage(date: "2026-09-14", cost: 7, tokens: 40_000),
+  ]
+  let bucketed = bucketDailyUsage(days, granularity: .weekly, calendar: calendar)
+  #expect(bucketed.map(\.date) == ["2026-09-07", "2026-09-14"])
+  #expect(bucketed.map(\.cost) == [10, 7])
+  #expect(bucketed.first?.tokens == 60_000)
+}
+
+@Test func bucketDailyUsageGroupsTheSameMonth() {
+  let calendar = spendTestCalendar()
+  let days = [
+    DailyUsage(date: "2026-08-31", cost: 4),
+    DailyUsage(date: "2026-09-01", cost: 6),
+    DailyUsage(date: "2026-09-20", cost: 10),
+  ]
+  let bucketed = bucketDailyUsage(days, granularity: .monthly, calendar: calendar)
+  #expect(bucketed.map(\.date) == ["2026-08-01", "2026-09-01"])
+  #expect(bucketed.map(\.cost) == [4, 16])
+}
+
+@Test func spendBucketStartUsesMondayWeeksAndMonthFirst() {
+  let calendar = spendTestCalendar()
+  let wednesday = usageDayDate("2026-09-09")!
+  #expect(
+    quotaDayKey(spendBucketStart(for: wednesday, granularity: .weekly, calendar: calendar))
+      == "2026-09-07")
+  #expect(
+    quotaDayKey(spendBucketStart(for: wednesday, granularity: .monthly, calendar: calendar))
+      == "2026-09-01")
+  #expect(spendSpanDays(lower: wednesday, upper: wednesday) == 1)
 }

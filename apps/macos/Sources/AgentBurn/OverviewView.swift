@@ -33,7 +33,7 @@ struct OverviewView: View {
         }
         .padding(.vertical, compact ? 8 : 18)
         if !compact, let daily = report.daily, !daily.isEmpty {
-          DailySpendChart(title: "Daily usage", days: daily)
+          DailySpendChart(title: "Daily usage", days: daily, domain: store.chartDomain)
         }
         VStack(alignment: .leading, spacing: 18) {
           SectionLabel(title: "Usage by harness", detail: store.period.label)

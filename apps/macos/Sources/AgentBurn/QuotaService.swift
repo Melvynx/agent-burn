@@ -35,7 +35,7 @@ struct QuotaCollectionSettings: View {
       )
       .disabled(item.isUpdating)
       Text(
-        "Records live Codex and Claude quotas even after you quit Agent Burn. Collection resumes when your Mac wakes or you sign in. Saved readings remain available during outages."
+        "Records live Codex, Claude, and Cursor promotional-credit quotas even after you quit Agent Burn. Collection resumes when your Mac wakes or you sign in. Saved readings remain available during outages."
       )
       .font(.caption).foregroundStyle(.secondary)
       if item.requiresApproval {

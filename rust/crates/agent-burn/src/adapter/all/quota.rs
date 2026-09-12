@@ -2,7 +2,7 @@ use serde_json::{Value, json};
 
 use crate::{
     TimestampMs,
-    adapter::{claude, codex},
+    adapter::{claude, codex, cursor},
     utc_now,
 };
 
@@ -21,9 +21,24 @@ pub(super) fn snapshot(agent: &str, offline: bool) -> Option<Value> {
             let window = claude::usage_limits(offline)?.seven_day?;
             (window.utilization, 10080, window.resets_at?)
         }
+        "cursor" => {
+            let account = cursor::load_account(offline)?;
+            cursor::live_window(&account, utc_now())?
+        }
         _ => return None,
     };
     reading(agent, used, minutes, reset, utc_now())
+}
+
+/// Cursor promo credits are optional. A skip payload keeps collection green
+/// when the signed-in account has no burning promotional grant.
+pub(super) fn cursor_snapshot(offline: bool) -> Value {
+    snapshot("cursor", offline).unwrap_or_else(|| {
+        json!({
+            "agent": "cursor",
+            "observedAt": utc_now().as_millis(),
+        })
+    })
 }
 
 fn reading(

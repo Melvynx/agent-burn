@@ -96,3 +96,40 @@ private func reading(
   #expect(saved.failures[config.source]?["claude"] != nil)
   #expect(saved.samples(agent: "claude", source: config.source).isEmpty)
 }
+
+@Test @MainActor func enabledButStalledCollectorRefreshesDisplayedQuota() async throws {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  let suite = "quota-recovery-\(UUID().uuidString)"
+  let defaults = try #require(UserDefaults(suiteName: suite))
+  defer {
+    defaults.removePersistentDomain(forName: suite)
+    try? FileManager.default.removeItem(at: directory)
+  }
+  try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+  let executable = directory.appendingPathComponent("quota fixture")
+  let payload = directory.appendingPathComponent("reading.json")
+  try Data(
+    """
+    #!/bin/sh
+    [ "$AGENT_BURN_QUOTA_ONLY" = 1 ] || exit 3
+    [ "$2" = codex ] || exit 4
+    cat '\(payload.path)'
+    """.utf8
+  ).write(to: executable)
+  try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+  defaults.set(executable.path, forKey: "cliPath")
+  defaults.set("/test", forKey: "codexHomes")
+  try JSONEncoder().encode(reading(58)).write(to: payload)
+  let store = UsageStore(defaults: defaults, storageDirectory: directory)
+  await store.collectQuotasNow()
+  #expect(store.remainingPercent == 42)
+  let next = Date.now.addingTimeInterval(61)
+  try JSONEncoder().encode(reading(60)).write(to: payload)
+  await store.refreshQuotasIfNeeded(backgroundAvailable: true, now: next)
+  #expect(store.remainingPercent == 40)
+  #expect(!store.quotaIsStale(at: .now))
+  // A failing second provider must not trigger a retry on every five-second tick.
+  try JSONEncoder().encode(reading(70)).write(to: payload)
+  await store.refreshQuotasIfNeeded(backgroundAvailable: true)
+  #expect(store.remainingPercent == 40)
+}

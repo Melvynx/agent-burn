@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::{
     loader::{fetch_json, http_agent},
@@ -30,6 +30,60 @@ pub(crate) fn load_account(offline: bool) -> Option<Value> {
         &period.unwrap_or(Value::Null),
         &grants.unwrap_or(Value::Null),
     ))
+}
+
+pub(crate) fn live_window(
+    account: &Value,
+    now: crate::TimestampMs,
+) -> Option<(f64, u64, crate::TimestampMs)> {
+    if !has_active_promo(account) {
+        return None;
+    }
+    let used = number(&account["activePercentUsed"]).or_else(|| {
+        let (remaining, total) = grant_balance(
+            account["grants"]
+                .as_array()
+                .map(Vec::as_slice)
+                .unwrap_or(&[]),
+        );
+        percent_used(remaining, total)
+    })?;
+    if !(0.0..=100.0).contains(&used) {
+        return None;
+    }
+    let reset_ms = promo_reset_ms(account)?;
+    let now_ms = now.as_millis();
+    if reset_ms <= now_ms {
+        return None;
+    }
+    let start_ms = (reset_ms - crate::MILLIS_PER_DAY * 365).min(now_ms);
+    if reset_ms <= start_ms {
+        return None;
+    }
+    let minutes = u64::try_from((reset_ms - start_ms) / 60_000).ok()?.max(1);
+    Some((used, minutes, crate::TimestampMs::from_millis(reset_ms)))
+}
+
+fn has_active_promo(account: &Value) -> bool {
+    account["grants"].as_array().is_some_and(|grants| {
+        grants.iter().any(|grant| {
+            grant["kind"].as_str() == Some("promo")
+                && number(&grant["remainingUSD"]).is_some_and(|remaining| remaining > 0.0)
+        })
+    })
+}
+
+fn promo_reset_ms(account: &Value) -> Option<i64> {
+    account["grants"]
+        .as_array()?
+        .iter()
+        .filter(|grant| {
+            grant["kind"].as_str() == Some("promo")
+                && number(&grant["remainingUSD"]).is_some_and(|remaining| remaining > 0.0)
+        })
+        .filter_map(|grant| millis(&grant["expiresAtMs"]))
+        .min()
+        .or_else(|| millis(&account["billingCycleEndMs"]))
 }
 
 fn number(value: &Value) -> Option<f64> {
@@ -127,6 +181,7 @@ fn normalize(period: &Value, credit: &Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::TimestampMs;
     use serde_json::json;
 
     #[test]
@@ -174,6 +229,36 @@ mod tests {
         assert_eq!(result["activeRemainingUSD"], 200.0);
         assert_eq!(result["activeLimitUSD"], 400.0);
         assert_eq!(result["activePercentUsed"], 50.0);
+    }
+
+    #[test]
+    fn live_window_follows_promotional_credits_until_expiry() {
+        let now = TimestampMs::from_unix_seconds(1_800_000_000).unwrap();
+        let reset = now.checked_add_millis(365 * crate::MILLIS_PER_DAY).unwrap();
+        let account = json!({
+            "activePercentUsed": 39.5,
+            "grants": [{
+                "kind": "promo",
+                "totalUSD": 9900.27,
+                "remainingUSD": 5993.88,
+                "expiresAtMs": reset.as_millis(),
+            }]
+        });
+        let (used, minutes, window_reset) = live_window(&account, now).unwrap();
+        assert!((used - 39.5).abs() < f64::EPSILON);
+        assert_eq!(window_reset.as_millis(), reset.as_millis());
+        assert!((i64::try_from(minutes).unwrap() - 365 * 1_440).abs() < 2);
+    }
+
+    #[test]
+    fn live_window_skips_accounts_without_promotional_credits() {
+        let now = TimestampMs::from_unix_seconds(1_800_000_000).unwrap();
+        assert!(live_window(&json!({"includedPercentUsed": 20, "grants": []}), now).is_none());
+        assert!(live_window(
+            &json!({"activePercentUsed": 100, "grants": [{"kind": "promo", "remainingUSD": 0, "expiresAtMs": now.as_millis() + 1_000}]}),
+            now
+        )
+        .is_none());
     }
 
     #[test]

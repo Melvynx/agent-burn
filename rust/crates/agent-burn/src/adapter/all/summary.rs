@@ -53,6 +53,13 @@ pub(super) fn run(args: SummaryArgs) -> Result<()> {
             claude_plan.as_deref(),
         );
     }
+    if wants_json(&shared) && std::env::var("AGENT_BURN_QUOTA_ONLY").as_deref() == Ok("1") {
+        return print_json_or_jq(
+            super::quota::cursor_snapshot(shared.offline),
+            shared.jq.as_deref(),
+            false,
+        );
+    }
     if let Some(range) = range {
         apply_range(&mut shared, range);
     }
@@ -96,6 +103,12 @@ pub(super) fn run(args: SummaryArgs) -> Result<()> {
             && let Some(account) = cursor::load_account(shared.offline)
         {
             output["cursorAccount"] = account;
+        }
+        if value
+            && (shared.agents.is_empty() || shared.agents.iter().any(|agent| agent == "claude"))
+            && let Some(account) = claude::load_account(shared.offline)
+        {
+            output["claudeAccount"] = account;
         }
         if let (Some(object), Some(subscription)) = (output.as_object_mut(), subscription.as_ref())
         {
@@ -1262,6 +1275,29 @@ mod tests {
         assert_eq!(output["daily"][0]["cost"], 11.0);
         assert_eq!(output["agents"][0]["daily"][0]["cost"], 9.0);
         assert_eq!(output["agents"][0]["daily"][0]["date"], "2026-01-01");
+    }
+
+    #[test]
+    fn cursor_daily_json_splits_cursor_hosted_models() {
+        let mut cursor = breakdown_row("cursor", 10.0, 100);
+        cursor.model_breakdowns = vec![
+            model_breakdown("composer-2.5", 3.0, 30),
+            model_breakdown("claude-4.6-opus", 7.0, 70),
+        ];
+        let rows = vec![day_row(
+            10.0,
+            100,
+            vec![cursor],
+            vec![
+                model_breakdown("composer-2.5", 3.0, 30),
+                model_breakdown("claude-4.6-opus", 7.0, 70),
+            ],
+        )];
+        let output = detail::to_json(&Summary::from_rows(&rows), &rows);
+        assert_eq!(output["agents"][0]["daily"][0]["cost"], 10.0);
+        assert_eq!(output["agents"][0]["daily"][0]["cursorModelsCost"], 3.0);
+        assert_eq!(output["agents"][0]["daily"][0]["cursorModelsTokens"], 30);
+        assert!(output["daily"][0]["cursorModelsCost"].is_null());
     }
 
     #[test]

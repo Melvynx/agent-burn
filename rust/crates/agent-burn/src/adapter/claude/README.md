@@ -37,3 +37,10 @@ The term `session` has two meanings in this codebase:
 - True Claude Code session ID may also appear in each JSONL entry's `sessionId` field.
 
 Malformed JSONL lines are skipped during parsing.
+
+Live `summary --value --json` can include `claudeAccount`. Agent Burn reads
+`https://api.anthropic.com/api/oauth/usage` with the signed-in Claude Code
+OAuth token. The parser accepts the modern `limits` array (`session`,
+`weekly_all`, `weekly_scoped`) and the older top-level `five_hour` /
+`seven_day` windows, plus `extra_usage` or `spend` credits. `--offline`
+omits the account object.

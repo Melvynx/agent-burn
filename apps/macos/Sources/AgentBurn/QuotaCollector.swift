@@ -19,6 +19,12 @@ struct QuotaCollectorConfig: Codable, Sendable {
   }
 }
 
+private struct CollectedQuota: Codable, Sendable {
+  let agent: String
+  let observedAt: Double
+  let window: QuotaWindow?
+}
+
 enum QuotaCollector {
   /// launchd owns scheduling; this process performs one bounded collection and exits.
   static func collect(directory: URL = QuotaCollectorConfig.directory) async throws {
@@ -54,9 +60,41 @@ enum QuotaCollector {
           }
         }
       }
+      group.addTask {
+        do {
+          let executable = try CLIClient.executable(customPath: config.customPath)
+          let collected = try await CLIClient.read(
+            CollectedQuota.self,
+            executable: executable, arguments: ["summary", "--value"], offline: false,
+            environment: ["CODEX_HOME": config.codexHomes, "AGENT_BURN_QUOTA_ONLY": "1"],
+            timeout: 45)
+          guard collected.agent == "cursor", collected.observedAt.isFinite,
+            abs(Date(timeIntervalSince1970: collected.observedAt / 1000).timeIntervalSinceNow)
+              <= 90
+          else { throw CLIError.invalidOutput }
+          guard let window = collected.window, window.isValid else {
+            return ("cursor", nil, nil)
+          }
+          return (
+            "cursor",
+            QuotaReading(
+              agent: "cursor", observedAt: collected.observedAt, window: window),
+            nil
+          )
+        } catch {
+          return (
+            "cursor", nil,
+            "Live Cursor credits could not be collected. The last reading is preserved."
+          )
+        }
+      }
       for await (agent, reading, error) in group {
         if let reading { history.record(reading, source: config.source) }
-        if let error { history.fail(agent: agent, source: config.source, message: error) }
+        if let error {
+          history.fail(agent: agent, source: config.source, message: error)
+        } else if reading == nil {
+          history.failures[config.source]?[agent] = nil
+        }
         // Persist each provider immediately, even if the other hangs or this process crashes.
         do { try file.save(history) } catch {
           FileHandle.standardError.write(Data("Quota history could not be saved.\n".utf8))

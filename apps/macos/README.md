@@ -48,7 +48,7 @@ rapid changes load the latest selected period. Harness tabs read only their own
 source; General reads all sources. Automatic refresh maintains history and recovery
 files without dashboard controls. If a refresh fails, saved data stays visible.
 
-Codex and Claude quotas are collected every minute by a macOS background agent,
+Codex, Claude, and Cursor promotional-credit quotas are collected every minute by a macOS background agent,
 even after the app quits. Enable or disable this in **Settings → Background quota
 history**; allow background activity in macOS Settings if requested. The agent
 reads live provider counters independently of full spend reports and cached mode.
@@ -64,8 +64,13 @@ reading fallback. `quota-collector.json` contains source paths, never credential
 and model totals. Quota screens count scheduled and possible resets from remaining
 jumps, and show Codex banked rate-limit resets when the live meter
 reports them. **Reset to date** filters spend from the current cycle start.
-The Codex and Claude dashboard quota card shows when the current weekly limit
-started and how much of it has been used, next to the reset time. It also
+The Claude dashboard shows the same live account meters Claude Code reports:
+session remaining, weekly remaining, scoped model weeks, and extra-usage
+credits when Claude returns them. The Codex and Claude dashboard quota card
+shows when the current weekly limit started and how much of it has been used,
+next to the reset time. Cursor uses that same remaining chart while promotional
+credits are burning, then the daily spend chart with All models and Cursor models
+filters once those credits are gone. It also
 crosses live used percent with API-equivalent spend for an average $ / %,
 and logged tokens with spend for tokens / $. The cycle
 chart starts the recorded line at that limit and can show the current cycle

@@ -5,6 +5,13 @@ struct QuotaReading: Codable, Sendable {
   let observedAt: Double
   let window: QuotaWindow
   var date: Date { Date(timeIntervalSince1970: observedAt / 1000) }
+  /// Start of the limit window this reading belongs to, derived from the
+  /// provider-reported elapsed percent. Readings from the same cycle share
+  /// the same start; a provider hiccup can briefly replay a superseded
+  /// cycle (same old start, new timestamp), which must not rewind the chart.
+  var windowStart: Date {
+    date.addingTimeInterval(-window.elapsedPercent / 100 * max(1, window.windowMinutes * 60))
+  }
 }
 
 struct QuotaReset: Equatable {
@@ -33,14 +40,35 @@ struct QuotaHistory: Codable {
     readings[source]?[agent]?.last
   }
 
+  /// Readings with stale replays removed. A new window start means a genuine
+  /// reset and starts a new segment, but a reading whose window start matches
+  /// an older, superseded segment is a provider replay of that old cycle and
+  /// is skipped so it cannot carve a dip into the chart.
+  func cycleConsistentReadings(agent: String, source: String) -> [QuotaReading] {
+    var kept: [QuotaReading] = []
+    var segmentStarts: [Date] = []
+    for reading in readings[source]?[agent] ?? [] {
+      let start = reading.windowStart
+      if let last = segmentStarts.last, abs(start.timeIntervalSince(last)) <= 300 {
+        kept.append(reading)
+      } else if segmentStarts.contains(where: { abs(start.timeIntervalSince($0)) <= 300 }) {
+        continue
+      } else {
+        segmentStarts.append(start)
+        kept.append(reading)
+      }
+    }
+    return kept
+  }
+
   func samples(agent: String, source: String) -> [QuotaSample] {
-    (readings[source]?[agent] ?? []).map {
+    cycleConsistentReadings(agent: agent, source: source).map {
       QuotaSample(date: $0.date, remaining: 100 - $0.window.usedPercent)
     }
   }
 
   func resets(agent: String, source: String) -> [QuotaReset] {
-    let points = readings[source]?[agent] ?? []
+    let points = cycleConsistentReadings(agent: agent, source: source)
     var found: [QuotaReset] = []
     for (index, reading) in points.enumerated() {
       guard index > 0 else { continue }
