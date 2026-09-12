@@ -14,6 +14,202 @@ struct SpendMetric: View {
   }
 }
 
+struct QuotaSummary: View {
+  let forecast: Forecast
+  let samples: [QuotaSample]
+  let now: Date
+  var stale = false
+  var staleHelp: String?
+  var compact = false
+  var availableResets: Int? = nil
+  var rates: QuotaBlendRates? = nil
+  private var muted: Color { compact ? BurnTheme.quotaMuted : BurnTheme.muted }
+  private var reading: QuotaChartReading {
+    quotaChartReading(at: forecast.observedAt, samples: samples, forecast: forecast, range: .rte)
+  }
+  private var paceText: String? { quotaChartDeltaText(reading.paceDelta) }
+  private var paceColor: Color {
+    reading.paceDelta.map { $0 < -0.05 ? BurnTheme.behind : BurnTheme.ahead } ?? muted
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: compact ? 14 : 20) {
+      if !compact { title }
+      if compact { compactHero } else { hero }
+      if !compact { facts }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private var title: some View {
+    HStack(spacing: 6) {
+      Text("Weekly quota").font(.headline).lineLimit(1)
+      if stale { staleMark }
+    }
+  }
+
+  private var hero: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      remainingLabel
+      if let paceText {
+        StatusBadge(text: paceText, color: paceColor)
+          .help("Recorded remaining minus even pace at the latest reading.")
+      }
+      remainingBar
+    }
+  }
+
+  private var compactHero: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(alignment: .top, spacing: 12) {
+        remainingLabel
+        Spacer(minLength: 8)
+        VStack(alignment: .trailing, spacing: 6) {
+          if let paceText {
+            StatusBadge(text: paceText, color: paceColor)
+              .help("Recorded remaining minus even pace at the latest reading.")
+          }
+          Text("Reset in \(quotaTimeLeft(forecast, now: now))")
+            .font(.system(size: 12))
+            .foregroundStyle(muted)
+            .lineLimit(1)
+          Text(quotaDateCompact(forecast.reset))
+            .font(.system(size: 12))
+            .foregroundStyle(muted)
+            .monospacedDigit()
+            .lineLimit(1)
+            .help("Time left in this weekly limit window.")
+          if let availableResets {
+            Text(availableResets == 1 ? "1 reset" : "\(availableResets) resets")
+              .font(.system(size: 12, weight: .medium))
+              .foregroundStyle(BurnTheme.ink)
+              .lineLimit(1)
+              .help("Codex rate-limit resets you can redeem now.")
+          }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Reset in")
+        .accessibilityValue(
+          "\(quotaTimeLeft(forecast, now: now)). \(quotaDateCompact(forecast.reset))")
+      }
+      remainingBar
+    }
+  }
+
+  private var remainingLabel: some View {
+    VStack(alignment: .leading, spacing: 2) {
+      if compact {
+        HStack(spacing: 6) {
+          Text("Weekly remaining").font(.system(size: 12)).foregroundStyle(muted).lineLimit(1)
+          if stale { staleMark }
+        }
+      }
+      Text(quotaChartPercentLabel(forecast.remaining))
+        .font(.system(size: compact ? 44 : 42, weight: .semibold, design: .rounded))
+        .monospacedDigit()
+        .foregroundStyle(BurnTheme.ink)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+      if !compact {
+        Text("remaining").font(.system(size: 13)).foregroundStyle(muted)
+      }
+    }
+    .help(
+      "Updated \(forecast.observedAt.formatted(.dateTime.month(.abbreviated).day().hour().minute().second()))"
+    )
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("Remaining quota")
+    .accessibilityValue(quotaChartPercentLabel(forecast.remaining))
+  }
+
+  @ViewBuilder private var staleMark: some View {
+    Image(systemName: "clock.badge.exclamationmark")
+      .foregroundStyle(.orange)
+      .help(staleHelp ?? "Showing the last known reading. Update pending.")
+      .accessibilityLabel("Last known quota; update pending")
+  }
+
+  private var facts: some View {
+    VStack(spacing: 11) {
+      row(
+        "Reset in", quotaTimeLeft(forecast, now: now),
+        detail: quotaDateCompact(forecast.reset),
+        help: "Time left in this weekly limit window.")
+      row(
+        "Used",
+        "\(quotaUsedPercent(forecast).formatted(.number.precision(.fractionLength(1))))%",
+        detail: "since \(quotaDayLabel(forecast.start))",
+        help:
+          "The current weekly limit started at this time. Used percent is measured against that full limit."
+      )
+      row(
+        "Daily",
+        "\(forecast.dailyAllowance.formatted(.number.precision(.fractionLength(1))))%\u{00A0}/ day",
+        help: "Remaining quota divided by the time until reset.")
+      if let dollars = quotaDollarsPerPercentLabel(rates?.dollarsPerPercent) {
+        row(
+          "Avg $ / %", dollars,
+          detail: quotaTokensPerUnitLabel(rates?.tokensPerDollar, unit: "$"),
+          help:
+            "API-equivalent spend this cycle divided by used quota percent. Tokens / $ uses logged tokens for the same days, or the last 30 days of model usage when cycle tokens are missing."
+        )
+      } else if let tokensPer = quotaTokensPerUnitLabel(rates?.tokensPerDollar, unit: "$") {
+        row(
+          "Avg tokens / $", tokensPer,
+          help: "Logged tokens divided by API-equivalent spend.")
+      }
+      if let available = availableResets {
+        row(
+          "Resets", "\(available)",
+          detail: "banked",
+          help: "Codex rate-limit resets you can redeem now.")
+      }
+    }
+  }
+
+  private var remainingBar: some View {
+    GeometryReader { geo in
+      ZStack(alignment: .leading) {
+        Capsule().fill(BurnTheme.elevated)
+        Capsule().fill(paceColor.opacity(0.85)).frame(
+          width: geo.size.width * max(0, min(1, forecast.remaining / 100)))
+      }
+    }
+    .frame(height: 5)
+    .accessibilityHidden(true)
+  }
+
+  private func row(_ title: String, _ value: String, detail: String? = nil, help: String)
+    -> some View
+  {
+    HStack(alignment: .firstTextBaseline, spacing: 12) {
+      Text(title).foregroundStyle(muted).lineLimit(1)
+      Spacer(minLength: 8)
+      VStack(alignment: .trailing, spacing: 1) {
+        Text(value)
+          .font(.system(size: 13, weight: .semibold, design: .rounded))
+          .monospacedDigit()
+          .lineLimit(1)
+        if let detail {
+          Text(detail)
+            .foregroundStyle(muted)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
+            .allowsTightening(true)
+        }
+      }
+      .multilineTextAlignment(.trailing)
+      .layoutPriority(1)
+    }
+    .font(.system(size: 12))
+    .help(help)
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(title)
+    .accessibilityValue(detail.map { "\(value). \($0)" } ?? value)
+  }
+}
+
 struct DailySpendChart: View {
   let title: String
   let days: [DailyUsage]
@@ -84,6 +280,9 @@ struct HarnessSpendDetails: View {
         VStack(alignment: .leading, spacing: 14) {
           SectionLabel(title: "Quota value estimate", detail: "Based on current cycle")
           detail("Full quota value", currency(estimate.fullQuotaValue))
+          if let dollars = quotaDollarsPerPercentLabel(estimate.fullQuotaValue / 100) {
+            detail("Average $ / %", dollars)
+          }
           detail("Monthly quota value", currency(estimate.monthlyValue))
           detail(
             "Projected quota consumption",

@@ -133,8 +133,10 @@ final class UsageStore {
     }
     do {
       archive = try MetricsArchiveFile(url: archiveURL).load() ?? MetricsArchive()
-      for saved in cache?.summaries.values ?? [String: CachedReport<SummaryReport>]().values {
-        archive.ingest(saved.report)
+      for (key, saved) in (cache?.summaries ?? [:]).sorted(by: { lhs, rhs in
+        metricsIngestOrder((lhs.key, lhs.value.date), (rhs.key, rhs.value.date))
+      }) {
+        archive.ingest(saved.report, policy: metricsIngestPolicy(for: key))
       }
       if !archive.agents.isEmpty {
         try MetricsArchiveFile(url: archiveURL).save(archive)
@@ -352,7 +354,7 @@ final class UsageStore {
       guard source == sourceKey else { return }
       cache?.summaries[query.cacheKey] = CachedReport(report: report, date: .now)
       saveCache()
-      archive.ingest(report)
+      archive.ingest(report, policy: metricsIngestPolicy(for: query.cacheKey))
       if archiveWritable {
         do {
           try MetricsArchiveFile(url: archiveURL).save(archive)
@@ -404,6 +406,16 @@ final class UsageStore {
     remainingQuota(
       for: quotaSource, forecast: forecast(for: quotaSource.rawValue),
       cursorAccount: summary?.cursorAccount)
+  }
+
+  func archivedDaily(for agent: String) -> [DailyUsage] {
+    Array(archive.agents[agent, default: [:]].values).sorted { $0.date < $1.date }
+  }
+
+  func blendRates(for agent: String) -> QuotaBlendRates? {
+    guard let forecast = forecast(for: agent) else { return nil }
+    return quotaBlendRates(
+      forecast: forecast, report: reports[agent], daily: archivedDaily(for: agent))
   }
 
   func forecast(for agent: String) -> Forecast? {

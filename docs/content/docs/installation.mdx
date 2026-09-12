@@ -60,9 +60,14 @@ This builds `apps/macos/dist/Agent Burn.app` with a bundled native CLI. The app 
 locally signed for development. The public download is separately signed and notarized.
 
 Use the flame in the menu bar to switch between General, Codex, Claude, and Cursor.
+All-time spend follows the latest all-time daily snapshot. Filtered period
+caches only fill dates the archive does not already have, so a `today` row
+cannot double a day already reported by `all`.
+
 The Codex and Claude tabs focus on remaining quota, reset time, and the forecast.
-Expand **Usage details** for spend and models; saved readings and update failures
-stay visible beside the quota.
+They also show average $ / % and tokens / $ from live used percent crossed with
+logged API-equivalent spend and tokens. Expand **Usage details** for spend and
+models; saved readings and update failures stay visible beside the quota.
 Choose **Settings → Menu bar quota** (or the percentage next to the flame) to show
 Codex, Claude, or Cursor remaining usage in the menu bar and window toolbar.
 Enable **Settings → Startup → Launch at login** to start the app when you sign
@@ -87,9 +92,9 @@ Daily spend and token totals are retained without expiration in
 disappear. Period changes show saved totals immediately while missing detail refreshes
 in the background. Recent reports are reused, the selector stays enabled, and
 harness tabs read only their selected source. History and recovery files are
-maintained automatically without dashboard controls. Repeated refreshes retain the highest observed total per day instead of
-adding duplicate snapshots. Partial deletion within a day can hide new usage until
-it exceeds the previous total. Copy this file off the Mac for disaster recovery.
+maintained automatically without dashboard controls. All-time snapshots replace
+days they still report. Filtered period caches only fill missing dates. Copy this
+file off the Mac for disaster recovery.
 Cursor begins at its current billing cycle; model and token-category detail still
 reflects available source data.
 Its native toolbar, tables, and menu-bar indicator follow the system appearance.

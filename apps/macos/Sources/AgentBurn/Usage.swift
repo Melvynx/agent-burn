@@ -45,6 +45,7 @@ struct HarnessReport: Codable, Sendable {
   let spendMix: [SpendCategory]?
   let weeklyTrend: [WeeklyUsage]?
   let imageGenerations: ImageUsage?
+  var resetCreditsAvailable: Int? = nil
 }
 
 struct SubscriptionReport: Codable, Sendable {
@@ -58,6 +59,7 @@ struct SubscriptionAgent: Codable, Identifiable, Sendable {
   let periodUsage: Double
   let liveLimits: Bool
   let shortWindow: ShortWindow?
+  var resetCreditsAvailable: Int? = nil
   var id: String { agent }
 }
 
@@ -183,15 +185,12 @@ enum QuotaChartRange: String, CaseIterable, Identifiable {
     case .month: "Last 30 days"
     }
   }
-  var connectsRecordedGaps: Bool {
-    switch self {
-    case .rte, .rtd, .week: true
-    case .today, .month: false
-    }
-  }
+  var connectsRecordedGaps: Bool { true }
 }
 
-func quotaChartWindow(range: QuotaChartRange, forecast: Forecast, now: Date) -> ClosedRange<Date> {
+func quotaChartWindow(
+  range: QuotaChartRange, forecast: Forecast, now: Date, calendar: Calendar = .current
+) -> ClosedRange<Date> {
   let cursor = min(now, forecast.observedAt)
   let start: Date
   let end: Date
@@ -203,7 +202,7 @@ func quotaChartWindow(range: QuotaChartRange, forecast: Forecast, now: Date) -> 
     start = forecast.start
     end = max(cursor, forecast.observedAt)
   case .today:
-    start = Calendar.current.startOfDay(for: cursor)
+    start = calendar.startOfDay(for: cursor)
     end = max(cursor, forecast.observedAt)
   case .week:
     start = cursor.addingTimeInterval(-7 * 86_400)
@@ -236,36 +235,313 @@ func quotaChartSamplesFromLimit(_ samples: [QuotaSample], forecast: Forecast) ->
   return [anchor] + samples
 }
 
-func quotaChartAxisDates(range: QuotaChartRange, forecast: Forecast, now: Date) -> [Date] {
-  switch range {
-  case .rte:
-    return [forecast.start, forecast.reset]
-  case .rtd:
-    return [
-      forecast.start, quotaChartWindow(range: range, forecast: forecast, now: now).upperBound,
-    ]
-  case .today, .week, .month:
-    return []
+func quotaChartSteppedDates(
+  in window: ClosedRange<Date>, component: Calendar.Component, calendar: Calendar
+) -> [Date] {
+  guard var cursor = calendar.dateInterval(of: component, for: window.lowerBound)?.start else {
+    return [window.lowerBound]
   }
+  var dates: [Date] = []
+  while cursor <= window.upperBound {
+    dates.append(cursor)
+    guard let next = calendar.date(byAdding: component, value: 1, to: cursor), next > cursor else {
+      break
+    }
+    cursor = next
+  }
+  return dates
+}
+
+func quotaChartScale(
+  range: QuotaChartRange, forecast: Forecast, now: Date, calendar: Calendar = .current
+) -> ClosedRange<Date> {
+  let window = quotaChartWindow(range: range, forecast: forecast, now: now, calendar: calendar)
+  let grid = quotaChartGridDates(range: range, forecast: forecast, now: now, calendar: calendar)
+  let start = min(grid.first ?? window.lowerBound, window.lowerBound)
+  guard range != .today, let last = grid.last else { return start...window.upperBound }
+  // Leave room after the last midday label so it is never clipped at the trailing edge.
+  return start...max(window.upperBound, last.addingTimeInterval(21 * 3600))
+}
+
+func quotaChartGridDates(
+  range: QuotaChartRange, forecast: Forecast, now: Date, calendar: Calendar = .current
+) -> [Date] {
+  quotaChartSteppedDates(
+    in: quotaChartWindow(range: range, forecast: forecast, now: now, calendar: calendar),
+    component: range == .today ? .hour : .day,
+    calendar: calendar)
+}
+
+func quotaChartAxisDates(
+  range: QuotaChartRange, forecast: Forecast, now: Date, calendar: Calendar = .current
+) -> [Date] {
+  let grid = quotaChartGridDates(range: range, forecast: forecast, now: now, calendar: calendar)
+  if range == .today {
+    return grid.enumerated().compactMap { offset, date in
+      offset % 3 == 0 || offset == grid.count - 1 ? date : nil
+    }
+  }
+  let scale = quotaChartScale(range: range, forecast: forecast, now: now, calendar: calendar)
+  return grid.map { date in
+    let midday = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: date) ?? date
+    return min(max(midday, scale.lowerBound), scale.upperBound)
+  }
+}
+
+func quotaChartDayBands(
+  range: QuotaChartRange, forecast: Forecast, now: Date, calendar: Calendar = .current
+) -> [QuotaChartBand] {
+  guard range != .today else { return [] }
+  let grid = quotaChartGridDates(range: range, forecast: forecast, now: now, calendar: calendar)
+  let scale = quotaChartScale(range: range, forecast: forecast, now: now, calendar: calendar)
+  return grid.enumerated().map { index, start in
+    let end = index + 1 < grid.count ? grid[index + 1] : scale.upperBound
+    return QuotaChartBand(
+      start: start, end: end, isCurrent: calendar.isDate(start, inSameDayAs: now))
+  }
+}
+
+func quotaChartIdealRemaining(at date: Date, forecast: Forecast) -> Double {
+  max(0, min(100, 100 * (1 - date.timeIntervalSince(forecast.start) / forecast.duration)))
+}
+
+func quotaChartRecordedRemaining(at date: Date, samples: [QuotaSample]) -> Double? {
+  let sorted = samples.sorted { $0.date < $1.date }
+  guard let first = sorted.first else { return nil }
+  if date <= first.date { return first.remaining }
+  if let last = sorted.last, date >= last.date { return last.remaining }
+  for (previous, next) in zip(sorted, sorted.dropFirst()) where date <= next.date {
+    let span = next.date.timeIntervalSince(previous.date)
+    guard span > 0 else { return next.remaining }
+    let progress = date.timeIntervalSince(previous.date) / span
+    return previous.remaining + (next.remaining - previous.remaining) * progress
+  }
+  return nil
+}
+
+func quotaChartForecastRemaining(at date: Date, forecast: Forecast) -> Double? {
+  guard forecast.projectedUse != nil else { return nil }
+  if date < forecast.observedAt { return nil }
+  if date >= forecast.projectedEnd { return forecast.projectedRemaining }
+  let span = forecast.projectedEnd.timeIntervalSince(forecast.observedAt)
+  guard span > 0 else { return forecast.projectedRemaining }
+  let progress = date.timeIntervalSince(forecast.observedAt) / span
+  return forecast.remaining + (forecast.projectedRemaining - forecast.remaining) * progress
+}
+
+func quotaChartReading(
+  at date: Date, samples: [QuotaSample], forecast: Forecast, range: QuotaChartRange
+) -> QuotaChartReading {
+  QuotaChartReading(
+    date: date,
+    recorded: quotaChartRecordedRemaining(at: date, samples: samples),
+    ideal: range == .rte || range == .rtd
+      ? quotaChartIdealRemaining(at: date, forecast: forecast) : nil,
+    forecast: range == .rte ? quotaChartForecastRemaining(at: date, forecast: forecast) : nil,
+    projected: date > forecast.observedAt)
+}
+
+func quotaChartDeltaSegments(samples: [QuotaSample], forecast: Forecast) -> [QuotaDeltaSegment] {
+  let points = quotaChartDeltaPoints(samples: samples, forecast: forecast)
+  guard points.count > 1 else { return [] }
+  var segments: [QuotaDeltaSegment] = []
+  for (previous, next) in zip(points, points.dropFirst()) {
+    let ahead = previous.delta + next.delta >= 0
+    if var last = segments.last, last.ahead == ahead {
+      last.points.append(next)
+      segments[segments.count - 1] = last
+    } else {
+      segments.append(QuotaDeltaSegment(ahead: ahead, points: [previous, next]))
+    }
+  }
+  return segments
+}
+
+private func quotaChartDeltaPoints(samples: [QuotaSample], forecast: Forecast)
+  -> [QuotaDeltaPoint]
+{
+  let sorted = samples.sorted { $0.date < $1.date }
+  var points: [QuotaDeltaPoint] = []
+  for sample in sorted {
+    let point = QuotaDeltaPoint(
+      date: sample.date, recorded: sample.remaining,
+      ideal: quotaChartIdealRemaining(at: sample.date, forecast: forecast))
+    if let previous = points.last, previous.delta * point.delta < 0 {
+      // Pace is linear and recorded is linear between samples, so the crossing is exact.
+      let progress = previous.delta / (previous.delta - point.delta)
+      let date = previous.date.addingTimeInterval(
+        progress * point.date.timeIntervalSince(previous.date))
+      let value = quotaChartIdealRemaining(at: date, forecast: forecast)
+      points.append(QuotaDeltaPoint(date: date, recorded: value, ideal: value))
+    }
+    points.append(point)
+  }
+  return points
+}
+
+func quotaChartDeltaText(_ delta: Double?) -> String? {
+  guard let delta else { return nil }
+  if abs(delta) < 0.05 { return "On pace" }
+  let magnitude = abs(delta).formatted(.number.precision(.fractionLength(1)))
+  return delta > 0 ? "+\(magnitude)% ahead" : "−\(magnitude)% behind"
+}
+
+func quotaChartStep(from date: Date, forward: Bool, marks: [Date], domain: ClosedRange<Date>)
+  -> Date
+{
+  let sorted = marks.sorted()
+  if forward {
+    return min(domain.upperBound, sorted.first { $0 > date } ?? domain.upperBound)
+  }
+  return max(domain.lowerBound, sorted.last { $0 < date } ?? domain.lowerBound)
+}
+
+func quotaChartCursorLabel(_ date: Date, range: QuotaChartRange) -> String {
+  if range == .today { return date.formatted(.dateTime.hour().minute()) }
+  return date.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+}
+
+func quotaChartPercentLabel(_ value: Double?) -> String {
+  value.map { "\($0.formatted(.number.precision(.fractionLength(1))))%" } ?? "—"
+}
+
+func quotaChartAxisLabel(
+  _ date: Date, range: QuotaChartRange, marks: [Date], compact: Bool = false,
+  calendar: Calendar = .current
+) -> String {
+  if range == .today { return date.formatted(.dateTime.hour()) }
+  let short = compact || marks.count > 10
+  let isMonthStart = calendar.component(.day, from: date) == 1
+  if short {
+    if date == marks.first || isMonthStart {
+      return date.formatted(.dateTime.month(.abbreviated).day())
+    }
+    return date.formatted(.dateTime.day())
+  }
+  return date.formatted(.dateTime.weekday(.abbreviated).day())
+}
+
+struct QuotaChartBand: Equatable {
+  let start: Date
+  let end: Date
+  let isCurrent: Bool
+}
+
+struct QuotaChartReading: Equatable {
+  let date: Date
+  let recorded: Double?
+  let ideal: Double?
+  let forecast: Double?
+  let projected: Bool
+  var value: Double? { projected ? forecast ?? recorded : recorded }
+  var paceDelta: Double? {
+    guard let ideal, let value else { return nil }
+    return value - ideal
+  }
+}
+
+struct QuotaDeltaPoint: Equatable {
+  let date: Date
+  let recorded: Double
+  let ideal: Double
+  var delta: Double { recorded - ideal }
+}
+
+struct QuotaDeltaSegment: Equatable {
+  let ahead: Bool
+  var points: [QuotaDeltaPoint]
 }
 
 func quotaDateText(_ date: Date) -> String {
   date.formatted(.dateTime.month(.abbreviated).day().hour().minute())
 }
 
-func quotaLimitSummary(_ forecast: Forecast) -> String {
-  let used = max(0, min(100, forecast.window.usedPercent))
-  return
-    "Limit: \(quotaDateText(forecast.start)) · \(used.formatted(.number.precision(.fractionLength(0))))% used"
+func quotaDayLabel(_ date: Date) -> String {
+  date.formatted(.dateTime.month(.abbreviated).day())
 }
 
-func quotaTimeRemaining(_ forecast: Forecast, now: Date) -> String {
+func quotaTimeLabel(_ date: Date) -> String {
+  date.formatted(.dateTime.hour().minute())
+}
+
+func quotaDateCompact(_ date: Date) -> String {
+  "\(quotaDayLabel(date)) · \(quotaTimeLabel(date))"
+}
+
+func quotaUsedPercent(_ forecast: Forecast) -> Double {
+  max(0, min(100, forecast.window.usedPercent))
+}
+
+func quotaLimitSummary(_ forecast: Forecast) -> String {
+  "Limit: \(quotaDateText(forecast.start)) · \(quotaUsedPercent(forecast).formatted(.number.precision(.fractionLength(0))))% used"
+}
+
+func quotaTimeLeft(_ forecast: Forecast, now: Date) -> String {
   let seconds = max(0, forecast.reset.timeIntervalSince(min(now, forecast.reset)))
   let days = Int(seconds / 86_400)
   let hours = Int((seconds - Double(days) * 86_400) / 3_600)
-  if days > 0 { return "\(days)d \(hours)h left" }
-  if hours > 0 { return "\(hours)h left" }
-  return "Less than 1h left"
+  if days > 0 && hours > 0 { return "\(days)d \(hours)h" }
+  if days > 0 { return "\(days)d" }
+  if hours > 0 { return "\(hours)h" }
+  return "<1h"
+}
+
+func quotaTimeRemaining(_ forecast: Forecast, now: Date) -> String {
+  let left = quotaTimeLeft(forecast, now: now)
+  return left == "<1h" ? "Less than 1h left" : "\(left) left"
+}
+
+func quotaChartSmoothedSamples(_ samples: [QuotaSample], epsilon: Double = 1.25) -> [QuotaSample] {
+  let points = quotaChartCollapsedSamples(samples)
+  guard points.count > 2 else { return points }
+  var keep = [Bool](repeating: false, count: points.count)
+  keep[0] = true
+  keep[points.count - 1] = true
+  quotaChartSimplify(points, start: 0, end: points.count - 1, epsilon: epsilon, keep: &keep)
+  return zip(points, keep).compactMap { sample, kept in kept ? sample : nil }
+}
+
+private func quotaChartCollapsedSamples(_ samples: [QuotaSample]) -> [QuotaSample] {
+  let sorted = samples.sorted { $0.date < $1.date }
+  guard let first = sorted.first else { return [] }
+  var result = [first]
+  for sample in sorted.dropFirst() {
+    if abs(sample.remaining - result[result.count - 1].remaining) >= 0.05 {
+      result.append(sample)
+    }
+  }
+  if let last = sorted.last, result.last != last {
+    result.append(last)
+  }
+  return result
+}
+
+private func quotaChartSimplify(
+  _ points: [QuotaSample], start: Int, end: Int, epsilon: Double, keep: inout [Bool]
+) {
+  guard end > start + 1 else { return }
+  var maxError = 0.0
+  var index = start
+  for i in (start + 1)..<end {
+    let error = quotaChartLineError(points[i], from: points[start], to: points[end])
+    if error > maxError {
+      maxError = error
+      index = i
+    }
+  }
+  guard maxError > epsilon else { return }
+  keep[index] = true
+  quotaChartSimplify(points, start: start, end: index, epsilon: epsilon, keep: &keep)
+  quotaChartSimplify(points, start: index, end: end, epsilon: epsilon, keep: &keep)
+}
+
+private func quotaChartLineError(_ point: QuotaSample, from start: QuotaSample, to end: QuotaSample)
+  -> Double
+{
+  let span = end.date.timeIntervalSince(start.date)
+  let progress = span > 0 ? point.date.timeIntervalSince(start.date) / span : 0
+  let expected = start.remaining + (end.remaining - start.remaining) * progress
+  return abs(point.remaining - expected)
 }
 
 func quotaRecordedSegments(_ samples: [QuotaSample], connectGaps: Bool) -> [[QuotaSample]] {
@@ -301,11 +577,41 @@ func cycleSamples(_ samples: [QuotaSample], since start: Date) -> [QuotaSample] 
   return result
 }
 
+struct QuotaResetCounts: Equatable {
+  let recorded: Int
+  let scheduled: Int
+  var possible: Int { recorded - scheduled }
+}
+
+func quotaResetCounts(_ resets: [QuotaReset]) -> QuotaResetCounts {
+  QuotaResetCounts(recorded: resets.count, scheduled: resets.filter(\.scheduled).count)
+}
+
+func quotaAvailableResetsLabel(_ count: Int?) -> String? {
+  guard let count else { return nil }
+  return count == 1 ? "1 reset available" : "\(count) resets available"
+}
+
+func quotaCompactStats(_ forecast: Forecast, availableResets: Int? = nil) -> String {
+  let used =
+    "\(quotaUsedPercent(forecast).formatted(.number.precision(.fractionLength(1))))% used"
+  let daily =
+    "\(forecast.dailyAllowance.formatted(.number.precision(.fractionLength(1))))%\u{00A0}/ day"
+  guard let resets = quotaAvailableResetsLabel(availableResets) else { return "\(used) · \(daily)" }
+  return "\(used) · \(daily) · \(resets)"
+}
+
+func quotaResetDetail(_ counts: QuotaResetCounts) -> String {
+  if counts.recorded == 0 { return "None this cycle" }
+  if counts.scheduled == 0 { return "\(counts.possible) possible" }
+  if counts.possible == 0 { return "\(counts.scheduled) scheduled" }
+  return "\(counts.scheduled) scheduled · \(counts.possible) possible"
+}
+
 func resetSummary(_ resets: [QuotaReset]) -> String {
-  let scheduled = resets.filter(\.scheduled).count
-  guard !resets.isEmpty else { return "No quota resets recorded" }
-  return
-    "\(resets.count) recorded · \(scheduled) scheduled, \(resets.count - scheduled) possible"
+  let counts = quotaResetCounts(resets)
+  guard counts.recorded > 0 else { return "No quota resets recorded" }
+  return "\(counts.recorded) recorded · \(counts.scheduled) scheduled, \(counts.possible) possible"
 }
 
 enum QuotaSource: String, CaseIterable, Identifiable {
@@ -326,7 +632,8 @@ func remainingQuota(for source: QuotaSource, forecast: Forecast?, cursorAccount:
   switch source {
   case .codex, .claude: forecast?.remaining
   case .cursor:
-    cursorAccount?.includedPercentUsed.map { max(0, min(100, 100 - $0)) }
+    (cursorAccount?.activePercentUsed ?? cursorAccount?.includedPercentUsed)
+      .map { max(0, min(100, 100 - $0)) }
   }
 }
 
@@ -352,6 +659,76 @@ func harnessName(_ key: String) -> String {
   case "pi": "Pi"
   default: key.capitalized
   }
+}
+
+struct QuotaBlendRates: Equatable {
+  var dollarsPerPercent: Double?
+  var tokensPerDollar: Double?
+  var tokensPerPercent: Double?
+}
+
+func quotaDayKey(_ date: Date) -> String {
+  let formatter = DateFormatter()
+  formatter.calendar = Calendar(identifier: .gregorian)
+  formatter.locale = Locale(identifier: "en_US_POSIX")
+  formatter.dateFormat = "yyyy-MM-dd"
+  return formatter.string(from: date)
+}
+
+func usageTotals(_ days: [DailyUsage], since start: String) -> (cost: Double, tokens: UInt64) {
+  days.reduce((0, 0)) { totals, day in
+    guard day.date >= start else { return totals }
+    return (totals.0 + day.cost, totals.1 + (day.tokens ?? 0))
+  }
+}
+
+func quotaCycleSpend(windowSpent: Double, days: [DailyUsage], since start: String) -> Double {
+  windowSpent > 0 ? windowSpent : usageTotals(days, since: start).cost
+}
+
+func quotaCycleTokens(days: [DailyUsage], since start: String) -> UInt64 {
+  usageTotals(days, since: start).tokens
+}
+
+func quotaTokensPerDollar(tokens: UInt64, cost: Double) -> Double? {
+  tokens > 0 && cost > 0 ? Double(tokens) / cost : nil
+}
+
+func quotaBlendRates(usedPercent: Double, spent: Double, tokens: UInt64) -> QuotaBlendRates {
+  QuotaBlendRates(
+    dollarsPerPercent: usedPercent > 0 && spent > 0 ? spent / usedPercent : nil,
+    tokensPerDollar: quotaTokensPerDollar(tokens: tokens, cost: spent),
+    tokensPerPercent: tokens > 0 && usedPercent > 0 ? Double(tokens) / usedPercent : nil)
+}
+
+func quotaBlendRates(forecast: Forecast, report: HarnessReport?, daily: [DailyUsage] = [])
+  -> QuotaBlendRates
+{
+  let start = quotaDayKey(forecast.start)
+  let days = daily.isEmpty ? report?.daily ?? [] : daily
+  let spent = quotaCycleSpend(
+    windowSpent: report?.window?.apiEquivalentSpent ?? forecast.window.apiEquivalentSpent,
+    days: days, since: start)
+  let rates = quotaBlendRates(
+    usedPercent: quotaUsedPercent(forecast), spent: spent,
+    tokens: quotaCycleTokens(days: days, since: start))
+  if rates.tokensPerDollar != nil { return rates }
+  let modelTokens = report?.topModels.reduce(UInt64(0)) { $0 + $1.tokens } ?? 0
+  return QuotaBlendRates(
+    dollarsPerPercent: rates.dollarsPerPercent,
+    tokensPerDollar: quotaTokensPerDollar(
+      tokens: modelTokens, cost: report?.apiEquivalentPerMonth ?? 0),
+    tokensPerPercent: rates.tokensPerPercent)
+}
+
+func quotaDollarsPerPercentLabel(_ value: Double?) -> String? {
+  guard let value, value.isFinite, value > 0 else { return nil }
+  return "\(currency(value)) / %"
+}
+
+func quotaTokensPerUnitLabel(_ value: Double?, unit: String) -> String? {
+  guard let value, value.isFinite, value > 0 else { return nil }
+  return "\(tokens(UInt64(value.rounded()))) / \(unit)"
 }
 
 func currency(_ value: Double) -> String {

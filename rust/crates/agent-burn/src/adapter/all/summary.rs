@@ -214,20 +214,26 @@ fn run_harness_weekly(
     let result = loader::load_rows(AgentReportKind::Daily, &selected)?;
     let rows = &result.rows;
 
-    let (plan_name, price, window, live_limits) = if agent == "codex" {
+    let (plan_name, price, window, live_limits, reset_credits_available) = if agent == "codex" {
         match codex_input(rows, shared.offline) {
             Some(input) => {
                 let (name, price) = subscription::resolve_codex(&input.plan_type, codex_spec);
-                (Some(name), price, input.window, true)
+                (
+                    Some(name),
+                    price,
+                    input.window,
+                    true,
+                    input.reset_credits_available,
+                )
             }
-            None => (None, None, None, false),
+            None => (None, None, None, false, None),
         }
     } else {
         let tier = claude::detected_plan_tier();
         let (name, price) = subscription::resolve_claude(tier.as_deref(), claude_spec);
         match claude_input(rows, shared.offline) {
-            Some(input) => (name, price, input.window, true),
-            None => (name, price, None, false),
+            Some(input) => (name, price, input.window, true, None),
+            None => (name, price, None, false, None),
         }
     };
 
@@ -262,6 +268,7 @@ fn run_harness_weekly(
         window,
         daily,
         live_limits,
+        reset_credits_available,
         monthly_equiv: agent_cost_last_days(rows, 30, agent),
         models: agent_models_last_days(rows, 30, agent),
         spend_mix: agent_spend_mix_last_days(rows, 30, agent, &spend_pricing),
@@ -589,6 +596,7 @@ fn codex_input(rows: &[AllRow], offline: bool) -> Option<CodexInput> {
         plan_type: snapshot.plan_type,
         window,
         short_window,
+        reset_credits_available: snapshot.reset_credits_available,
     })
 }
 

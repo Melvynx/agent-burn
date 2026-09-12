@@ -62,16 +62,21 @@ reading fallback. `quota-collector.json` contains source paths, never credential
 `usage-journal.json` keeps changed report snapshots per source. If both
 `report-cache.json` and its `.bak` are unreadable, the journal rebuilds daily graphs
 and model totals. Quota screens count scheduled and possible resets from remaining
-jumps; **Reset to date** filters spend from the current cycle start.
+jumps, and show Codex banked rate-limit resets when the live meter
+reports them. **Reset to date** filters spend from the current cycle start.
 The Codex and Claude dashboard quota card shows when the current weekly limit
-started and how much of it has been used, next to the reset time. The cycle
+started and how much of it has been used, next to the reset time. It also
+crosses live used percent with API-equivalent spend for an average $ / %,
+and logged tokens with spend for tokens / $. The cycle
 chart starts the recorded line at that limit and can show the current cycle
 until reset, reset to today, today, the last 7 days, or the last 30 days. That
 picker does not change the spend period.
 
 Metrics are stored under `~/Library/Application Support/Agent Burn/`.
-`metrics-history.json` preserves observed daily spend and token high-water marks
-without expiration. Its `.bak` is the previous valid copy. No prompts or
+`metrics-history.json` keeps days providers stop returning. Days still present
+in an all-time snapshot follow that latest report, so a stale `today` or
+`month` cache cannot double the same day's spend. Filtered period snapshots
+only fill missing dates. There is no expiration. Its `.bak` is the previous valid copy. No prompts or
 conversations are archived. Back up this directory to protect against disk loss.
 Old data absent from every source cannot be reconstructed. Model breakdowns
 reflect available source data, rather than invented historical precision.
