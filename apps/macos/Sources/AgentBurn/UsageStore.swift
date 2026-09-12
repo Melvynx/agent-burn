@@ -62,6 +62,7 @@ final class UsageStore {
   var quotaChartRange: QuotaChartRange {
     didSet { defaults.set(quotaChartRange.rawValue, forKey: "quotaChartRange") }
   }
+  var cursorQuotaChartRange = QuotaChartRange.rtd
   private var history: [String: [QuotaSample]] = [:]
   private var quotaHistory = QuotaHistory()
   private var quotaSourceKey: String { customPath + "|" + codexHomes }
@@ -106,6 +107,7 @@ final class UsageStore {
     quotaSource = QuotaSource(rawValue: defaults.string(forKey: "quotaSource") ?? "") ?? .codex
     quotaChartRange =
       QuotaChartRange(rawValue: defaults.string(forKey: "quotaChartRange") ?? "") ?? .rte
+    cursorQuotaChartRange = .rtd
     historyURL =
       (storageDirectory
       ?? FileManager.default.homeDirectoryForCurrentUser
@@ -307,6 +309,9 @@ final class UsageStore {
     summary?.cursorAccount =
       cache?.summaries.values.sorted { $0.date > $1.date }
       .compactMap { $0.report.cursorAccount }.first
+    summary?.claudeAccount =
+      cache?.summaries.values.sorted { $0.date > $1.date }
+      .compactMap { $0.report.claudeAccount }.first
     updated["summary"] = saved?.date
     errors["summary"] = summaryErrors[currentQuery.cacheKey]
   }
@@ -354,6 +359,7 @@ final class UsageStore {
       guard source == sourceKey else { return }
       cache?.summaries[query.cacheKey] = CachedReport(report: report, date: .now)
       saveCache()
+      recordCursorQuota(report.cursorAccount)
       archive.ingest(report, policy: metricsIngestPolicy(for: query.cacheKey))
       if archiveWritable {
         do {
@@ -402,10 +408,19 @@ final class UsageStore {
     } catch { errors["cache"] = "Unable to save report history on this Mac." }
   }
 
+  var chartDomain: ClosedRange<Date>? {
+    var dates = Set(summary?.daily?.map(\.date) ?? [])
+    for name in knownAgents {
+      dates.formUnion(archivedDaily(for: name).map(\.date))
+    }
+    return activityChartDomain(
+      period: period, knownDates: Array(dates), resetStart: resetStartDate)
+  }
+
   var remainingPercent: Double? {
     remainingQuota(
       for: quotaSource, forecast: forecast(for: quotaSource.rawValue),
-      cursorAccount: summary?.cursorAccount)
+      cursorAccount: summary?.cursorAccount, claudeAccount: summary?.claudeAccount)
   }
 
   func archivedDaily(for agent: String) -> [DailyUsage] {
@@ -419,6 +434,7 @@ final class UsageStore {
   }
 
   func forecast(for agent: String) -> Forecast? {
+    if agent == "cursor" { return cursorForecast() }
     if let reading = quotaHistory.latest(agent: agent, source: quotaSourceKey) {
       return Forecast(window: reading.window, observedAt: reading.date, isLive: true)
     }
@@ -428,9 +444,33 @@ final class UsageStore {
     return Forecast(window: window, observedAt: date)
   }
 
+  private func cursorForecast() -> Forecast? {
+    cursorMeterForecast(
+      account: summary?.cursorAccount, now: quotaCheckDate,
+      stored: quotaHistory.latest(agent: "cursor", source: quotaSourceKey).map {
+        Forecast(window: $0.window, observedAt: $0.date, isLive: true)
+      })
+  }
+
+  private func recordCursorQuota(_ account: CursorAccount?) {
+    guard let account, let reading = cursorQuotaReading(account) else { return }
+    quotaHistory.record(reading, source: quotaSourceKey)
+    do {
+      try QuotaHistoryFile(directory: cacheURL.deletingLastPathComponent()).save(quotaHistory)
+      errors["quotaHistory"] = nil
+    } catch {
+      errors["quotaHistory"] =
+        "Quota history could not be saved. Existing readings are preserved."
+    }
+  }
+
   func archivedSamples(for agent: String) -> [QuotaSample] {
     quotaHistory.latest(agent: agent, source: quotaSourceKey) == nil
       ? history[agent] ?? [] : quotaHistory.samples(agent: agent, source: quotaSourceKey)
+  }
+
+  func chartRange(for agent: String) -> QuotaChartRange {
+    agent == "cursor" ? cursorQuotaChartRange : quotaChartRange
   }
 
   func samples(for agent: String, range: QuotaChartRange = .rte, now: Date = .now) -> [QuotaSample]

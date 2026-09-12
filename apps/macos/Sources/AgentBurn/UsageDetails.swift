@@ -23,6 +23,7 @@ struct QuotaSummary: View {
   var compact = false
   var availableResets: Int? = nil
   var rates: QuotaBlendRates? = nil
+  var style = QuotaMeterStyle.weekly
   private var muted: Color { compact ? BurnTheme.quotaMuted : BurnTheme.muted }
   private var reading: QuotaChartReading {
     quotaChartReading(at: forecast.observedAt, samples: samples, forecast: forecast, range: .rte)
@@ -43,7 +44,7 @@ struct QuotaSummary: View {
 
   private var title: some View {
     HStack(spacing: 6) {
-      Text("Weekly quota").font(.headline).lineLimit(1)
+      Text(style.title).font(.headline).lineLimit(1)
       if stale { staleMark }
     }
   }
@@ -69,7 +70,7 @@ struct QuotaSummary: View {
             StatusBadge(text: paceText, color: paceColor)
               .help("Recorded remaining minus even pace at the latest reading.")
           }
-          Text("Reset in \(quotaTimeLeft(forecast, now: now))")
+          Text("\(style.resetTitle) \(quotaTimeLeft(forecast, now: now))")
             .font(.system(size: 12))
             .foregroundStyle(muted)
             .lineLimit(1)
@@ -78,7 +79,7 @@ struct QuotaSummary: View {
             .foregroundStyle(muted)
             .monospacedDigit()
             .lineLimit(1)
-            .help("Time left in this weekly limit window.")
+            .help(style.resetHelp)
           if let availableResets {
             Text(availableResets == 1 ? "1 reset" : "\(availableResets) resets")
               .font(.system(size: 12, weight: .medium))
@@ -88,7 +89,7 @@ struct QuotaSummary: View {
           }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Reset in")
+        .accessibilityLabel(style.resetTitle)
         .accessibilityValue(
           "\(quotaTimeLeft(forecast, now: now)). \(quotaDateCompact(forecast.reset))")
       }
@@ -100,7 +101,7 @@ struct QuotaSummary: View {
     VStack(alignment: .leading, spacing: 2) {
       if compact {
         HStack(spacing: 6) {
-          Text("Weekly remaining").font(.system(size: 12)).foregroundStyle(muted).lineLimit(1)
+          Text(style.remainingCaption).font(.system(size: 12)).foregroundStyle(muted).lineLimit(1)
           if stale { staleMark }
         }
       }
@@ -132,15 +133,14 @@ struct QuotaSummary: View {
   private var facts: some View {
     VStack(spacing: 11) {
       row(
-        "Reset in", quotaTimeLeft(forecast, now: now),
+        style.resetTitle, quotaTimeLeft(forecast, now: now),
         detail: quotaDateCompact(forecast.reset),
-        help: "Time left in this weekly limit window.")
+        help: style.resetHelp)
       row(
         "Used",
         "\(quotaUsedPercent(forecast).formatted(.number.precision(.fractionLength(1))))%",
         detail: "since \(quotaDayLabel(forecast.start))",
-        help:
-          "The current weekly limit started at this time. Used percent is measured against that full limit."
+        help: style.usedHelp
       )
       row(
         "Daily",
@@ -214,14 +214,86 @@ struct DailySpendChart: View {
   let title: String
   let days: [DailyUsage]
   var color = BurnTheme.accent
+  var scope: Binding<CursorModelScope>? = nil
+  var domain: ClosedRange<Date>? = nil
+  var showsGranularity = true
+  @State private var selected: Date?
+  @State private var granularityOverride: SpendGranularity?
+  private var points: [(date: Date, usage: DailyUsage)] {
+    days.compactMap { usage in
+      guard let date = usageDayDate(usage.date) else { return nil }
+      return (date, usage)
+    }
+  }
+  private var scale: ClosedRange<Date> {
+    if let domain { return domain }
+    if let first = points.first?.date, let last = points.last?.date, first <= last {
+      return first...last
+    }
+    let today = Calendar(identifier: .gregorian).startOfDay(for: .now)
+    return today...today
+  }
+  private var spanDays: Int { spendSpanDays(lower: scale.lowerBound, upper: scale.upperBound) }
+  private var effective: SpendGranularity {
+    guard showsGranularity else { return .daily }
+    return granularityOverride ?? spendGranularityAuto(spanDays: spanDays)
+  }
+  private var granularityBinding: Binding<SpendGranularity> {
+    Binding(get: { effective }, set: { granularityOverride = $0 })
+  }
+  private var buckets: [(date: Date, end: Date, usage: DailyUsage)] {
+    let calendar = spendCalendar()
+    return bucketDailyUsage(days, granularity: effective, calendar: calendar).compactMap { usage in
+      guard let start = usageDayDate(usage.date) else { return nil }
+      return (
+        start, spendBucketEnd(start: start, granularity: effective, calendar: calendar), usage
+      )
+    }
+  }
+  private var headerTitle: String { showsGranularity ? effective.spendTitle : title }
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
-      SectionLabel(title: title, detail: "API-equivalent USD")
-      Chart(days) { day in
-        BarMark(x: .value("Date", day.date), y: .value("Usage", day.cost))
-          .foregroundStyle(color).cornerRadius(3)
-          .accessibilityLabel(day.date).accessibilityValue(currency(day.cost))
+      HStack {
+        SectionLabel(title: headerTitle, detail: "API-equivalent USD")
+        Spacer()
+        if showsGranularity {
+          Picker("Granularity", selection: granularityBinding) {
+            ForEach(SpendGranularity.allCases) { option in
+              Text(option.label).tag(option)
+            }
+          }
+          .pickerStyle(.segmented)
+          .frame(width: 220)
+          .labelsHidden()
+          .accessibilityLabel("Spend granularity")
+        }
+        if let scope {
+          Picker("Models", selection: scope) {
+            ForEach(CursorModelScope.allCases) { option in
+              Text(option.label).tag(option)
+            }
+          }
+          .pickerStyle(.segmented)
+          .frame(maxWidth: 240)
+          .labelsHidden()
+          .accessibilityLabel("Daily spend models")
+        }
       }
+      Chart {
+        ForEach(buckets, id: \.usage.id) { bucket in
+          BarMark(
+            x: .value("Day", bucket.date, unit: effective.unit),
+            y: .value("Usage", bucket.usage.cost)
+          )
+          .foregroundStyle(color).cornerRadius(3)
+          .accessibilityLabel(bucket.usage.date).accessibilityValue(currency(bucket.usage.cost))
+        }
+        if let selected {
+          RuleMark(x: .value("Day", selected)).foregroundStyle(.secondary.opacity(0.4))
+        }
+      }
+      .chartXSelection(value: $selected)
+      .chartXScale(domain: scale)
       .chartYAxis {
         AxisMarks(position: .leading) { _ in
           AxisGridLine().foregroundStyle(BurnTheme.line)
@@ -229,20 +301,20 @@ struct DailySpendChart: View {
         }
       }
       .chartXAxis {
-        AxisMarks(
-          values: Array(
-            days.enumerated().filter { $0.offset % max(1, days.count / 7) == 0 }.map {
-              $0.element.date
-            })
-        ) { value in
-          AxisValueLabel {
-            if let date = value.as(String.self) {
-              Text(String(date.suffix(5))).foregroundStyle(BurnTheme.muted)
-            }
+        AxisMarks(values: .automatic(desiredCount: 5)) { _ in
+          if effective == .monthly {
+            AxisValueLabel(format: .dateTime.month(.abbreviated).year()).foregroundStyle(
+              BurnTheme.muted)
+          } else {
+            AxisValueLabel(format: .dateTime.month(.abbreviated).day()).foregroundStyle(
+              BurnTheme.muted)
           }
         }
       }
       .frame(height: 150)
+      .id(
+        "\(showsGranularity)-\(effective.rawValue)-\(scale.lowerBound.formatted())-\(scale.upperBound.formatted())"
+      )
     }
   }
 }
@@ -274,7 +346,7 @@ struct HarnessSpendDetails: View {
       if let trend = report.weeklyTrend, !trend.isEmpty {
         DailySpendChart(
           title: "Weekly trend", days: trend.map { DailyUsage(date: $0.weekStart, cost: $0.cost) },
-          color: BurnTheme.color(for: report.agent))
+          color: BurnTheme.color(for: report.agent), showsGranularity: false)
       }
       if let estimate = report.estimate {
         VStack(alignment: .leading, spacing: 14) {
@@ -322,6 +394,7 @@ struct SourceUsageView: View {
   @Environment(UsageStore.self) private var store
   let agent: String
   var compact = false
+  @State private var cursorScope = CursorModelScope.allModels
   private var usage: AgentUsage? { store.summary?.agents.first { $0.agent == agent } }
   private var subscription: SubscriptionAgent? {
     store.summary?.subscription?.agents.first { $0.agent == agent }
@@ -341,6 +414,34 @@ struct SourceUsageView: View {
       }
       if let error = store.errors["summary"] { ReportNotice(message: error) }
       if let usage {
+        if agent == "cursor", cursorHasPromotionalCredits(store.summary?.cursorAccount),
+          let forecast = store.forecast(for: "cursor")
+        {
+          QuotaSummary(
+            forecast: forecast,
+            samples: store.samples(
+              for: "cursor", range: store.cursorQuotaChartRange, now: store.quotaCheckDate),
+            now: store.quotaCheckDate,
+            stale: !forecast.isFresh(at: store.quotaCheckDate)
+              || store.quotaError(for: "cursor") != nil,
+            staleHelp: store.quotaError(for: "cursor")
+              ?? "Showing the last known reading. Update pending.",
+            compact: compact,
+            rates: store.blendRates(for: "cursor"),
+            style: .promotionalCredits)
+          QuotaChart(
+            forecast: forecast,
+            samples: store.samples(
+              for: "cursor", range: store.cursorQuotaChartRange, now: store.quotaCheckDate),
+            color: compact
+              ? BurnTheme.quotaColor(for: "cursor") : BurnTheme.color(for: "cursor"),
+            compact: compact, range: store.cursorQuotaChartRange, now: store.quotaCheckDate,
+            resetLabel: QuotaMeterStyle.promotionalCredits.chartResetLabel)
+        } else if agent == "cursor" {
+          CursorAccountView(account: store.summary?.cursorAccount, plan: subscription)
+        } else if agent == "claude" {
+          ClaudeAccountView(account: store.summary?.claudeAccount, plan: subscription)
+        }
         HStack {
           SpendMetric(
             title: "Total spend", value: currency(usage.totalCost),
@@ -351,18 +452,25 @@ struct SourceUsageView: View {
               title: "Monthly plan", value: currency(price), detail: subscription?.plan ?? "")
           }
         }
-        if agent == "cursor" {
-          CursorAccountView(account: store.summary?.cursorAccount, plan: subscription)
-        } else {
-          ReportNotice(message: "Subscription limits are not available for this harness.")
-        }
-        if let daily = usage.daily, !daily.isEmpty {
-          DailySpendChart(title: "Daily usage", days: daily, color: BurnTheme.color(for: agent))
+        if let daily = usage.daily, !daily.isEmpty,
+          !(compact && cursorHasPromotionalCredits(store.summary?.cursorAccount))
+        {
+          DailySpendChart(
+            title: "Daily usage",
+            days: agent == "cursor" && !cursorHasPromotionalCredits(store.summary?.cursorAccount)
+              ? dailyUsage(daily, scope: cursorScope) : daily,
+            color: BurnTheme.color(for: agent),
+            scope: agent == "cursor" && !cursorHasPromotionalCredits(store.summary?.cursorAccount)
+              ? $cursorScope : nil,
+            domain: store.chartDomain)
         }
         if let models = usage.models, !models.isEmpty {
+          let shown =
+            agent == "cursor" && !cursorHasPromotionalCredits(store.summary?.cursorAccount)
+            ? modelUsage(models, scope: cursorScope) : models
           VStack(alignment: .leading, spacing: 14) {
             SectionLabel(title: "Model breakdown", detail: store.period.label)
-            ForEach(Array(models.prefix(compact ? 3 : models.count))) { model in
+            ForEach(Array(shown.prefix(compact ? 3 : shown.count))) { model in
               HStack {
                 Text(model.model).lineLimit(1).help(model.model)
                 Spacer()
@@ -414,10 +522,9 @@ struct PeriodPicker: View {
 }
 
 struct QuotaChartRangePicker: View {
-  @Environment(UsageStore.self) private var store
+  @Binding var range: QuotaChartRange
   var body: some View {
-    @Bindable var store = store
-    Picker("Quota chart range", selection: $store.quotaChartRange) {
+    Picker("Quota chart range", selection: $range) {
       ForEach(QuotaChartRange.allCases) { range in Text(range.label).tag(range) }
     }
     .labelsHidden()

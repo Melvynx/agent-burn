@@ -12,6 +12,7 @@ struct QuotaChart: View {
   var compact = false
   var range = QuotaChartRange.rte
   var now = Date.now
+  var resetLabel = "Reset"
   @State private var selected: Date?
   private var muted: Color { compact ? BurnTheme.quotaMuted : BurnTheme.muted }
   private var domain: ClosedRange<Date> {
@@ -207,7 +208,7 @@ struct QuotaChart: View {
     RuleMark(x: .value("Date", forecast.reset))
       .foregroundStyle(muted.opacity(0.55)).lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
       .annotation(position: .leading, alignment: .top, spacing: 4) {
-        Text("Reset").font(.system(size: 10, weight: .medium)).foregroundStyle(muted)
+        Text(resetLabel).font(.system(size: 10, weight: .medium)).foregroundStyle(muted)
       }
   }
 

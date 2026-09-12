@@ -78,6 +78,18 @@ private func snapshot(_ days: String) throws -> SummaryReport {
   #expect(archive.report(period: .all, live: nil).totals.totalCost == 18)
 }
 
+@Test func archivePreservesCursorModelDailySpend() throws {
+  var archive = MetricsArchive()
+  archive.ingest(
+    try snapshot(
+      """
+      {"date":"2026-09-01","cost":10,"tokens":100,"cursorModelsCost":3,"cursorModelsTokens":30}
+      """))
+  let day = archive.report(period: .all, live: nil).daily?.first
+  #expect(day?.cursorModelsCost == 3)
+  #expect(day?.cursorModelsTokens == 30)
+}
+
 @Test func laterAllTimeSnapshotKeepsDaysItNoLongerReports() throws {
   var archive = MetricsArchive()
   archive.ingest(

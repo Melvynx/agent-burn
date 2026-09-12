@@ -313,6 +313,25 @@ private func utcDate(year: Int = 2027, month: Int = 1, day: Int, hour: Int = 0) 
       == marks[1].formatted(.dateTime.day()))
 }
 
+@Test func quotaChartYearWindowKeepsAHandfulOfMonthAxisDates() {
+  let long = Forecast(
+    window: QuotaWindow(
+      windowMinutes: 365 * 1_440, usedPercent: 40, elapsedPercent: 3, apiEquivalentSpent: 0),
+    observedAt: now)
+  let marks = quotaChartAxisDates(range: .rte, forecast: long, now: now)
+  #expect(marks.count <= 6)
+  #expect(marks.count >= 2)
+  #expect(
+    quotaChartAxisLabel(marks[0], range: .rte, marks: marks)
+      == marks[0].formatted(.dateTime.month(.abbreviated)))
+}
+
+@Test func quotaChartWeekWindowKeepsDailyAxisDates() {
+  let marks = quotaChartAxisDates(range: .rte, forecast: forecast, now: now)
+  #expect(marks.count >= 6)
+  #expect(marks.count <= 9)
+}
+
 @Test func quotaChartAxisLabelUsesWeekdayWhenTheWeekFits() {
   let marks = (8...15).map { utcDate(day: $0) }
   #expect(
@@ -410,9 +429,13 @@ private func utcDate(year: Int = 2027, month: Int = 1, day: Int, hour: Int = 0) 
   }
   let store = UsageStore(defaults: defaults, period: .mtd, storageDirectory: directory)
   #expect(store.quotaChartRange == .rte)
+  #expect(store.cursorQuotaChartRange == .rtd)
+  #expect(store.chartRange(for: "cursor") == .rtd)
+  #expect(store.chartRange(for: "codex") == .rte)
   store.quotaChartRange = .month
+  store.cursorQuotaChartRange = .week
   #expect(store.period == .mtd)
-  #expect(
-    UsageStore(defaults: defaults, period: .mtd, storageDirectory: directory).quotaChartRange
-      == .month)
+  let reloaded = UsageStore(defaults: defaults, period: .mtd, storageDirectory: directory)
+  #expect(reloaded.quotaChartRange == .month)
+  #expect(reloaded.cursorQuotaChartRange == .rtd)
 }

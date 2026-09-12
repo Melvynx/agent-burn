@@ -37,7 +37,9 @@ struct MetricsArchive: Codable {
         let old = agents[agent.agent]?[day.date]
         if old != nil && policy == .fillMissingDays { continue }
         agents[agent.agent, default: [:]][day.date] = DailyUsage(
-          date: day.date, cost: day.cost, tokens: day.tokens ?? old?.tokens)
+          date: day.date, cost: day.cost, tokens: day.tokens ?? old?.tokens,
+          cursorModelsCost: day.cursorModelsCost ?? old?.cursorModelsCost,
+          cursorModelsTokens: day.cursorModelsTokens ?? old?.cursorModelsTokens)
       }
     }
   }
@@ -59,9 +61,14 @@ struct MetricsArchive: Codable {
     }
     let grouped = Dictionary(grouping: usages.flatMap { $0.daily ?? [] }, by: \.date)
     let days = grouped.keys.sorted().map { date in
-      DailyUsage(
-        date: date, cost: grouped[date]!.reduce(0) { $0 + $1.cost },
-        tokens: grouped[date]!.reduce(0) { $0 + ($1.tokens ?? 0) })
+      let bucket = grouped[date]!
+      let cursorCosts = bucket.compactMap(\.cursorModelsCost)
+      let cursorTokens = bucket.compactMap(\.cursorModelsTokens)
+      return DailyUsage(
+        date: date, cost: bucket.reduce(0) { $0 + $1.cost },
+        tokens: bucket.reduce(0) { $0 + ($1.tokens ?? 0) },
+        cursorModelsCost: cursorCosts.isEmpty ? nil : cursorCosts.reduce(0, +),
+        cursorModelsTokens: cursorTokens.isEmpty ? nil : cursorTokens.reduce(0, +))
     }
     var report = SummaryReport(
       totals: Totals(
@@ -69,6 +76,7 @@ struct MetricsArchive: Codable {
         totalTokens: usages.reduce(0) { $0 + $1.totalTokens }),
       agents: usages, models: live?.models ?? [], daily: days, subscription: live?.subscription)
     report.cursorAccount = live?.cursorAccount
+    report.claudeAccount = live?.claudeAccount
     return report
   }
 }

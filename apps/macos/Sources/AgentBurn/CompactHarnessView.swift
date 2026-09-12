@@ -16,10 +16,11 @@ struct CompactHarnessView: View {
       }
 
       if let forecast = store.forecast(for: agent) {
+        let range = store.chartRange(for: agent)
         QuotaSummary(
           forecast: forecast,
           samples: store.samples(
-            for: agent, range: store.quotaChartRange, now: store.quotaCheckDate),
+            for: agent, range: range, now: store.quotaCheckDate),
           now: store.quotaCheckDate,
           stale: !forecast.isFresh(at: store.quotaCheckDate)
             || store.quotaError(for: agent) != nil,
@@ -32,9 +33,9 @@ struct CompactHarnessView: View {
         QuotaChart(
           forecast: forecast,
           samples: store.samples(
-            for: agent, range: store.quotaChartRange, now: store.quotaCheckDate),
+            for: agent, range: range, now: store.quotaCheckDate),
           color: BurnTheme.quotaColor(for: agent), compact: true,
-          range: store.quotaChartRange, now: store.quotaCheckDate)
+          range: range, now: store.quotaCheckDate)
 
         if let short = store.summary?.subscription?.agents.first(where: { $0.agent == agent })?
           .shortWindow
