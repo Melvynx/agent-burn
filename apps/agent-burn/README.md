@@ -40,7 +40,7 @@ and its timestamp remain visible; missed measurements are not fabricated.
 The native macOS app provides a menu-bar popover with General, Codex, Claude, and Cursor
 tabs, plus a full tabbed dashboard for usage across every detected harness. The Codex
 and Claude popover tabs put remaining quota, reset time, and the forecast first;
-expand **Usage details** for spend and models. General
+expand **Usage details** for spend, models, and average $ / % plus tokens / $. General
 supports daily, WTD, MTD, YTD, rolling week/month ranges, and All time. Harness tabs include
 available spend, models, daily charts, token breakdowns, and subscription details. It requires
 macOS 14 or later. Build from the repository root with Xcode command-line tools,
@@ -73,15 +73,17 @@ write and a previous-version `.bak` recovery file. The dashboard uses this archi
 for date filters and charts, even after source logs disappear. Period changes display
 saved data immediately while missing detail refreshes in the background. A harness
 tab reads only that source; General reads all sources. The selector remains usable
-during refreshes. History and recovery files are maintained automatically. Each day retains
-the highest observed totals; partial deletions within a day can conceal subsequent
-usage until it exceeds that total. This is a local archive, not an off-device backup.
+during refreshes. History and recovery files are maintained automatically. All-time snapshots replace days they still report. Filtered `today`/`month`
+caches only fill missing dates, so they cannot double a day's spend. Days a
+provider stops returning stay in the archive. This is a local archive, not an
+off-device backup.
 Model and token-category tables describe available source data, not archived detail.
 Cursor defaults to its current billing cycle. Explicit `--since` / `--until`
 summary queries can retrieve older daily metrics where Cursor still supplies them.
 With live `--value --json` reports, `cursorAccount` separates included allowance,
 promotional credits, expiration dates, billing cycle and reported on-demand amounts.
-Missing amounts remain unknown.
+`activePercentUsed` follows promotional credits while those are the burning
+balance, then the included allowance. Missing amounts remain unknown.
 Quota readings are saved locally under
 `~/Library/Application Support/Agent Burn/quota-history.json`. The forecast uses
 average consumption during the current cycle; historical lines build as the app

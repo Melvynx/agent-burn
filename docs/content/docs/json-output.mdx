@@ -22,7 +22,7 @@ agent-burn harness claude --json --jq '.window'
 agent-burn harness codex --json --jq '.spendMix'
 ```
 
-Harness JSON includes `spendMix`, a trailing-30-day breakdown of input, output, cache write, and cached input token classes with token percentages and API-equivalent cost percentages.
+Harness JSON includes `spendMix`, a trailing-30-day breakdown of input, output, cache write, and cached input token classes with token percentages and API-equivalent cost percentages. Codex harness JSON also includes `resetCreditsAvailable` when the live ChatGPT usage meter reports banked rate-limit resets.
 
 The JSON shape is intended for dashboards and scripts. Prefer command names `summary` and `harness`.
 
@@ -39,7 +39,11 @@ harness tabs. Add `--value` to include subscription plan information.
 
 Live `agent-burn summary --value --json` can include `cursorAccount` with
 `billingCycleStartMs`, `billingCycleEndMs`, `includedLimitUSD`,
-`includedRemainingUSD`, `includedPercentUsed`, `onDemandSpentUSD`,
-`onDemandLimitUSD`, and `grants` (kind, total/remaining USD, expiration timestamp).
-Absent amounts are null, not zero. These current account balances are distinct
-from historical API-equivalent spend and are omitted in offline mode.
+`includedRemainingUSD`, `includedPercentUsed`, optional `includedSpendUSD` /
+`bonusSpendUSD` / `planSpendUSD`, `onDemandSpentUSD`, `onDemandLimitUSD`,
+`activeRemainingUSD`, `activeLimitUSD`, `activePercentUsed`, and `grants`
+(kind, total/remaining USD, expiration timestamp). Active fields follow
+promotional credits while those still have remaining balance, then the included
+allowance. Absent amounts are null, not zero. These current account balances
+are distinct from historical API-equivalent spend and are omitted in offline
+mode.
