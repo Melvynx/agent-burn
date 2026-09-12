@@ -114,7 +114,18 @@ pub(super) fn parse_usage_limits(body: &str) -> Option<CodexPlanSnapshot> {
         limit_id: Some("codex".to_string()),
         primary: rate_window(rate_limit.get("primary_window")),
         secondary: rate_window(rate_limit.get("secondary_window")),
+        reset_credits_available: reset_credits_available(&value),
     })
+}
+
+fn reset_credits_available(value: &Value) -> Option<u32> {
+    let credits = value
+        .get("rate_limit_reset_credits")
+        .or_else(|| value.get("rateLimitResetCredits"))?;
+    let count = credits
+        .get("available_count")
+        .or_else(|| credits.get("availableCount"))?;
+    u32::try_from(count.as_u64()?).ok()
 }
 
 fn rate_window(value: Option<&Value>) -> Option<RateWindow> {
@@ -151,6 +162,41 @@ mod tests {
         }
       ]
     }"#;
+
+    #[test]
+    fn reads_banked_reset_credits_from_snake_and_camel_case() {
+        let snake = parse_usage_limits(
+            r#"{
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 10,
+                  "limit_window_seconds": 604800,
+                  "reset_at": 1
+                }
+              },
+              "rate_limit_reset_credits": { "available_count": 2 }
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(snake.reset_credits_available, Some(2));
+
+        let camel = parse_usage_limits(
+            r#"{
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 10,
+                  "limit_window_seconds": 604800,
+                  "reset_at": 1
+                }
+              },
+              "rateLimitResetCredits": { "availableCount": 3 }
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(camel.reset_credits_available, Some(3));
+    }
 
     #[test]
     fn reads_account_weekly_used_percent_and_ignores_spark() {

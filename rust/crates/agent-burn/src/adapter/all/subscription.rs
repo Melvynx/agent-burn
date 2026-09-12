@@ -1,7 +1,7 @@
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use super::summary::format_compact_tokens;
-use crate::{Color, cli::SharedArgs, format_currency, json_float};
+use crate::{cli::SharedArgs, format_currency, json_float, Color};
 
 /// Average days per month, for normalising a window's value to a monthly figure.
 const DAYS_PER_MONTH: f64 = 30.4375;
@@ -19,6 +19,7 @@ pub(super) struct CodexInput {
     pub(super) plan_type: String,
     pub(super) window: Option<WindowCost>,
     pub(super) short_window: Option<(u64, f64)>,
+    pub(super) reset_credits_available: Option<u32>,
 }
 
 /// Live Claude limit input from the OAuth usage endpoint.
@@ -43,6 +44,7 @@ struct AgentValue {
     window: Option<WindowCost>,
     short_window: Option<(u64, f64)>,
     live_limits: bool,
+    reset_credits_available: Option<u32>,
 }
 
 pub(super) struct Subscription {
@@ -94,6 +96,7 @@ impl Subscription {
                 window: input.window,
                 short_window: input.short_window,
                 live_limits: true,
+                reset_credits_available: input.reset_credits_available,
             });
         }
 
@@ -111,6 +114,7 @@ impl Subscription {
                 window,
                 short_window,
                 live_limits,
+                reset_credits_available: None,
             });
         }
 
@@ -124,6 +128,7 @@ impl Subscription {
                 window: None,
                 short_window: None,
                 live_limits: false,
+                reset_credits_available: None,
             });
         }
 
@@ -336,6 +341,7 @@ fn agent_json(agent: &AgentValue) -> Value {
             "label": window_label(minutes),
             "usedPercent": json_float(percent),
         })),
+        "resetCreditsAvailable": agent.reset_credits_available,
     })
 }
 
@@ -349,6 +355,7 @@ pub(super) struct WeeklyView<'a> {
     pub(super) window: Option<WindowCost>,
     pub(super) daily: Vec<(String, f64)>,
     pub(super) live_limits: bool,
+    pub(super) reset_credits_available: Option<u32>,
     /// Trailing-30-day API-equivalent spend for this agent.
     pub(super) monthly_equiv: f64,
     /// This agent's top models (last 30d): `(model, cost, tokens)`, by cost desc.
@@ -766,6 +773,7 @@ pub(super) fn weekly_to_json(view: &WeeklyView) -> Value {
         }),
         "economics": economics,
         "liveLimits": view.live_limits,
+        "resetCreditsAvailable": view.reset_credits_available,
         "window": view.window.as_ref().map(|window| json!({
             "windowMinutes": window.window_minutes,
             "usedPercent": json_float(window.used_percent),
@@ -1054,6 +1062,7 @@ mod tests {
             plan_type: "pro".to_string(),
             window: Some(window_cost(10.0, 10080, 2.0 * 1440.0, 800.0)),
             short_window: Some((300, 4.0)),
+            reset_credits_available: Some(2),
         };
         let claude_input = ClaudeInput {
             window: Some(window_cost(12.0, 10080, 6.0 * 1440.0, 600.0)),

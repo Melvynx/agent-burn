@@ -20,6 +20,7 @@ pub(crate) struct CodexPlanSnapshot {
     pub(crate) limit_id: Option<String>,
     pub(crate) primary: Option<RateWindow>,
     pub(crate) secondary: Option<RateWindow>,
+    pub(crate) reset_credits_available: Option<u32>,
 }
 
 impl CodexPlanSnapshot {
@@ -115,6 +116,7 @@ fn snapshot_from_line(line: &str) -> Option<CodexPlanSnapshot> {
             .map(str::to_string),
         primary: rate_window(rate_limits.get("primary")),
         secondary: rate_window(rate_limits.get("secondary")),
+        reset_credits_available: None,
     })
 }
 
@@ -229,6 +231,7 @@ mod tests {
                 resets_at: Some(1),
             }),
             secondary: None,
+            reset_credits_available: None,
         };
 
         assert!(snapshot.weekly_window().is_none());
