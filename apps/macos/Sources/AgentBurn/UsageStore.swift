@@ -215,12 +215,27 @@ final class UsageStore {
       } else {
         errors["quotaService"] = nil
       }
-      let sourceChanged = collectedQuotaSource != quotaSourceKey
-      let retryDue = Date.now.timeIntervalSince(quotaCollectionDate ?? .distantPast) >= 60
-      if sourceChanged || (status != .enabled && retryDue) {
-        await collectQuotasNow()
-      }
+      await refreshQuotasIfNeeded(backgroundAvailable: status == .enabled)
       try? await Task.sleep(for: .seconds(5))
+    }
+  }
+
+  func refreshQuotasIfNeeded(backgroundAvailable: Bool, now: Date = .now) async {
+    reloadQuotas()
+    let sourceChanged = collectedQuotaSource != quotaSourceKey
+    let retryDue = now.timeIntervalSince(quotaCollectionDate ?? .distantPast) >= 60
+    // Registration is not evidence of successful collection: launchd can stay
+    // enabled after a spawn failure. Recover before readings become stale.
+    var agents = ["codex", "claude"]
+    if cursorHasPromotionalCredits(summary?.cursorAccount) { agents.append("cursor") }
+    let overdue = agents.contains { agent in
+      guard let reading = quotaHistory.latest(agent: agent, source: quotaSourceKey) else {
+        return true
+      }
+      return now.timeIntervalSince(reading.date) >= 60 || quotaError(for: agent) != nil
+    }
+    if sourceChanged || (retryDue && (!backgroundAvailable || overdue)) {
+      await collectQuotasNow()
     }
   }
 
