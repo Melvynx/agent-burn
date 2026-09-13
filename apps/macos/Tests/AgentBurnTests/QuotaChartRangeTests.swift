@@ -238,7 +238,24 @@ private func utcDate(year: Int = 2027, month: Int = 1, day: Int, hour: Int = 0) 
   #expect(quotaChartRecordedStroke(ahead: false, color: .purple) == BurnTheme.behind)
 }
 
-@Test func quotaChartSmoothedSamplesCollapsesUnchangedPlateaus() {
+@Test func quotaChartDrawnSamplesKeepsLiveRemainingSteps() {
+  let samples = (0...4).map { step in
+    sample(TimeInterval(step - 4) * 100, remaining: 100 - Double(step) * 10)
+  }
+  #expect(
+    quotaChartDrawnSamples(samples).map(\.remaining) == [100, 100, 90, 90, 80, 80, 70, 70, 60])
+}
+
+@Test func quotaChartDrawnSamplesKeepsADipOffTheBurnDown() {
+  let samples = [
+    sample(-200, remaining: 100),
+    sample(-100, remaining: 50),
+    sample(0, remaining: 60),
+  ]
+  #expect(quotaChartDrawnSamples(samples).map(\.remaining) == [100, 100, 50, 50, 60])
+}
+
+@Test func quotaChartDrawnSamplesHoldsAPlateauUntilTheNextDrop() {
   let samples = [
     sample(-400, remaining: 100),
     sample(-300, remaining: 100),
@@ -246,37 +263,32 @@ private func utcDate(year: Int = 2027, month: Int = 1, day: Int, hour: Int = 0) 
     sample(-100, remaining: 80),
     sample(0, remaining: 80),
   ]
-  let smoothed = quotaChartSmoothedSamples(samples)
-  #expect(smoothed.map(\.remaining) == [100, 80, 80])
-  #expect(smoothed.first?.date == samples.first?.date)
-  #expect(smoothed.last?.date == samples.last?.date)
+  let drawn = quotaChartDrawnSamples(samples)
+  #expect(drawn.map(\.remaining) == [100, 100, 100, 80, 80])
+  #expect(drawn.first?.date == samples.first?.date)
+  #expect(drawn.last?.date == samples.last?.date)
 }
 
-@Test func quotaChartSmoothedSamplesTurnsAStraightBurnDownIntoEndpoints() {
-  let samples = (0...4).map { step in
-    sample(TimeInterval(step - 4) * 100, remaining: 100 - Double(step) * 10)
-  }
-  #expect(quotaChartSmoothedSamples(samples).map(\.remaining) == [100, 60])
-}
-
-@Test func quotaChartSmoothedSamplesKeepsADipOffTheBurnDown() {
+@Test func quotaChartDrawnSamplesDoesNotInventStepsAcrossCollectorGaps() {
   let samples = [
-    sample(-200, remaining: 100),
-    sample(-100, remaining: 50),
-    sample(0, remaining: 60),
+    QuotaSample(date: forecast.start, remaining: 100),
+    sample(-60, remaining: 60.13),
+    sample(0, remaining: 56.41),
   ]
-  #expect(quotaChartSmoothedSamples(samples).map(\.remaining) == [100, 50, 60])
+  #expect(quotaChartDrawnSamples(samples).map(\.remaining) == [100, 60.13, 60.13, 56.41])
 }
 
-@Test func quotaChartSmoothedSamplesDropsATinyWiggleOnTheBurnDown() {
+@Test func quotaChartDrawnSamplesDoesNotCollapseLiveDropsOntoTheLimitAnchor() {
   let samples = [
-    sample(-400, remaining: 100),
-    sample(-300, remaining: 90),
-    sample(-200, remaining: 81),
-    sample(-100, remaining: 70),
-    sample(0, remaining: 60),
+    QuotaSample(date: forecast.start, remaining: 100),
+    sample(-3_600, remaining: 60.13),
+    sample(-2_400, remaining: 59.4),
+    sample(-1_200, remaining: 58.1),
+    sample(0, remaining: 56.5),
   ]
-  #expect(quotaChartSmoothedSamples(samples).map(\.remaining) == [100, 60])
+  #expect(
+    quotaChartDrawnSamples(samples).map(\.remaining)
+      == [100, 60.13, 60.13, 59.4, 59.4, 58.1, 58.1, 56.5])
 }
 
 @Test func quotaChartDeltaTextReportsAheadBehindAndOnPace() {

@@ -705,57 +705,37 @@ func quotaTimeRemaining(_ forecast: Forecast, now: Date) -> String {
   return left == "<1h" ? "Less than 1h left" : "\(left) left"
 }
 
-func quotaChartSmoothedSamples(_ samples: [QuotaSample], epsilon: Double = 1.25) -> [QuotaSample] {
+func quotaChartDrawnSamples(
+  _ samples: [QuotaSample], stepGap: TimeInterval = 2 * 3_600
+) -> [QuotaSample] {
   let points = quotaChartCollapsedSamples(samples)
-  guard points.count > 2 else { return points }
-  var keep = [Bool](repeating: false, count: points.count)
-  keep[0] = true
-  keep[points.count - 1] = true
-  quotaChartSimplify(points, start: 0, end: points.count - 1, epsilon: epsilon, keep: &keep)
-  return zip(points, keep).compactMap { sample, kept in kept ? sample : nil }
-}
-
-private func quotaChartCollapsedSamples(_ samples: [QuotaSample]) -> [QuotaSample] {
-  let sorted = samples.sorted { $0.date < $1.date }
-  guard let first = sorted.first else { return [] }
-  var result = [first]
-  for sample in sorted.dropFirst() {
-    if abs(sample.remaining - result[result.count - 1].remaining) >= 0.05 {
-      result.append(sample)
+  guard var previous = points.first else { return [] }
+  var result = [previous]
+  for sample in points.dropFirst() {
+    if sample.date.timeIntervalSince(previous.date) <= stepGap,
+      abs(sample.remaining - previous.remaining) >= 0.05
+    {
+      result.append(QuotaSample(date: sample.date, remaining: previous.remaining))
     }
-  }
-  if let last = sorted.last, result.last != last {
-    result.append(last)
+    result.append(sample)
+    previous = sample
   }
   return result
 }
 
-private func quotaChartSimplify(
-  _ points: [QuotaSample], start: Int, end: Int, epsilon: Double, keep: inout [Bool]
-) {
-  guard end > start + 1 else { return }
-  var maxError = 0.0
-  var index = start
-  for i in (start + 1)..<end {
-    let error = quotaChartLineError(points[i], from: points[start], to: points[end])
-    if error > maxError {
-      maxError = error
-      index = i
+private func quotaChartCollapsedSamples(_ samples: [QuotaSample]) -> [QuotaSample] {
+  let sorted = samples.sorted { $0.date < $1.date }
+  guard var previous = sorted.first else { return [] }
+  var result = [previous]
+  for sample in sorted.dropFirst() {
+    if abs(sample.remaining - previous.remaining) >= 0.05 {
+      if result.last != previous { result.append(previous) }
+      result.append(sample)
     }
+    previous = sample
   }
-  guard maxError > epsilon else { return }
-  keep[index] = true
-  quotaChartSimplify(points, start: start, end: index, epsilon: epsilon, keep: &keep)
-  quotaChartSimplify(points, start: index, end: end, epsilon: epsilon, keep: &keep)
-}
-
-private func quotaChartLineError(_ point: QuotaSample, from start: QuotaSample, to end: QuotaSample)
-  -> Double
-{
-  let span = end.date.timeIntervalSince(start.date)
-  let progress = span > 0 ? point.date.timeIntervalSince(start.date) / span : 0
-  let expected = start.remaining + (end.remaining - start.remaining) * progress
-  return abs(point.remaining - expected)
+  if let last = sorted.last, result.last != last { result.append(last) }
+  return result
 }
 
 func quotaRecordedSegments(_ samples: [QuotaSample], connectGaps: Bool) -> [[QuotaSample]] {

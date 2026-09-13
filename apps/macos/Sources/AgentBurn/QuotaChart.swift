@@ -26,7 +26,7 @@ struct QuotaChart: View {
   private var showsIdeal: Bool { range == .rte || range == .rtd }
   private var showsLatest: Bool { domain.contains(forecast.observedAt) }
   private var cursor: Date { selected ?? forecast.observedAt }
-  private var drawnSamples: [QuotaSample] { quotaChartSmoothedSamples(samples) }
+  private var drawnSamples: [QuotaSample] { quotaChartDrawnSamples(samples) }
   private var reading: QuotaChartReading {
     quotaChartReading(at: cursor, samples: drawnSamples, forecast: forecast, range: range)
   }
@@ -45,7 +45,7 @@ struct QuotaChart: View {
         from: cursor, forward: direction == .increment, marks: gridDates, domain: domain)
     }
     .help(
-      "Drag across the chart to read remaining quota at any time. Recorded stays connected through missing collector readings. Pace spreads the weekly limit evenly until reset. Forecast projects observed usage until the next reset. The recorded line and fill stay green while remaining is ahead of pace, and turn red where remaining falls behind."
+      "Drag across the chart to read remaining quota at any time. Recorded holds until the next live reading, then steps with each drop. Missing collector gaps stay connected. Pace spreads the weekly limit evenly until reset. Forecast projects observed usage until the next reset. The recorded line and fill stay green while remaining is ahead of pace, and turn red where remaining falls behind."
     )
   }
 
@@ -124,7 +124,7 @@ struct QuotaChart: View {
           series: .value("Series", "Pace delta \(index)")
         )
         .foregroundStyle((segment.ahead ? BurnTheme.ahead : BurnTheme.behind).opacity(0.28))
-        .interpolationMethod(.monotone)
+        .interpolationMethod(.linear)
       }
     }
   }
@@ -136,7 +136,7 @@ struct QuotaChart: View {
         series: .value("Series", "Recorded area")
       )
       .foregroundStyle(color.opacity(0.12))
-      .interpolationMethod(.monotone)
+      .interpolationMethod(.linear)
     }
   }
 
@@ -166,7 +166,7 @@ struct QuotaChart: View {
           )
           .foregroundStyle(quotaChartRecordedStroke(ahead: segment.ahead, color: color))
           .lineStyle(StrokeStyle(lineWidth: 2.5))
-          .interpolationMethod(.monotone)
+          .interpolationMethod(.linear)
         }
       }
     } else {
@@ -182,7 +182,7 @@ struct QuotaChart: View {
             series: .value("Series", "Recorded \(index)")
           )
           .foregroundStyle(color).lineStyle(StrokeStyle(lineWidth: 2.5))
-          .interpolationMethod(.monotone)
+          .interpolationMethod(.linear)
           if segment.count == 1 {
             PointMark(x: .value("Date", sample.date), y: .value("Remaining", sample.remaining))
               .foregroundStyle(color).symbolSize(18)
