@@ -143,24 +143,33 @@ struct QuotaHistoryFile {
   var journal: QuotaJournal { QuotaJournal(directory: directory) }
 
   /// Archive, then its backup, then a rebuild from the append-only CSV journal.
-  func load() throws -> QuotaHistory? {
+  func load() throws -> QuotaHistory? { try loadWithOrigin()?.history }
+
+  /// `fromArchive` tells whether the primary archive itself decoded, so a save
+  /// can back it up without reading and decoding it a second time.
+  private func loadWithOrigin() throws -> (history: QuotaHistory, fromArchive: Bool)? {
     var failure: Error?
     for candidate in [url, backup] where FileManager.default.fileExists(atPath: candidate.path) {
-      do { return try decode(Data(contentsOf: candidate)) } catch { failure = failure ?? error }
+      do { return (try decode(Data(contentsOf: candidate)), candidate == url) } catch {
+        failure = failure ?? error
+      }
     }
-    if let rebuilt = try? journal.load() { return rebuilt }
+    if let rebuilt = try? journal.load() { return (rebuilt, false) }
     if let failure { throw failure }
     return nil
   }
 
   /// Merges readings into the latest archive on disk so concurrent writers
   /// (the app and the background collector) never drop each other's rows.
+  /// `strict` refuses to start over when every stored copy is unreadable.
   @discardableResult
   func commit(
     _ readings: [QuotaReading], source: String,
-    failures: [String: String?] = [:]
+    failures: [String: String?] = [:], strict: Bool = false
   ) throws -> QuotaHistory {
-    var history = (try? load()) ?? QuotaHistory()
+    let loaded: (history: QuotaHistory, fromArchive: Bool)?
+    if strict { loaded = try loadWithOrigin() } else { loaded = try? loadWithOrigin() }
+    var history = loaded?.history ?? QuotaHistory()
     try? journal.seedIfMissing(from: history)
     let accepted = readings.filter { history.record($0, source: source) }
     for (agent, message) in failures {
@@ -171,16 +180,28 @@ struct QuotaHistoryFile {
       }
     }
     try? journal.append(accepted.map { (source, $0) })
-    try save(history)
+    try save(history, archiveIsValid: loaded?.fromArchive ?? false)
     return history
   }
 
-  func save(_ history: QuotaHistory) throws {
-    try FileManager.default.createDirectory(
+  func save(_ history: QuotaHistory) throws { try save(history, archiveIsValid: nil) }
+
+  private func save(_ history: QuotaHistory, archiveIsValid: Bool?) throws {
+    let manager = FileManager.default
+    try manager.createDirectory(
       at: directory, withIntermediateDirectories: true,
       attributes: [.posixPermissions: 0o700])
-    if let data = try? Data(contentsOf: url), (try? decode(data)) != nil {
-      try data.write(to: backup, options: .atomic)
+    let valid =
+      archiveIsValid ?? ((try? Data(contentsOf: url)).flatMap { try? decode($0) } != nil)
+    if valid, manager.fileExists(atPath: url.path) {
+      // copyItem clones on APFS: the backup shares blocks instead of rewriting the archive.
+      let staged = backup.appendingPathExtension("tmp")
+      try? manager.removeItem(at: staged)
+      try manager.copyItem(at: url, to: staged)
+      guard rename(staged.path, backup.path) == 0 else {
+        try? manager.removeItem(at: staged)
+        throw CocoaError(.fileWriteUnknown)
+      }
     }
     try JSONEncoder().encode(history).write(to: url, options: .atomic)
   }

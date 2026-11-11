@@ -105,7 +105,10 @@ final class UsageStore {
         home: FileManager.default.homeDirectoryForCurrentUser.path,
         inherited: ProcessInfo.processInfo.environment["CODEX_HOME"])
     offline = defaults.bool(forKey: "offline")
-    refreshMinutes = max(1, defaults.integer(forKey: "refreshMinutes"))
+    // Each refresh rescans every agent log, so a minute is opt-in, not the default.
+    refreshMinutes =
+      defaults.object(forKey: "refreshMinutes") == nil
+      ? 5 : max(1, defaults.integer(forKey: "refreshMinutes"))
     quotaSource = QuotaSource(rawValue: defaults.string(forKey: "quotaSource") ?? "") ?? .codex
     quotaChartRange =
       QuotaChartRange(rawValue: defaults.string(forKey: "quotaChartRange") ?? "") ?? .rte

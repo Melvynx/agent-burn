@@ -69,3 +69,45 @@ private func detailedCache(source: String = "test", cost: Double = 12) throws ->
   #expect(store.summary?.agents.first?.models?.first?.model == "gpt-test")
   #expect(store.summary?.totals.totalCost == 12)
 }
+
+@Test func journalAppendsLinesInsteadOfRewritingHistory() throws {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  defer { try? FileManager.default.removeItem(at: directory) }
+  let journal = UsageJournal(directory: directory)
+  try journal.record(try detailedCache())
+  let url = directory.appendingPathComponent("usage-journal.jsonl")
+  let first = try Data(contentsOf: url)
+  try journal.record(try detailedCache(cost: 20))
+  let second = try Data(contentsOf: url)
+  #expect(second.prefix(first.count) == first)
+  #expect(second.split(separator: UInt8(ascii: "\n")).count == 2)
+}
+
+@Test func legacyJournalMigratesOnceToJSONLines() throws {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  defer { try? FileManager.default.removeItem(at: directory) }
+  try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+  let legacy = directory.appendingPathComponent("usage-journal.json")
+  let snapshot = UsageSnapshot(date: .distantPast, source: "old", payload: Data("{}".utf8))
+  try JSONEncoder().encode([snapshot]).write(to: legacy)
+  let journal = UsageJournal(directory: directory)
+  try journal.record(try detailedCache())
+  #expect(!FileManager.default.fileExists(atPath: legacy.path))
+  #expect(try journal.records().map(\.source) == ["old", "test"])
+}
+
+@Test func partialTrailingLineDoesNotCorruptTheNextRecord() throws {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  defer { try? FileManager.default.removeItem(at: directory) }
+  let journal = UsageJournal(directory: directory)
+  try journal.record(try detailedCache())
+  let handle = try FileHandle(forWritingTo: directory.appendingPathComponent("usage-journal.jsonl"))
+  try handle.seekToEnd()
+  try handle.write(contentsOf: Data("{\"date\":1,\"sou".utf8))
+  try handle.close()
+  try journal.record(try detailedCache(cost: 20))
+  let costs = try journal.records().map {
+    try JSONDecoder().decode(SummaryReport.self, from: $0.payload).totals.totalCost
+  }
+  #expect(costs == [12, 20])
+}

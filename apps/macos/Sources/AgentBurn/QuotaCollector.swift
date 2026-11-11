@@ -58,11 +58,11 @@ enum QuotaCollector {
     }
     defer { flock(descriptor, LOCK_UN) }
     let file = QuotaHistoryFile(directory: directory)
-    _ = try file.load()
     let environment = ["CODEX_HOME": config.codexHomes, "AGENT_BURN_QUOTA_ONLY": "1"].merging(
       force ? ["AGENT_BURN_FORCE_REFRESH": "1"] : [:]
     ) { $1 }
-    var saveError: Error?
+    var collected: [QuotaReading] = []
+    var failures: [String: String?] = [:]
     await withTaskGroup(of: (String, [QuotaReading], String?).self) { group in
       for agent in ["codex", "claude"] {
         group.addTask {
@@ -117,15 +117,12 @@ enum QuotaCollector {
         }
       }
       for await (agent, readings, error) in group {
-        let failures: [String: String?] =
-          error != nil || readings.isEmpty ? [agent: error] : [:]
-        // Persist each provider immediately, even if the other hangs or this process crashes.
-        do { try file.commit(readings, source: config.source, failures: failures) } catch {
-          saveError = error
-          FileHandle.standardError.write(Data("Quota history could not be saved.\n".utf8))
-        }
+        collected.append(contentsOf: readings)
+        if error != nil || readings.isEmpty { failures.updateValue(error, forKey: agent) }
       }
     }
-    if let saveError { throw saveError }
+    // One merge per run: each commit decodes and re-encodes the whole archive.
+    // Every provider is bounded by its CLI timeout, so waiting for all of them is safe.
+    try file.commit(collected, source: config.source, failures: failures, strict: true)
   }
 }
