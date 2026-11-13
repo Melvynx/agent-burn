@@ -82,6 +82,9 @@ enum CLIClient {
     process.standardOutput = handle
     process.standardError = FileHandle.nullDevice
     process.standardInput = FileHandle.nullDevice
+    // Report scans read every agent log (gigabytes) with several cores. Background QoS keeps
+    // them on efficiency cores with throttled disk I/O so they can never freeze the Mac.
+    process.qualityOfService = .background
     try process.run()
     let deadline = Date().addingTimeInterval(timeout)
     while process.isRunning && Date() < deadline { Thread.sleep(forTimeInterval: 0.1) }
