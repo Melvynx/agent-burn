@@ -13,7 +13,10 @@ pub(super) const LIVE_MS: i64 = 85_000;
 /// How long a cached body may stand in for the live meter in reports.
 pub(super) const STALE_MS: i64 = 15 * 60_000;
 const MIN_BACKOFF_MS: i64 = 60_000;
-const MAX_BACKOFF_MS: i64 = 15 * 60_000;
+/// Anthropic's Retry-After is honored in full (it reached 19 minutes and more).
+/// Retrying earlier is answered with another 429, which kept the meter blocked
+/// for hours. The cap only guards against a nonsensical header.
+const MAX_BACKOFF_MS: i64 = 2 * 60 * 60_000;
 /// A refused refresh token stays refused until `claude` signs in again, so
 /// retries are spaced instead of hitting the token endpoint every minute.
 const RENEW_BACKOFF_MS: i64 = 10 * 60_000;
@@ -218,6 +221,7 @@ mod tests {
     #[test]
     fn clamps_retry_after_into_a_sane_backoff() {
         assert_eq!(backoff_ms(Some(174)), 174_000);
+        assert_eq!(backoff_ms(Some(1149)), 1_149_000);
         assert_eq!(backoff_ms(Some(1)), MIN_BACKOFF_MS);
         assert_eq!(backoff_ms(None), MIN_BACKOFF_MS);
         assert_eq!(backoff_ms(Some(86_400)), MAX_BACKOFF_MS);
