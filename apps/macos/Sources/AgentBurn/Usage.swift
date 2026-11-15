@@ -218,6 +218,20 @@ func spendBucketEnd(
   }
 }
 
+/// Widens a day-based chart domain to whole buckets. Bars span their full bucket, so a domain
+/// that starts or ends mid-bucket lets the edge bars spill outside the plot area.
+func spendChartDomain(
+  _ range: ClosedRange<Date>, granularity: SpendGranularity,
+  calendar: Calendar = spendCalendar()
+) -> ClosedRange<Date> {
+  let lower = spendBucketStart(for: range.lowerBound, granularity: granularity, calendar: calendar)
+  let lastStart = spendBucketStart(
+    for: range.upperBound, granularity: granularity, calendar: calendar)
+  let upper = spendBucketEnd(start: lastStart, granularity: granularity, calendar: calendar)
+    .addingTimeInterval(1)
+  return lower...max(lower, upper)
+}
+
 func bucketDailyUsage(
   _ days: [DailyUsage], granularity: SpendGranularity,
   calendar: Calendar = spendCalendar()

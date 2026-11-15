@@ -298,7 +298,7 @@ struct DailySpendChart: View {
         }
       }
       .chartXSelection(value: $selected)
-      .chartXScale(domain: scale)
+      .chartXScale(domain: spendChartDomain(scale, granularity: effective))
       .chartYAxis {
         AxisMarks(position: .leading) { _ in
           AxisGridLine().foregroundStyle(BurnTheme.line)

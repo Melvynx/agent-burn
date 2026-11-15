@@ -569,7 +569,7 @@ private struct ActivityChart: View {
       }
       .animation(.easeOut(duration: 0.15), value: selectedBucket?.usage.id)
       .chartXSelection(value: $selected)
-      .chartXScale(domain: scale)
+      .chartXScale(domain: spendChartDomain(scale, granularity: effective))
       .chartYAxis {
         AxisMarks(position: .leading) { _ in
           AxisGridLine()

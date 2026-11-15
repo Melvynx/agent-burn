@@ -413,3 +413,15 @@ private func spendTestCalendar() -> Calendar {
       == "2026-09-01")
   #expect(spendSpanDays(lower: wednesday, upper: wednesday) == 1)
 }
+
+@Test func spendChartDomainCoversWholeEdgeBuckets() {
+  let calendar = spendTestCalendar()
+  let range = usageDayDate("2026-02-18")!...usageDayDate("2026-11-15")!
+  let bounds = { (granularity: SpendGranularity) -> [String] in
+    let domain = spendChartDomain(range, granularity: granularity, calendar: calendar)
+    return [quotaDayKey(domain.lowerBound), quotaDayKey(domain.upperBound)]
+  }
+  #expect(bounds(.monthly) == ["2026-02-01", "2026-12-01"])
+  #expect(bounds(.weekly) == ["2026-02-16", "2026-11-16"])
+  #expect(bounds(.daily) == ["2026-02-18", "2026-11-16"])
+}
